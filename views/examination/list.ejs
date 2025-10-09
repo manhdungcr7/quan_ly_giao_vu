@@ -285,15 +285,37 @@
                         <i class="fas fa-bars"></i>
                     </button>
                 </div>
-                <div class="topbar-right">
-                    <div class="topbar-user">
-                        <div class="topbar-user__meta">
-                            <span class="topbar-user__name"><%= (user && (user.fullName || user.full_name || user.username)) || 'Người dùng' %></span>
-                            <span class="topbar-user__role"><%= (user && user.roleName) || 'Administrator' %></span>
-                        </div>
-                        <div class="topbar-user__avatar"><%= (user && (user.fullName || user.full_name || user.username) || '?').charAt(0).toUpperCase() %></div>
-                    </div>
-                </div>
+        <div class="topbar-right">
+          <div class="topbar-user" data-user-menu>
+            <button class="topbar-user__details" type="button" data-user-menu-toggle aria-haspopup="true" aria-expanded="false">
+              <div class="topbar-user__meta">
+                <span class="topbar-user__name"><%= (user && (user.fullName || user.full_name || user.username)) || 'Người dùng' %></span>
+                <span class="topbar-user__role"><%= (user && (user.roleName || user.role_name)) || 'Administrator' %></span>
+              </div>
+              <div class="topbar-user__avatar"><%= (user && (user.fullName || user.full_name || user.username) || '?').charAt(0).toUpperCase() %></div>
+              <span class="topbar-user__chevron" aria-hidden="true">⌄</span>
+            </button>
+            <div class="topbar-user__menu" data-user-menu-dropdown hidden>
+              <a class="topbar-user__menu-item" href="<%= (user && user.id) ? ('/users/' + user.id) : '#' %>">
+                <span>👤 Hồ sơ cá nhân</span>
+              </a>
+              <a class="topbar-user__menu-item" href="/auth/change-password">
+                <span>🔑 Đổi mật khẩu</span>
+              </a>
+              <form class="topbar-user__menu-item" method="post" action="/auth/logout">
+                <button type="submit" class="topbar-user__logout">
+                  <span>🚪 Đăng xuất</span>
+                </button>
+              </form>
+            </div>
+          </div>
+          <form class="topbar-logout" method="post" action="/auth/logout">
+            <button type="submit" class="topbar-logout__button" title="Đăng xuất">
+              <span>Đăng xuất</span>
+              <i aria-hidden="true">⇦</i>
+            </button>
+          </form>
+        </div>
             </header>
             <main class="app-content">
                 <%- include('../partials/alerts') %>

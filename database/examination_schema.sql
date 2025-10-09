@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS examination_sessions (
     student_count INT DEFAULT 0 COMMENT 'Số lượng sinh viên',
     expected_copies INT COMMENT 'Dự kiến số bản cần in',
     actual_copies INT COMMENT 'Số bản thực tế',
-    grader_id INT COMMENT 'ID cán bộ chấm bài',
+    grader_id INT UNSIGNED COMMENT 'ID cán bộ chấm thi',
     grader_manual_name VARCHAR(120) COMMENT 'Tên cán bộ chấm nhập tay',
     grading_deadline DATE COMMENT 'Hạn chấm bài',
     link VARCHAR(500) COMMENT 'Link thi online',
@@ -173,7 +173,7 @@ INSERT INTO subjects (code, name, credits, department, exam_duration) VALUES
 ('PROC10', 'Tổ hợp kinh tế', 3, 'vầu-đập', 95);
 
 INSERT INTO classes (code, name, subject_id, semester, academic_year, student_count) VALUES
-('01', 'Lớp 01', 1, 'HK I', '2024-2025', 120),
-('02', 'Lớp 02', 2, 'HK I', '2024-2025', 75),
-('01', 'Lớp 01', 3, 'HK I', '2024-2025', 110),
-('02', 'Lớp 02', 4, 'HK I', '2024-2025', 95);
+('01A', 'Lớp 01', 1, 'HK I', '2024-2025', 120),
+('02A', 'Lớp 02', 2, 'HK I', '2024-2025', 75),
+('01B', 'Lớp 01', 3, 'HK I', '2024-2025', 110),
+('02B', 'Lớp 02', 4, 'HK I', '2024-2025', 95);

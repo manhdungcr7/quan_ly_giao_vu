@@ -63,8 +63,4 @@ DELIMITER ;
 
 -- Index cho performance
 CREATE INDEX idx_file_status ON examination_files(session_id, status);
-CREATE INDEX idx_primary_file ON examination_files(session_id, is_primary) WHERE is_primary = TRUE;
-
--- Thêm cột metadata JSON cho flexible storage (optional)
-ALTER TABLE examination_files
-ADD COLUMN metadata JSON COMMENT 'Metadata bổ sung (preview_url, thumbnail, etc)';
+CREATE INDEX idx_primary_file ON examination_files(session_id, is_primary);
