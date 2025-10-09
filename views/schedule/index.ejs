@@ -1,0 +1,4364 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Quản lý giáo vụ</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
+    
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .breadcrumb {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .toolbar {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .toolbar-left {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none !important;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-group select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .calendar-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .module-switcher {
+            max-width: 1400px;
+            margin: 2rem auto 0;
+            padding: 0 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .module-switcher button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 999px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            background: white;
+            color: #4a5568;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .module-switcher button i {
+            font-size: 1.1rem;
+        }
+
+        .module-switcher button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.25);
+        }
+
+        .module-panel {
+            display: none;
+        }
+
+        .module-panel.active {
+            display: block;
+        }
+
+        .teaching-wrapper {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .teaching-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(79, 114, 205, 0.12);
+        }
+
+        .teaching-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .teaching-header h2 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .teaching-subtext {
+            color: #4a5568;
+            margin-top: 0.5rem;
+            max-width: 520px;
+            line-height: 1.5;
+        }
+
+        .teaching-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .week-label {
+            font-weight: 600;
+            color: #2c3e50;
+            background: rgba(102, 126, 234, 0.08);
+            padding: 0.55rem 1rem;
+            .teaching-summary-bar {
+                flex-direction: column;
+            }
+            border-radius: 999px;
+        }
+
+        .teaching-table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            margin-top: 1rem;
+        }
+
+        .teaching-customization {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem 1.5rem;
+            align-items: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .teaching-customization .customization-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            min-width: 200px;
+        }
+
+        .teaching-customization label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #4c1d95;
+        }
+
+        .teaching-customization select,
+        .teaching-customization input {
+            padding: 0.55rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: #1f2937;
+            background: #ffffff;
+        }
+
+        .teaching-search-input {
+            min-width: 240px;
+            padding-left: 2.2rem !important;
+            background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="%236b7280" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" class="feather feather-search" viewBox="0 0 24 24"%3E%3Ccircle cx="11" cy="11" r="8"/%3E%3Cline x1="21" y1="21" x2="16.65" y2="16.65"/%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: 0.75rem center;
+            background-size: 16px;
+        }
+
+        .teaching-summary-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .teaching-summary-item {
+            flex: 1 1 220px;
+            min-width: 200px;
+            display: flex;
+            gap: 0.85rem;
+            align-items: center;
+            padding: 1rem 1.2rem;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(129, 140, 248, 0.12) 0%, rgba(196, 181, 253, 0.15) 100%);
+            border: 1px solid rgba(129, 140, 248, 0.18);
+        }
+
+        .teaching-summary-item[data-variant="success"] {
+            background: linear-gradient(135deg, rgba(110, 231, 183, 0.12) 0%, rgba(52, 211, 153, 0.12) 100%);
+            border-color: rgba(16, 185, 129, 0.25);
+        }
+
+        .teaching-summary-item[data-variant="warning"] {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(251, 146, 60, 0.12) 100%);
+            border-color: rgba(251, 146, 60, 0.25);
+        }
+
+        .teaching-summary-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: rgba(79, 70, 229, 0.18);
+            color: #4338ca;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .teaching-summary-item[data-variant="success"] .teaching-summary-icon {
+            background: rgba(16, 185, 129, 0.18);
+            color: #047857;
+        }
+
+        .teaching-summary-item[data-variant="warning"] .teaching-summary-icon {
+            background: rgba(251, 146, 60, 0.18);
+            color: #b45309;
+        }
+
+        .teaching-summary-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .teaching-summary-label {
+            font-size: 0.85rem;
+            color: #4b5563;
+            font-weight: 600;
+        }
+
+        .teaching-summary-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .teaching-summary-meta {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .teaching-customization .customization-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+
+        .teaching-customization .customization-actions .btn {
+            padding: 0.55rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-light {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-light:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background: #f8fafc;
+            color: #4338ca;
+        }
+
+        .teaching-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 1024px;
+        }
+
+        .teaching-table th,
+        .teaching-table td {
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem;
+            vertical-align: top;
+        }
+
+        .teaching-table th:last-child,
+        .teaching-table td:last-child {
+            border-right: none;
+        }
+
+        .teaching-table thead th {
+            background: #f8fafc;
+            text-align: center;
+            font-weight: 600;
+            color: #1f2937;
+            position: sticky;
+            top: 0;
+            z-index: 4;
+        }
+
+        .teaching-table thead th span {
+            display: block;
+            margin-top: 0.35rem;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .lecturer-col {
+            background: #eef2ff;
+            font-weight: 600;
+            color: #4338ca;
+            width: 240px;
+        }
+
+        .teaching-table[data-lecturer-width="compact"] .lecturer-col {
+            width: 180px;
+        }
+
+        .teaching-table[data-lecturer-width="comfortable"] .lecturer-col {
+            width: 240px;
+        }
+
+        .teaching-table[data-lecturer-width="expanded"] .lecturer-col {
+            width: 300px;
+        }
+
+        .teaching-table thead th.lecturer-col {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+
+        .teaching-table tbody th.lecturer-col {
+            position: sticky;
+            left: 0;
+            z-index: 3;
+            background: #eef2ff;
+        }
+
+        .teaching-table tbody td {
+            background: #ffffff;
+        }
+
+        .teaching-row-striped:nth-child(even) .lecturer-col {
+            background: #e0e7ff;
+        }
+
+        .teaching-day-header-current {
+            background: linear-gradient(135deg, rgba(129, 140, 248, 0.3) 0%, rgba(96, 165, 250, 0.25) 100%) !important;
+            color: #1e3a8a !important;
+        }
+
+        .teaching-day-header-current span {
+            color: #1d4ed8 !important;
+        }
+
+        .teaching-cell-current-day {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .lecturer-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .lecturer-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #312e81;
+        }
+
+        .lecturer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .lecturer-badges {
+            display: inline-flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            margin-top: 0.35rem;
+        }
+
+        .lecturer-actions {
+            display: inline-flex;
+            gap: 0.25rem;
+        }
+
+        .lecturer-action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            background: rgba(99, 102, 241, 0.08);
+            color: #4338ca;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .lecturer-action-btn:hover {
+            background: rgba(79, 70, 229, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .lecturer-action-btn[data-variant="danger"] {
+            border-color: rgba(239, 68, 68, 0.25);
+            background: rgba(254, 202, 202, 0.35);
+            color: #b91c1c;
+        }
+
+        .lecturer-action-btn[data-variant="danger"]:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .lecturer-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem 0.75rem;
+            font-size: 0.85rem;
+            color: #4b5563;
+        }
+
+        .lecturer-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .manual-lecturer-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: rgba(129, 140, 248, 0.15);
+            color: #4338ca;
+            font-weight: 700;
+        }
+
+        .manual-lecturer-row .lecturer-col {
+            background: rgba(224, 231, 255, 0.8);
+        }
+
+        .lesson-card {
+            background: linear-gradient(135deg, rgba(102,126,234,0.05) 0%, rgba(118,75,162,0.05) 100%);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(102, 126, 234, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-height: 120px;
+        }
+
+        .lesson-card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .lesson-class {
+            font-weight: 600;
+            color: #4c1d95;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .lesson-meta {
+            display: grid;
+            gap: 0.35rem;
+            font-size: 0.85rem;
+            color: #4b5563;
+        }
+
+        .lesson-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .lesson-card + .lesson-card {
+            margin-top: 0.75rem;
+        }
+
+        .teaching-cell-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-height: 100px;
+        }
+
+        .teaching-cell-empty {
+            text-align: center;
+            color: #9ca3af;
+            font-style: italic;
+            padding: 1.25rem 0.5rem;
+        }
+
+        .teaching-table td {
+            position: relative;
+        }
+
+        .teaching-add-row-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(99, 102, 241, 0.12);
+            color: #4f46e5;
+            border: none;
+            border-radius: 999px;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transform: scale(0.94);
+            transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+        }
+
+        .teaching-add-row-btn i {
+            font-size: 1rem;
+        }
+
+        .teaching-add-row-btn:hover {
+            background: rgba(79, 70, 229, 0.2);
+            color: #312e81;
+            transform: scale(1);
+        }
+
+        .teaching-table td:hover .teaching-add-row-btn,
+        .teaching-table td:focus-within .teaching-add-row-btn {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .lesson-card[data-clickable="true"] {
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .lesson-card[data-clickable="true"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(79, 70, 229, 0.16);
+        }
+
+        .teaching-table td.empty-state {
+            text-align: center;
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .teaching-session-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .teaching-session-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .teaching-session-row .session-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(120px, 1fr));
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        .teaching-session-row label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #4c1d95;
+        }
+
+        .teaching-session-row .session-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            flex: 1;
+        }
+
+        .teaching-session-row input[type="time"] {
+            padding: 0.55rem 0.75rem;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+            font-size: 0.9rem;
+        }
+
+        .session-remove-btn[disabled] {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        #teachingLessonAddSessionBtn {
+            margin-top: 0.75rem;
+        }
+
+        .teaching-notes {
+            margin-top: 1.5rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px dashed rgba(102, 126, 234, 0.3);
+        }
+
+        .teaching-notes h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            color: #1f2937;
+        }
+
+        .teaching-notes ul {
+            margin: 0;
+            padding-left: 1rem;
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .teaching-notes li {
+            color: #4b5563;
+            line-height: 1.5;
+        }
+
+        .teaching-empty {
+            padding: 2rem;
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .teaching-import-panel {
+            margin-top: 1.5rem;
+            background: #f8f9ff;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .teaching-import-panel.active {
+            display: flex;
+        }
+
+        .import-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1.25rem;
+        }
+
+        .import-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .import-header p {
+            margin-top: 0.35rem;
+            color: #4b5563;
+            line-height: 1.5;
+        }
+
+        .import-close-btn {
+            border: none;
+            background: rgba(102, 126, 234, 0.12);
+            color: #4c1d95;
+            border-radius: 999px;
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .import-close-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .import-dropzone {
+            border: 2px dashed rgba(102, 126, 234, 0.35);
+            border-radius: 14px;
+            padding: 1.5rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: block;
+        }
+
+        .import-dropzone:hover {
+            background: rgba(102, 126, 234, 0.08);
+            border-color: rgba(102, 126, 234, 0.6);
+        }
+
+        .import-dropzone input {
+            display: none;
+        }
+
+        .import-dropzone strong {
+            display: block;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: #3730a3;
+        }
+
+        .import-dropzone span {
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+
+        .import-status {
+            display: none;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.92rem;
+        }
+
+        .import-status.active {
+            display: block;
+        }
+
+        .import-status.info {
+            background: rgba(37, 99, 235, 0.12);
+            color: #1d4ed8;
+        }
+
+        .import-status.success {
+            background: rgba(16, 185, 129, 0.12);
+            color: #047857;
+        }
+
+        .import-status.error {
+            background: rgba(239, 68, 68, 0.12);
+            color: #b91c1c;
+        }
+
+        .import-status.warning {
+            background: rgba(245, 158, 11, 0.18);
+            color: #b45309;
+        }
+
+        .import-summary {
+            display: none;
+            gap: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.95rem;
+            color: #374151;
+        }
+
+        .import-summary.active {
+            display: flex;
+        }
+
+        .import-summary span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: white;
+            padding: 0.5rem 0.9rem;
+            border-radius: 999px;
+            border: 1px solid rgba(102, 126, 234, 0.25);
+        }
+
+        .import-mapping {
+            display: none;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .import-mapping.active {
+            display: flex;
+        }
+
+        .mapping-item {
+            flex: 1 1 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .mapping-item label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .mapping-item label span {
+            color: #ef4444;
+            margin-left: 0.2rem;
+        }
+
+        .mapping-item select {
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 0.55rem 0.75rem;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .import-preview {
+            display: none;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .import-preview.active {
+            display: block;
+        }
+
+        .import-preview table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .import-preview th,
+        .import-preview td {
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            padding: 0.65rem 0.75rem;
+            font-size: 0.88rem;
+            text-align: left;
+        }
+
+        .import-preview th {
+            background: #eef2ff;
+            font-weight: 600;
+        }
+
+        .import-actions {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .import-actions.active {
+            display: flex;
+        }
+
+        .import-options label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: #4b5563;
+        }
+
+        .import-errors {
+            display: none;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            background: rgba(254, 226, 226, 0.6);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+        }
+
+        .import-errors.active {
+            display: block;
+        }
+
+        .import-errors h4 {
+            color: #b91c1c;
+            margin-bottom: 0.6rem;
+            font-size: 1rem;
+        }
+
+        .import-errors ul {
+            margin: 0;
+            padding-left: 1.25rem;
+            display: grid;
+            gap: 0.35rem;
+            color: #7f1d1d;
+            font-size: 0.9rem;
+        }
+
+        #calendar {
+            min-height: 700px;
+        }
+
+        /* FullCalendar customization */
+        .fc {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .fc-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            border: none !important;
+            text-transform: capitalize !important;
+            font-weight: 500 !important;
+        }
+
+        .fc-button:hover {
+            opacity: 0.9 !important;
+        }
+
+        .fc-event {
+            border-radius: 6px !important;
+            padding: 4px 8px !important;
+            font-size: 0.85rem !important;
+            font-weight: 500 !important;
+            cursor: pointer !important;
+        }
+
+        .fc-daygrid-event {
+            white-space: normal !important;
+        }
+
+        .fc-event-title {
+            font-weight: 600 !important;
+        }
+
+        .fc-toolbar-title {
+            font-size: 1.5rem !important;
+            font-weight: 600 !important;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-row.form-row-three {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .color-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0.5rem;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: #2c3e50;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #2c3e50;
+        }
+
+        .modal-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-confirmed { background: #d4edda; color: #155724; }
+        .badge-draft { background: #fff3cd; color: #856404; }
+        .badge-cancelled { background: #f8d7da; color: #721c24; }
+        .badge-completed { background: #d1ecf1; color: #0c5460; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                width: 95%;
+                max-height: 95vh;
+            }
+
+            .module-switcher {
+                padding: 0 1rem;
+            }
+
+            .teaching-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .teaching-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .teaching-summary-bar {
+                flex-direction: column;
+            }
+
+            .teaching-summary-item {
+                width: 100%;
+            }
+
+            .teaching-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body data-current-user-id="<%= user.id %>" data-current-user-name="<%= user.full_name %>">
+    <div class="header">
+        <h1><i class="bi bi-calendar3"></i> <%= title %></h1>
+        <div class="breadcrumb">
+            <span>Trang chủ</span>
+            <span>›</span>
+            <span>Lịch công tác</span>
+        </div>
+    </div>
+
+    <div class="module-switcher">
+        <button id="calendarTab" class="active" onclick="switchModule('calendar')">
+            <i class="bi bi-calendar2-week"></i> Lịch tổng hợp
+        </button>
+        <button id="teachingTab" onclick="switchModule('teaching')">
+            <i class="bi bi-easel2"></i> Lịch giảng
+        </button>
+    </div>
+
+    <div id="calendarModule" class="module-panel active">
+        <div class="container">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <i class="bi bi-plus-circle"></i> Tạo sự kiện mới
+                    </button>
+                    <button class="btn btn-secondary" onclick="calendar.today()">
+                        <i class="bi bi-calendar-today"></i> Hôm nay
+                    </button>
+                </div>
+                
+                <div class="filter-group">
+                    <label style="font-weight: 500;">Xem lịch của:</label>
+                    <select id="userFilter" onchange="loadEvents()">
+                        <option value="">Tất cả</option>
+                        <option value="<%= user.id %>">Của tôi</option>
+                        <% users.forEach(u => { %>
+                            <option value="<%= u.id %>"><%= u.full_name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+            </div>
+
+            <div class="calendar-container">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="teachingModule" class="module-panel">
+        <div class="teaching-wrapper">
+            <div class="teaching-card" id="teachingModuleCard">
+                <div class="teaching-header">
+                    <div>
+                        <h2><i class="bi bi-easel"></i> Lịch giảng theo tuần</h2>
+                        <p class="teaching-subtext">
+                            Tổng hợp lịch giảng dạy theo từng tiết trong tuần cho toàn bộ khoa. Dữ liệu được lọc tự động từ các sự kiện "Giảng dạy" trên lịch công tác.
+                        </p>
+                    </div>
+                    <div class="teaching-actions">
+                        <button class="btn btn-secondary" onclick="changeTeachingWeek(-1)">
+                            <i class="bi bi-chevron-left"></i> Tuần trước
+                        </button>
+                        <span class="week-label" id="teachingWeekLabel"></span>
+                        <button class="btn btn-secondary" onclick="changeTeachingWeek(1)">
+                            Tuần sau <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button class="btn btn-primary" onclick="openTeachingLessonModal()">
+                            <i class="bi bi-plus-circle"></i> Thêm lịch giảng
+                        </button>
+                        <button class="btn btn-secondary" onclick="downloadTeachingTemplate()">
+                            <i class="bi bi-file-earmark-arrow-down"></i> Tải mẫu Excel
+                        </button>
+                        <button class="btn btn-secondary" onclick="toggleTeachingImportPanel(true)">
+                            <i class="bi bi-cloud-upload"></i> Import từ Excel
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportTeachingSchedule()">
+                            <i class="bi bi-file-pdf"></i> Xuất PDF
+                        </button>
+                    </div>
+                </div>
+
+                <div class="teaching-import-panel" id="teachingImportPanel">
+                    <div class="import-header">
+                        <div>
+                            <h3><i class="bi bi-cloud-arrow-up"></i> Nhập lịch giảng từ Excel</h3>
+                            <p>
+                                Kéo thả hoặc chọn file Excel chuẩn để kiểm tra, ghép cột và nhập nhanh lịch giảng.
+                                Dòng đầu tiên nên là tiêu đề cột để dễ dàng nhận diện.
+                            </p>
+                        </div>
+                        <button type="button" class="import-close-btn" onclick="closeTeachingImportPanel()" aria-label="Đóng panel import">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <label class="import-dropzone" id="teachingImportDropzone">
+                        <input type="file" id="teachingImportFile" accept=".xlsx" onchange="handleTeachingImportFile(event)">
+                        <strong>Chọn hoặc thả file Excel (.xlsx)</strong>
+                        <span>Hệ thống hỗ trợ file tối đa 10MB. Định dạng ngày nên là dd/mm/yyyy.</span>
+                    </label>
+
+                    <div id="teachingImportStatus" class="import-status"></div>
+
+                    <div id="teachingImportSummary" class="import-summary">
+                        <span><i class="bi bi-file-earmark-spreadsheet"></i> <span id="importSummaryFileName">Chưa có file</span></span>
+                        <span><i class="bi bi-collection"></i> <span id="importSummaryRows">0 dòng dữ liệu</span></span>
+                    </div>
+
+                    <div id="teachingImportMapping" class="import-mapping"></div>
+
+                    <div id="teachingImportPreview" class="import-preview">
+                        <table>
+                            <thead id="importPreviewHead"></thead>
+                            <tbody id="importPreviewBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="teachingImportErrors" class="import-errors">
+                        <h4>Các dòng chưa thể nhập</h4>
+                        <ul id="teachingImportErrorsList"></ul>
+                    </div>
+
+                    <div id="teachingImportActions" class="import-actions">
+                        <div class="import-options">
+                            <label>
+                                <input type="checkbox" id="importAllowConflicts">
+                                Bỏ qua cảnh báo trùng lịch (vẫn nhập sự kiện bị trùng)
+                            </label>
+                        </div>
+                        <div class="import-buttons">
+                            <button class="btn btn-secondary" type="button" onclick="resetTeachingImport()">Làm mới</button>
+                            <button class="btn btn-primary" type="button" onclick="commitTeachingImport()">
+                                <i class="bi bi-check-circle"></i> Nhập lịch giảng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="teaching-customization" id="teachingCustomization">
+                    <div class="customization-group">
+                        <label for="teachingLecturerSearch">Tìm kiếm giảng viên</label>
+                        <input type="search" id="teachingLecturerSearch" class="teaching-search-input" placeholder="Nhập tên hoặc email..." aria-label="Tìm kiếm giảng viên theo tên hoặc email">
+                    </div>
+                    <div class="customization-group">
+                        <label for="teachingLecturerFilter">Xem lịch giảng</label>
+                        <select id="teachingLecturerFilter" aria-label="Lọc theo giảng viên">
+                            <option value="all">Tất cả giảng viên</option>
+                        </select>
+                    </div>
+                    <div class="customization-group">
+                        <label for="teachingLecturerWidth">Bề rộng cột giảng viên</label>
+                        <select id="teachingLecturerWidth" aria-label="Điều chỉnh bề rộng cột giảng viên">
+                            <option value="compact">Gọn (180px)</option>
+                            <option value="comfortable" selected>Tiêu chuẩn (240px)</option>
+                            <option value="expanded">Rộng (300px)</option>
+                        </select>
+                    </div>
+                    <div class="customization-group">
+                        <label for="teachingLecturerDetails">Thông tin hiển thị</label>
+                        <select id="teachingLecturerDetails" aria-label="Tùy chọn thông tin giảng viên">
+                            <option value="name">Chỉ tên</option>
+                            <option value="name-email" selected>Tên + email</option>
+                            <option value="name-classes">Tên + các lớp phụ trách</option>
+                            <option value="full">Chi tiết đầy đủ</option>
+                        </select>
+                    </div>
+                    <div class="customization-actions">
+                        <button type="button" class="btn btn-primary" id="teachingAddCustomLecturer">
+                            <i class="bi bi-person-plus"></i> Thêm giảng viên tùy chỉnh
+                        </button>
+                        <button type="button" class="btn btn-light" id="teachingResetCustomization">
+                            <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="teachingMyScheduleBtn">
+                            <i class="bi bi-person-badge"></i> Chỉ xem của tôi
+                        </button>
+                    </div>
+                </div>
+
+                <div class="teaching-summary-bar" id="teachingSummaryBar" style="display: none;"></div>
+
+                <div class="teaching-table-wrapper">
+                    <table class="teaching-table" id="teachingTable">
+                        <thead id="teachingTableHead"></thead>
+                        <tbody id="teachingTableBody">
+                            <tr>
+                                <td colspan="8" class="teaching-empty">Đang tải dữ liệu lịch giảng...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="teaching-notes" id="teachingNotesContainer" style="display: none;">
+                    <h3><i class="bi bi-info-circle"></i> Ghi chú trong tuần</h3>
+                    <ul id="teachingNotes"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="manualLecturerModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="modal-content" role="document">
+            <div class="modal-header">
+                <h2 id="manualLecturerModalTitle">Thêm giảng viên tùy chỉnh</h2>
+                <button class="close-btn" type="button" onclick="closeManualLecturerModal()" aria-label="Đóng">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="manualLecturerForm">
+                    <div class="form-group">
+                        <label for="manualLecturerName">Tên giảng viên <span class="required">*</span></label>
+                        <input type="text" id="manualLecturerName" class="form-control" required placeholder="Ví dụ: ThS. Nguyễn Văn B">
+                    </div>
+                    <div class="form-group">
+                        <label for="manualLecturerEmail">Email</label>
+                        <input type="email" id="manualLecturerEmail" class="form-control" placeholder="giangvien@khoa.edu.vn">
+                    </div>
+                    <div class="form-group">
+                        <label for="manualLecturerNotes">Ghi chú</label>
+                        <textarea id="manualLecturerNotes" class="form-control" rows="2" placeholder="Thông tin thêm (VD: Lớp phụ trách, chuyên đề, ...)"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeManualLecturerModal()">Hủy</button>
+                <button class="btn btn-primary" type="button" onclick="submitManualLecturer()">
+                    <i class="bi bi-plus-circle"></i> Lưu giảng viên
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tạo/Sửa sự kiện -->
+    <div id="eventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Tạo sự kiện mới</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <form id="eventForm">
+                    <input type="hidden" id="eventId">
+                    
+                    <div class="form-group">
+                        <label>Tiêu đề <span class="required">*</span></label>
+                        <input type="text" id="title" class="form-control" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Loại sự kiện</label>
+                            <select id="event_type" class="form-control">
+                                <option value="meeting">Họp</option>
+                                <option value="teaching">Giảng dạy</option>
+                                <option value="exam">Kiểm tra/Thi</option>
+                                <option value="admin">Hành chính</option>
+                                <option value="ceremony">Lễ</option>
+                                <option value="training">Đào tạo</option>
+                                <option value="other">Khác</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Người tổ chức <span class="required">*</span></label>
+                            <select id="organizer_id" class="form-control" required>
+                                <% users.forEach(u => { %>
+                                    <option value="<%= u.id %>" <%= u.id === user.id ? 'selected' : '' %>>
+                                        <%= u.full_name %>
+                                    </option>
+                                <% }) %>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Thời gian bắt đầu <span class="required">*</span></label>
+                            <input type="datetime-local" id="start_datetime" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Thời gian kết thúc <span class="required">*</span></label>
+                            <input type="datetime-local" id="end_datetime" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Địa điểm</label>
+                            <input type="text" id="location" class="form-control" placeholder="Phòng họp A">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Phòng/Tòa nhà</label>
+                            <input type="text" id="room" class="form-control" placeholder="A101">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Mô tả</label>
+                        <textarea id="description" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Trạng thái</label>
+                            <select id="status" class="form-control">
+                                <option value="confirmed">Đã xác nhận</option>
+                                <option value="draft">Nháp</option>
+                                <option value="cancelled">Đã hủy</option>
+                                <option value="completed">Hoàn thành</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Độ ưu tiên</label>
+                            <select id="priority" class="form-control">
+                                <option value="normal">Bình thường</option>
+                                <option value="low">Thấp</option>
+                                <option value="high">Cao</option>
+                                <option value="urgent">Khẩn cấp</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Màu sắc</label>
+                        <div class="color-picker-grid">
+                            <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6"></div>
+                            <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4"></div>
+                            <div class="color-option" style="background: #10b981;" data-color="#10b981"></div>
+                            <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b"></div>
+                            <div class="color-option" style="background: #ef4444;" data-color="#ef4444"></div>
+                            <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6"></div>
+                            <div class="color-option" style="background: #ec4899;" data-color="#ec4899"></div>
+                            <div class="color-option" style="background: #6b7280;" data-color="#6b7280"></div>
+                        </div>
+                        <input type="hidden" id="color" value="">
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Hủy</button>
+                <button class="btn btn-primary" onclick="saveEvent()">
+                    <i class="bi bi-check-circle"></i> Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal thêm lịch giảng -->
+    <div id="teachingLessonModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Thêm lịch giảng</h2>
+                <button class="close-btn" type="button" onclick="closeTeachingLessonModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="teachingLessonForm">
+                    <div class="form-group">
+                        <label>Tên môn / Chủ đề <span class="required">*</span></label>
+                        <input type="text" id="teachingLessonTitle" class="form-control" required placeholder="Ví dụ: Lập trình web - Buổi 1">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ngày giảng <span class="required">*</span></label>
+                            <input type="date" id="teachingLessonDate" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Khung giờ giảng <span class="required">*</span></label>
+                            <div id="teachingLessonSessions" class="teaching-session-list" aria-live="polite"></div>
+                            <button type="button" class="btn btn-light" id="teachingLessonAddSessionBtn" onclick="addTeachingLessonSession()">
+                                <i class="bi bi-plus-circle"></i> Thêm khung giờ
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Lớp / Nhóm học</label>
+                            <input type="text" id="teachingLessonClass" class="form-control" placeholder="Ví dụ: VB2C-IT01">
+                        </div>
+                        <div class="form-group">
+                            <label>Giảng viên</label>
+                            <input type="text" id="teachingLessonLecturer" class="form-control" placeholder="Ví dụ: ThS. Nguyễn Văn A">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Người phụ trách <span class="required">*</span></label>
+                        <select id="teachingLessonOrganizer" class="form-control" required>
+                            <% users.forEach(u => { %>
+                                <option value="<%= u.id %>" <%= u.id === user.id ? 'selected' : '' %>><%= u.full_name %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+
+                    <div class="form-row form-row-three">
+                        <div class="form-group">
+                            <label>Cơ sở / Địa điểm</label>
+                            <input type="text" id="teachingLessonLocation" class="form-control" placeholder="Cơ sở C">
+                        </div>
+                        <div class="form-group">
+                            <label>Phòng học</label>
+                            <input type="text" id="teachingLessonRoom" class="form-control" placeholder="C102">
+                        </div>
+                        <div class="form-group">
+                            <label>Tòa nhà</label>
+                            <input type="text" id="teachingLessonBuilding" class="form-control" placeholder="Tòa nhà K">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ghi chú</label>
+                        <textarea id="teachingLessonNotes" class="form-control" rows="3" placeholder="Ví dụ: Ôn tập ES6 + Demo dự án"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeTeachingLessonModal()">Hủy</button>
+                <button class="btn btn-primary" type="button" onclick="submitTeachingLesson()">
+                    <i class="bi bi-check-circle"></i> Lưu lịch giảng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    
+    <script>
+    let calendar;
+    let currentEvent = null;
+    const CURRENT_USER_ID = document.body.dataset.currentUserId ? Number(document.body.dataset.currentUserId) : null;
+    const CURRENT_USER_NAME = document.body.dataset.currentUserName || '';
+        const teachingState = {
+            currentWeekStart: getWeekStart(new Date()),
+            cache: new Map(),
+            initialized: false,
+            customizationInitialized: false,
+            lastData: null,
+            lecturers: new Map(),
+            customLecturers: [],
+            customLecturerLoading: false,
+            customLecturersLoaded: false,
+            settings: {
+                selectedLecturer: 'all',
+                lecturerColumnWidth: 'comfortable',
+                lecturerDetails: 'name-email',
+                searchQuery: ''
+            }
+        };
+
+        const TEACHING_IMPORT_FIELDS = [
+            { key: 'title', label: 'Tên môn / chủ đề', required: true },
+            { key: 'date', label: 'Ngày', required: true },
+            { key: 'start_time', label: 'Giờ bắt đầu', required: true },
+            { key: 'end_time', label: 'Giờ kết thúc', required: true },
+            { key: 'class_name', label: 'Lớp / Nhóm học', required: false },
+            { key: 'lecturer_name', label: 'Giảng viên', required: false },
+            { key: 'organizer_email', label: 'Email giảng viên', required: false },
+            { key: 'organizer_id', label: 'ID người tổ chức', required: false },
+            { key: 'location', label: 'Địa điểm', required: false },
+            { key: 'room', label: 'Phòng học', required: false },
+            { key: 'building', label: 'Tòa nhà', required: false },
+            { key: 'notes', label: 'Ghi chú', required: false }
+        ];
+        
+        const DEFAULT_TEACHING_SESSIONS = [
+            { start: '07:30', end: '09:30' }
+        ];
+
+        const TEACHING_IMPORT_ALIASES = {
+            title: ['title', 'ten mon', 'ten hoc phan', 'mon', 'hoc phan', 'subject', 'chu de'],
+            date: ['date', 'ngay', 'ngay day', 'ngay hoc'],
+            start_time: ['gio bat dau', 'start time', 'start', 'gio vao', 'gio bd', 'tiet bat dau'],
+            end_time: ['gio ket thuc', 'end time', 'end', 'gio ra', 'gio kt', 'tiet ket thuc'],
+            class_name: ['lop', 'class', 'nhom', 'nhom lop', 'nhom hoc'],
+            lecturer_name: ['giang vien', 'lecturer', 'teacher', 'ten giang vien'],
+            organizer_email: ['email', 'lecturer email', 'email giang vien'],
+            organizer_id: ['organizer id', 'ma giang vien', 'id giang vien', 'giang vien id'],
+            location: ['dia diem', 'location', 'co so'],
+            room: ['phong', 'room', 'phong hoc'],
+            building: ['toa nha', 'building', 'block', 'day nha'],
+            notes: ['ghi chu', 'notes', 'ghi chu them', 'mo ta']
+        };
+
+        const teachingImportState = {
+            jobId: null,
+            columns: [],
+            rowCount: 0,
+            sample: [],
+            fileName: '',
+            mapping: {},
+            open: false,
+            uploading: false
+        };
+
+    const CUSTOM_LECTURERS_API = '/api/schedule/teaching/custom-lecturers';
+
+        const manualLecturerModalState = {
+            mode: 'create',
+            anchorKey: null,
+            lecturerKey: null,
+            customId: null
+        };
+
+        let teachingLessonSubmitting = false;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const calendarEl = document.getElementById('calendar');
+            
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'vi',
+                headerToolbar: {
+                    left: 'prev,next',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                },
+                buttonText: {
+                    today: 'Hôm nay',
+                    month: 'Tháng',
+                    week: 'Tuần',
+                    day: 'Ngày',
+                    list: 'Danh sách'
+                },
+                firstDay: 1,
+                height: 'auto',
+                eventTimeFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                },
+                events: function(info, successCallback, failureCallback) {
+                    const userId = document.getElementById('userFilter').value;
+                    const url = '/api/schedule/events?' + new URLSearchParams({
+                        start: info.startStr,
+                        end: info.endStr,
+                        ...(userId && { user_id: userId })
+                    });
+
+                    fetch(url)
+                        .then(res => res.json())
+                        .then(events => successCallback(events))
+                        .catch(err => {
+                            console.error('Load events error:', err);
+                            failureCallback(err);
+                        });
+                },
+                eventClick: function(info) {
+                    openEditModal(info.event);
+                },
+                dateClick: function(info) {
+                    openCreateModal(info.dateStr);
+                },
+                editable: true,
+                eventDrop: function(info) {
+                    updateEventDateTime(info.event);
+                },
+                eventResize: function(info) {
+                    updateEventDateTime(info.event);
+                }
+            });
+
+            calendar.render();
+            setupColorPicker();
+            try {
+                await loadCustomLecturers({ silent: true });
+            } catch (error) {
+                console.error('Không thể tải danh sách giảng viên tùy chỉnh:', error);
+            }
+            initializeTeachingModule();
+        });
+
+        function switchModule(target) {
+            const calendarTab = document.getElementById('calendarTab');
+            const teachingTab = document.getElementById('teachingTab');
+            const calendarModule = document.getElementById('calendarModule');
+            const teachingModule = document.getElementById('teachingModule');
+
+            const isCalendar = target === 'calendar';
+            calendarTab.classList.toggle('active', isCalendar);
+            teachingTab.classList.toggle('active', !isCalendar);
+            calendarModule.classList.toggle('active', isCalendar);
+            teachingModule.classList.toggle('active', !isCalendar);
+
+            if (isCalendar) {
+                if (calendar) {
+                    calendar.updateSize();
+                }
+            } else {
+                updateTeachingWeekLabel();
+                setupTeachingCustomizationHandlers();
+                if (!teachingState.initialized) {
+                    loadTeachingSchedule();
+                    teachingState.initialized = true;
+                }
+            }
+        }
+
+        function initializeTeachingModule() {
+            updateTeachingWeekLabel();
+            if (document.getElementById('teachingModule').classList.contains('active')) {
+                loadTeachingSchedule();
+                teachingState.initialized = true;
+            }
+            setupTeachingCustomizationHandlers();
+            setupTeachingTableInteractions();
+        }
+
+        function setupTeachingCustomizationHandlers() {
+            if (teachingState.customizationInitialized) return;
+
+            const filterSelect = document.getElementById('teachingLecturerFilter');
+            if (filterSelect) {
+                filterSelect.addEventListener('change', () => {
+                    teachingState.settings.selectedLecturer = filterSelect.value;
+                    if (teachingState.lastData) {
+                        renderTeachingSchedule(teachingState.lastData, { skipFilterOptions: true });
+                    } else {
+                        loadTeachingSchedule(true);
+                    }
+                });
+            }
+
+            const widthSelect = document.getElementById('teachingLecturerWidth');
+            if (widthSelect) {
+                widthSelect.addEventListener('change', () => {
+                    teachingState.settings.lecturerColumnWidth = widthSelect.value;
+                    if (teachingState.lastData) {
+                        renderTeachingSchedule(teachingState.lastData, { skipFilterOptions: true, skipLecturerSelectUpdate: true });
+                    }
+                });
+            }
+
+            const detailSelect = document.getElementById('teachingLecturerDetails');
+            if (detailSelect) {
+                detailSelect.addEventListener('change', () => {
+                    teachingState.settings.lecturerDetails = detailSelect.value;
+                    if (teachingState.lastData) {
+                        renderTeachingSchedule(teachingState.lastData, { skipFilterOptions: true });
+                    }
+                });
+            }
+
+            const searchInput = document.getElementById('teachingLecturerSearch');
+            let searchDebounce = null;
+            if (searchInput) {
+                searchInput.value = teachingState.settings.searchQuery || '';
+                searchInput.addEventListener('input', () => {
+                    if (searchDebounce) {
+                        clearTimeout(searchDebounce);
+                    }
+                    searchDebounce = setTimeout(() => {
+                        teachingState.settings.searchQuery = searchInput.value.trim();
+                        if (teachingState.lastData) {
+                            renderTeachingSchedule(teachingState.lastData, { skipFilterOptions: true });
+                        }
+                    }, 200);
+                });
+            }
+
+            const resetBtn = document.getElementById('teachingResetCustomization');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    teachingState.settings.selectedLecturer = 'all';
+                    teachingState.settings.lecturerColumnWidth = 'comfortable';
+                    teachingState.settings.lecturerDetails = 'name-email';
+                    teachingState.settings.searchQuery = '';
+                    if (filterSelect) filterSelect.value = 'all';
+                    if (widthSelect) widthSelect.value = 'comfortable';
+                    if (detailSelect) detailSelect.value = 'name-email';
+                    if (searchInput) searchInput.value = '';
+                    if (teachingState.lastData) {
+                        renderTeachingSchedule(teachingState.lastData);
+                    } else {
+                        loadTeachingSchedule(true);
+                    }
+                });
+            }
+
+            const addCustomBtn = document.getElementById('teachingAddCustomLecturer');
+            if (addCustomBtn) {
+                addCustomBtn.addEventListener('click', () => {
+                    openManualLecturerModal({ mode: 'create', anchorKey: null });
+                });
+            }
+
+            const myScheduleBtn = document.getElementById('teachingMyScheduleBtn');
+            if (myScheduleBtn) {
+                if (!CURRENT_USER_ID) {
+                    myScheduleBtn.disabled = true;
+                    myScheduleBtn.title = 'Không xác định được tài khoản hiện tại để lọc lịch.';
+                } else {
+                    myScheduleBtn.addEventListener('click', () => {
+                        const key = `id:${CURRENT_USER_ID}`;
+                        const label = CURRENT_USER_NAME || 'Lịch của tôi';
+                        teachingState.settings.selectedLecturer = key;
+                        ensureLecturerFilterOption({ value: key, label });
+                        if (filterSelect) filterSelect.value = key;
+                        if (teachingState.lastData) {
+                            renderTeachingSchedule(teachingState.lastData);
+                        } else {
+                            loadTeachingSchedule(true);
+                        }
+                    });
+                }
+            }
+
+            teachingState.customizationInitialized = true;
+        }
+
+        function ensureLecturerFilterOption(option) {
+            const filterSelect = document.getElementById('teachingLecturerFilter');
+            if (!filterSelect || !option) return;
+            const exists = Array.from(filterSelect.options).some(opt => opt.value === option.value);
+            if (!exists) {
+                const opt = document.createElement('option');
+                opt.value = option.value;
+                opt.textContent = option.label;
+                if (option.email) {
+                    opt.dataset.email = option.email;
+                }
+                filterSelect.appendChild(opt);
+            }
+        }
+
+        function removeLecturerFilterOption(value) {
+            const filterSelect = document.getElementById('teachingLecturerFilter');
+            if (!filterSelect || !value) return;
+            const option = filterSelect.querySelector(`option[value="${cssEscape(value)}"]`);
+            if (option) {
+                option.remove();
+            }
+        }
+
+        async function downloadTeachingTemplate() {
+            try {
+                const response = await fetch('/api/schedule/teaching/import/template');
+                if (!response.ok) {
+                    throw new Error('Không thể tải file mẫu');
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'mau_lich_giang.xlsx';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Download template error:', error);
+                alert(error.message || 'Không thể tải file mẫu');
+            }
+        }
+
+        function toggleTeachingImportPanel(forceOpen = null) {
+            const panel = document.getElementById('teachingImportPanel');
+            if (!panel) return;
+
+            const shouldOpen = forceOpen === null ? !panel.classList.contains('active') : Boolean(forceOpen);
+            panel.classList.toggle('active', shouldOpen);
+            teachingImportState.open = shouldOpen;
+
+            if (shouldOpen) {
+                resetTeachingImport(false);
+                setTeachingImportStatus('Chọn file Excel để bắt đầu.', 'info');
+                setCommitButtonDisabled(true);
+                const fileInput = document.getElementById('teachingImportFile');
+                if (fileInput) {
+                    fileInput.focus();
+                }
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                resetTeachingImport();
+            }
+        }
+
+        function closeTeachingImportPanel() {
+            toggleTeachingImportPanel(false);
+        }
+
+        function resetTeachingImport(cancelJob = true) {
+            if (cancelJob && teachingImportState.jobId) {
+                fetch(`/api/schedule/teaching/import/${teachingImportState.jobId}`, { method: 'DELETE' }).catch(() => {});
+            }
+
+            teachingImportState.jobId = null;
+            teachingImportState.columns = [];
+            teachingImportState.rowCount = 0;
+            teachingImportState.sample = [];
+            teachingImportState.fileName = '';
+            teachingImportState.mapping = {};
+            teachingImportState.uploading = false;
+
+            const fileInput = document.getElementById('teachingImportFile');
+            if (fileInput) {
+                fileInput.value = '';
+                fileInput.disabled = false;
+            }
+
+            setElementActive('teachingImportSummary', false);
+            setElementActive('teachingImportMapping', false);
+            setElementActive('teachingImportPreview', false);
+            setElementActive('teachingImportActions', false);
+            setElementActive('teachingImportErrors', false);
+            setCommitButtonDisabled(true);
+
+            setTeachingImportStatus('Chọn file Excel để bắt đầu.', 'info');
+
+            const head = document.getElementById('importPreviewHead');
+            const body = document.getElementById('importPreviewBody');
+            const errorsList = document.getElementById('teachingImportErrorsList');
+            if (head) head.innerHTML = '';
+            if (body) body.innerHTML = '';
+            if (errorsList) errorsList.innerHTML = '';
+
+            const fileNameEl = document.getElementById('importSummaryFileName');
+            const rowsEl = document.getElementById('importSummaryRows');
+            const allowConflicts = document.getElementById('importAllowConflicts');
+            if (fileNameEl) fileNameEl.textContent = 'Chưa có file';
+            if (rowsEl) rowsEl.textContent = '0 dòng dữ liệu';
+            if (allowConflicts) allowConflicts.checked = false;
+
+            updateCommitButtonState();
+        }
+
+        function setElementActive(id, isActive) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.classList.toggle('active', Boolean(isActive));
+            }
+        }
+
+        function setCommitButtonDisabled(disabled) {
+            const commitBtn = document.querySelector('#teachingImportActions .btn-primary');
+            if (commitBtn) {
+                commitBtn.disabled = Boolean(disabled);
+            }
+        }
+
+        function setTeachingImportStatus(message, type = 'info') {
+            const status = document.getElementById('teachingImportStatus');
+            if (!status) return;
+
+            if (message) {
+                status.textContent = message;
+                status.className = `import-status active ${type}`;
+            } else {
+                status.textContent = '';
+                status.className = 'import-status';
+            }
+        }
+
+        function normalizeColumnName(value) {
+            return String(value || '')
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, ' ')
+                .trim();
+        }
+
+        function formatDateForInput(date) {
+            const d = new Date(date);
+            if (Number.isNaN(d.getTime())) return '';
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function combineDateTime(dateStr, timeStr) {
+            if (!dateStr || !timeStr) return null;
+            return `${dateStr}T${timeStr}`;
+        }
+
+        function resetTeachingLessonSessions(prefill = DEFAULT_TEACHING_SESSIONS) {
+            const container = document.getElementById('teachingLessonSessions');
+            if (!container) return;
+            container.innerHTML = '';
+            const sessions = Array.isArray(prefill) && prefill.length ? prefill : DEFAULT_TEACHING_SESSIONS;
+            sessions.forEach(session => addTeachingLessonSession(session, { refreshLabels: false }));
+            refreshTeachingLessonSessionLabels();
+        }
+
+        function addTeachingLessonSession(prefill = {}, options = { refreshLabels: true }) {
+            const container = document.getElementById('teachingLessonSessions');
+            if (!container) return;
+
+            const row = document.createElement('div');
+            row.className = 'teaching-session-row';
+
+            const labelWrapper = document.createElement('div');
+            labelWrapper.className = 'session-meta';
+            const label = document.createElement('span');
+            label.className = 'session-label';
+            label.textContent = 'Buổi';
+            labelWrapper.appendChild(label);
+
+            const fields = document.createElement('div');
+            fields.className = 'session-fields';
+
+            const startInput = document.createElement('input');
+            startInput.type = 'time';
+            startInput.required = true;
+            startInput.className = 'form-control';
+            if (prefill.start) startInput.value = prefill.start;
+
+            const endInput = document.createElement('input');
+            endInput.type = 'time';
+            endInput.required = true;
+            endInput.className = 'form-control';
+            if (prefill.end) endInput.value = prefill.end;
+
+            fields.appendChild(startInput);
+            fields.appendChild(endInput);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn-icon session-remove-btn';
+            removeBtn.innerHTML = '<i class="bi bi-trash"></i>';
+            removeBtn.addEventListener('click', () => removeTeachingLessonSession(row));
+
+            row.appendChild(labelWrapper);
+            row.appendChild(fields);
+            row.appendChild(removeBtn);
+            container.appendChild(row);
+
+            if (options.refreshLabels !== false) {
+                refreshTeachingLessonSessionLabels();
+            }
+        }
+
+        function removeTeachingLessonSession(row) {
+            const container = document.getElementById('teachingLessonSessions');
+            if (!container || !row) return;
+            if (container.children.length <= 1) {
+                return;
+            }
+            container.removeChild(row);
+            refreshTeachingLessonSessionLabels();
+        }
+
+        function refreshTeachingLessonSessionLabels() {
+            const container = document.getElementById('teachingLessonSessions');
+            if (!container) return;
+            const rows = Array.from(container.querySelectorAll('.teaching-session-row'));
+            rows.forEach((row, index) => {
+                const label = row.querySelector('.session-label');
+                if (label) {
+                    label.textContent = `Buổi ${index + 1}`;
+                }
+                const removeBtn = row.querySelector('.session-remove-btn');
+                if (removeBtn) {
+                    removeBtn.disabled = rows.length === 1;
+                }
+            });
+        }
+
+        function collectTeachingLessonSessions() {
+            const container = document.getElementById('teachingLessonSessions');
+            if (!container) return [];
+            return Array.from(container.querySelectorAll('.teaching-session-row')).map(row => {
+                const inputs = row.querySelectorAll('input[type="time"]');
+                return {
+                    start: inputs[0]?.value || '',
+                    end: inputs[1]?.value || ''
+                };
+            });
+        }
+
+        function autoMapTeachingImportColumns(columns) {
+            const normalizedColumns = columns.map(col => ({
+                original: String(col ?? '').trim(),
+                normalized: normalizeColumnName(col)
+            }));
+
+            const mapping = {};
+            const usedColumns = new Set();
+
+            TEACHING_IMPORT_FIELDS.forEach(field => {
+                const aliases = TEACHING_IMPORT_ALIASES[field.key] || [];
+                const targetNames = new Set([
+                    normalizeColumnName(field.label),
+                    ...aliases.map(alias => normalizeColumnName(alias))
+                ]);
+
+                const match = normalizedColumns.find(column =>
+                    column.normalized &&
+                    targetNames.has(column.normalized) &&
+                    !usedColumns.has(column.original)
+                );
+
+                if (match && match.original) {
+                    mapping[field.key] = match.original;
+                    usedColumns.add(match.original);
+                }
+            });
+
+            teachingImportState.mapping = mapping;
+            updateCommitButtonState();
+        }
+
+        function updateCommitButtonState() {
+            const hasJob = Boolean(teachingImportState.jobId);
+            const requiredCompleted = TEACHING_IMPORT_FIELDS
+                .filter(field => field.required)
+                .every(field => Boolean(teachingImportState.mapping[field.key]));
+            setCommitButtonDisabled(!(hasJob && requiredCompleted));
+        }
+
+        async function handleTeachingImportFile(event) {
+            const file = event?.target?.files?.[0];
+            if (!file) return;
+
+            if (!file.name.toLowerCase().endsWith('.xlsx')) {
+                alert('Vui lòng chọn file Excel (.xlsx)');
+                event.target.value = '';
+                return;
+            }
+
+            if (teachingImportState.uploading) {
+                return;
+            }
+
+            teachingImportState.uploading = true;
+            setTeachingImportStatus('Đang tải và phân tích file...', 'info');
+            setElementActive('teachingImportErrors', false);
+            setCommitButtonDisabled(true);
+
+            const errorsList = document.getElementById('teachingImportErrorsList');
+            if (errorsList) {
+                errorsList.innerHTML = '';
+            }
+
+            if (teachingImportState.jobId) {
+                fetch(`/api/schedule/teaching/import/${teachingImportState.jobId}`, { method: 'DELETE' }).catch(() => {});
+                teachingImportState.jobId = null;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/schedule/teaching/import/preview', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Không thể đọc file Excel');
+                }
+
+                teachingImportState.jobId = data.jobId;
+                teachingImportState.columns = Array.isArray(data.columns) ? data.columns : [];
+                teachingImportState.rowCount = data.rowCount || 0;
+                teachingImportState.sample = Array.isArray(data.sample) ? data.sample : [];
+                teachingImportState.fileName = data.fileName || file.name;
+                teachingImportState.mapping = {};
+
+                autoMapTeachingImportColumns(teachingImportState.columns);
+
+                renderTeachingImportSummary();
+                renderTeachingImportMapping();
+                renderTeachingImportPreview();
+
+                setElementActive('teachingImportSummary', true);
+                setElementActive('teachingImportMapping', true);
+                setElementActive('teachingImportPreview', teachingImportState.sample.length > 0);
+                setElementActive('teachingImportActions', true);
+                updateCommitButtonState();
+
+                setTeachingImportStatus(`Đã đọc ${teachingImportState.rowCount} dòng dữ liệu. Vui lòng ghép cột tương ứng.`, 'success');
+            } catch (error) {
+                console.error('Teaching import preview error:', error);
+                setTeachingImportStatus(error.message || 'Không thể đọc file Excel', 'error');
+                setElementActive('teachingImportSummary', false);
+                setElementActive('teachingImportMapping', false);
+                setElementActive('teachingImportPreview', false);
+                setElementActive('teachingImportActions', false);
+                updateCommitButtonState();
+                const fileInput = document.getElementById('teachingImportFile');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+            } finally {
+                teachingImportState.uploading = false;
+            }
+        }
+
+        function renderTeachingImportSummary() {
+            const fileNameEl = document.getElementById('importSummaryFileName');
+            const rowsEl = document.getElementById('importSummaryRows');
+            if (fileNameEl) fileNameEl.textContent = teachingImportState.fileName || 'Không xác định';
+            if (rowsEl) rowsEl.textContent = `${teachingImportState.rowCount} dòng dữ liệu`;
+        }
+
+        function renderTeachingImportMapping() {
+            const container = document.getElementById('teachingImportMapping');
+            if (!container) return;
+
+            container.innerHTML = '';
+            const columns = teachingImportState.columns;
+
+            if (!columns.length) {
+                const note = document.createElement('p');
+                note.style.color = '#6b7280';
+                note.textContent = 'Không tìm thấy tiêu đề cột trong file. Vui lòng kiểm tra dòng tiêu đề (header).';
+                container.appendChild(note);
+                return;
+            }
+
+            TEACHING_IMPORT_FIELDS.forEach(field => {
+                const item = document.createElement('div');
+                item.className = 'mapping-item';
+
+                const label = document.createElement('label');
+                label.innerHTML = `${escapeHtml(field.label)}${field.required ? '<span>*</span>' : ''}`;
+                item.appendChild(label);
+
+                const select = document.createElement('select');
+                const placeholder = field.required ? '-- Chọn cột --' : 'Bỏ qua';
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = placeholder;
+                select.appendChild(defaultOption);
+
+                columns.forEach(col => {
+                    const value = String(col ?? '').trim();
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value || '(Cột không tên)';
+                    select.appendChild(option);
+                });
+
+                select.value = teachingImportState.mapping[field.key] || '';
+                select.addEventListener('change', (evt) => {
+                    const selected = evt.target.value;
+                    if (selected) {
+                        teachingImportState.mapping[field.key] = selected;
+                    } else {
+                        delete teachingImportState.mapping[field.key];
+                    }
+                    updateCommitButtonState();
+                });
+
+                item.appendChild(select);
+                container.appendChild(item);
+            });
+        }
+
+        function renderTeachingImportPreview() {
+            const head = document.getElementById('importPreviewHead');
+            const body = document.getElementById('importPreviewBody');
+            if (!head || !body) return;
+
+            head.innerHTML = '';
+            body.innerHTML = '';
+
+            const columns = teachingImportState.columns;
+            if (!columns.length) {
+                setElementActive('teachingImportPreview', false);
+                return;
+            }
+
+            const headRow = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col || '(Cột không tên)';
+                headRow.appendChild(th);
+            });
+            head.appendChild(headRow);
+
+            if (!teachingImportState.sample.length) {
+                const emptyRow = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = columns.length;
+                td.textContent = 'Không có dữ liệu mẫu để hiển thị.';
+                emptyRow.appendChild(td);
+                body.appendChild(emptyRow);
+                return;
+            }
+
+            teachingImportState.sample.forEach(row => {
+                const tr = document.createElement('tr');
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    td.innerHTML = escapeHtml(formatImportValue(row[col]));
+                    tr.appendChild(td);
+                });
+                body.appendChild(tr);
+            });
+        }
+
+        function formatImportValue(value) {
+            if (value === null || value === undefined) return '';
+            if (value instanceof Date) {
+                return value.toLocaleString('vi-VN');
+            }
+            if (typeof value === 'number') {
+                const fixed = value % 1 === 0 ? value.toString() : value.toFixed(4);
+                return fixed.replace(/0+$/, '').replace(/\.$/, '') || value.toString();
+            }
+            if (typeof value === 'object') {
+                try {
+                    return JSON.stringify(value);
+                } catch (err) {
+                    return String(value);
+                }
+            }
+            return String(value);
+        }
+
+        function renderTeachingImportErrors(errors = []) {
+            const container = document.getElementById('teachingImportErrors');
+            const list = document.getElementById('teachingImportErrorsList');
+            if (!container || !list) return;
+
+            if (!errors.length) {
+                container.classList.remove('active');
+                list.innerHTML = '';
+                return;
+            }
+
+            container.classList.add('active');
+            list.innerHTML = errors.map(error => {
+                const rowLabel = error?.row ? `Dòng ${escapeHtml(String(error.row))}` : 'Không xác định dòng';
+                const message = escapeHtml(error?.message || 'Lỗi không xác định');
+                return `<li>${rowLabel}: ${message}</li>`;
+            }).join('');
+        }
+
+        async function commitTeachingImport() {
+            if (!teachingImportState.jobId) {
+                alert('Vui lòng tải file Excel và ghép cột trước khi import.');
+                return;
+            }
+
+            const missing = [];
+            const payloadMapping = {};
+
+            TEACHING_IMPORT_FIELDS.forEach(field => {
+                const value = teachingImportState.mapping[field.key];
+                if (field.required) {
+                    if (!value) {
+                        missing.push(field.label);
+                    } else {
+                        payloadMapping[field.key] = value;
+                    }
+                } else if (value) {
+                    payloadMapping[field.key] = value;
+                }
+            });
+
+            if (missing.length) {
+                alert(`Vui lòng ghép cột cho các trường bắt buộc: ${missing.join(', ')}`);
+                return;
+            }
+
+            setTeachingImportStatus('Đang nhập dữ liệu vào hệ thống...', 'info');
+            setCommitButtonDisabled(true);
+
+            try {
+                const allowConflicts = document.getElementById('importAllowConflicts')?.checked;
+                const response = await fetch('/api/schedule/teaching/import/commit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jobId: teachingImportState.jobId,
+                        mapping: payloadMapping,
+                        options: { allowConflicts }
+                    })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Không thể nhập dữ liệu');
+                }
+
+                renderTeachingImportErrors(result.errors || []);
+                const statusMessage = result.failed
+                    ? `Đã nhập ${result.success}/${result.total} dòng. ${result.failed} dòng gặp lỗi, vui lòng kiểm tra danh sách bên dưới.`
+                    : `Đã nhập thành công ${result.success}/${result.total} dòng dữ liệu.`;
+                setTeachingImportStatus(statusMessage, result.failed ? 'warning' : 'success');
+
+                teachingImportState.jobId = null;
+                if (!result.failed) {
+                    teachingImportState.mapping = {};
+                }
+                updateCommitButtonState();
+
+                calendar.refetchEvents();
+                teachingState.cache.clear();
+                loadTeachingSchedule(true);
+
+                if (!result.failed) {
+                    alert('Nhập lịch giảng thành công!');
+                    toggleTeachingImportPanel(false);
+                } else {
+                    alert(`Đã nhập ${result.success} dòng, còn ${result.failed} dòng gặp lỗi. Vui lòng kiểm tra chi tiết.`);
+                    setElementActive('teachingImportActions', true);
+                }
+            } catch (error) {
+                console.error('Teaching import commit error:', error);
+                setTeachingImportStatus(error.message || 'Không thể nhập dữ liệu', 'error');
+                updateCommitButtonState();
+            }
+        }
+
+        function setTeachingLessonLoading(isLoading) {
+            teachingLessonSubmitting = Boolean(isLoading);
+            const submitBtn = document.querySelector('#teachingLessonModal .btn-primary');
+            if (submitBtn) {
+                if (!submitBtn.dataset.originalHtml) {
+                    submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+                }
+
+                submitBtn.disabled = teachingLessonSubmitting;
+                submitBtn.innerHTML = teachingLessonSubmitting
+                    ? '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang lưu...'
+                    : submitBtn.dataset.originalHtml;
+            }
+
+            const addSessionBtn = document.getElementById('teachingLessonAddSessionBtn');
+            if (addSessionBtn) {
+                addSessionBtn.disabled = teachingLessonSubmitting;
+            }
+
+            const sessionInputs = document.querySelectorAll('#teachingLessonSessions input[type="time"]');
+            sessionInputs.forEach(input => {
+                input.disabled = teachingLessonSubmitting;
+            });
+
+            const removeButtons = document.querySelectorAll('#teachingLessonSessions .session-remove-btn');
+            removeButtons.forEach(btn => {
+                btn.disabled = teachingLessonSubmitting;
+            });
+
+            if (!teachingLessonSubmitting) {
+                refreshTeachingLessonSessionLabels();
+            }
+        }
+
+        function openTeachingLessonModal(prefill = {}) {
+            const modal = document.getElementById('teachingLessonModal');
+            const form = document.getElementById('teachingLessonForm');
+            if (!modal || !form) return;
+
+            if (teachingImportState.open) {
+                toggleTeachingImportPanel(false);
+            }
+
+            form.reset();
+
+            const sessionPrefill = Array.isArray(prefill.sessions) && prefill.sessions.length
+                ? prefill.sessions
+                    .filter(session => session && (session.start || session.end))
+                    .map(session => ({
+                        start: session.start || '',
+                        end: session.end || ''
+                    }))
+                : undefined;
+            resetTeachingLessonSessions(sessionPrefill);
+
+            const dateInput = document.getElementById('teachingLessonDate');
+            const today = formatDateForInput(new Date());
+            if (dateInput) {
+                dateInput.value = prefill.date || today;
+            }
+
+            const lecturerInput = document.getElementById('teachingLessonLecturer');
+            if (lecturerInput && prefill.lecturerName) {
+                lecturerInput.value = prefill.lecturerName;
+            }
+
+            const classInput = document.getElementById('teachingLessonClass');
+            if (classInput && prefill.className) {
+                classInput.value = prefill.className;
+            }
+
+            const titleInput = document.getElementById('teachingLessonTitle');
+            if (titleInput && prefill.title) {
+                titleInput.value = prefill.title;
+            }
+
+            const organizerSelect = document.getElementById('teachingLessonOrganizer');
+            if (organizerSelect) {
+                const organizerId = prefill.organizerId && !Number.isNaN(prefill.organizerId)
+                    ? String(prefill.organizerId)
+                    : (CURRENT_USER_ID ? String(CURRENT_USER_ID) : null);
+
+                if (organizerId && organizerSelect.querySelector(`option[value="${organizerId}"]`)) {
+                    organizerSelect.value = organizerId;
+                } else if (organizerSelect.options.length) {
+                    organizerSelect.selectedIndex = 0;
+                }
+            }
+
+            setTeachingLessonLoading(false);
+
+            modal.classList.add('active');
+
+            setTimeout(() => {
+                const focusable = document.getElementById('teachingLessonTitle');
+                if (focusable && !focusable.value) {
+                    focusable.focus();
+                } else if (focusable) {
+                    focusable.select();
+                }
+            }, 50);
+        }
+
+        function closeTeachingLessonModal() {
+            const modal = document.getElementById('teachingLessonModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+            setTeachingLessonLoading(false);
+            resetTeachingLessonSessions();
+        }
+
+        async function submitTeachingLesson() {
+            if (teachingLessonSubmitting) {
+                return;
+            }
+
+            const form = document.getElementById('teachingLessonForm');
+            if (!form) return;
+
+            if (!form.reportValidity()) {
+                return;
+            }
+
+            const title = document.getElementById('teachingLessonTitle')?.value.trim();
+            const date = document.getElementById('teachingLessonDate')?.value;
+            const className = document.getElementById('teachingLessonClass')?.value.trim();
+            const lecturerName = document.getElementById('teachingLessonLecturer')?.value.trim();
+            const organizerIdValue = document.getElementById('teachingLessonOrganizer')?.value;
+            const location = document.getElementById('teachingLessonLocation')?.value.trim();
+            const room = document.getElementById('teachingLessonRoom')?.value.trim();
+            const building = document.getElementById('teachingLessonBuilding')?.value.trim();
+            const notes = document.getElementById('teachingLessonNotes')?.value.trim();
+
+            const organizerId = organizerIdValue ? parseInt(organizerIdValue, 10) : null;
+            const sessions = collectTeachingLessonSessions();
+            if (!Array.isArray(sessions) || sessions.length === 0) {
+                alert('Vui lòng thêm ít nhất một khung giờ giảng.');
+                return;
+            }
+
+            const normalizedSessions = [];
+            for (let index = 0; index < sessions.length; index++) {
+                const session = sessions[index];
+                const sessionLabel = `buổi ${index + 1}`;
+                if (!session.start || !session.end) {
+                    alert(`Vui lòng nhập đầy đủ giờ bắt đầu và kết thúc cho ${sessionLabel}.`);
+                    return;
+                }
+                const sessionStart = combineDateTime(date, session.start);
+                const sessionEnd = combineDateTime(date, session.end);
+                if (!sessionStart || !sessionEnd) {
+                    alert(`Không thể ghép thời gian cho ${sessionLabel}.`);
+                    return;
+                }
+                if (new Date(sessionStart) >= new Date(sessionEnd)) {
+                    alert(`Giờ kết thúc phải sau giờ bắt đầu (${sessionLabel}).`);
+                    return;
+                }
+                normalizedSessions.push({
+                    start: sessionStart,
+                    end: sessionEnd,
+                    label: sessionLabel
+                });
+            }
+
+            const tags = {};
+            if (className) tags.class = className;
+            if (lecturerName) tags.lecturer = lecturerName;
+
+            const descriptionParts = [];
+            if (notes) descriptionParts.push(notes);
+            if (className) descriptionParts.push(`Lớp: ${className}`);
+            if (lecturerName) descriptionParts.push(`Giảng viên: ${lecturerName}`);
+            const locationSummary = [room, building, location].filter(Boolean).join(' - ');
+            if (locationSummary) {
+                descriptionParts.push(`Địa điểm: ${locationSummary}`);
+            }
+
+            const basePayload = {
+                title,
+                event_type: 'teaching',
+                organizer_id: organizerId,
+                location: location || undefined,
+                room: room || undefined,
+                building: building || undefined,
+                description: descriptionParts.length ? descriptionParts.join('\n') : undefined,
+                notes: notes || undefined,
+                tags: Object.keys(tags).length ? tags : undefined,
+                status: 'confirmed',
+                priority: 'normal',
+                color: '#06b6d4',
+                reminder_minutes: 30,
+                timezone: 'Asia/Ho_Chi_Minh'
+            };
+
+            setTeachingLessonLoading(true);
+
+            const successfulSessions = [];
+
+            try {
+                for (let index = 0; index < normalizedSessions.length; index++) {
+                    const session = normalizedSessions[index];
+                    const response = await fetch('/api/schedule', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ...basePayload,
+                            start_datetime: session.start,
+                            end_datetime: session.end
+                        })
+                    });
+
+                    const responseData = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        if (response.status === 409 && Array.isArray(responseData.conflicts) && responseData.conflicts.length) {
+                            const conflictMessages = responseData.conflicts.map(conflict => {
+                                const start = formatDateTimeForConflict(conflict.start_datetime || conflict.start);
+                                const end = formatDateTimeForConflict(conflict.end_datetime || conflict.end);
+                                return `• ${escapeHtml(conflict.title || 'Sự kiện khác')} (${start} - ${end})`;
+                            }).join('\n');
+                            throw new Error(`Không thể lưu ${session.label} do trùng lịch:\n${conflictMessages}`);
+                        }
+
+                        throw new Error(responseData.error || `Không thể tạo lịch giảng cho ${session.label}.`);
+                    }
+
+                    successfulSessions.push(session);
+                }
+
+                const successMessage = successfulSessions.length > 1
+                    ? `Đã thêm ${successfulSessions.length} khung giờ giảng thành công!`
+                    : 'Đã thêm lịch giảng thành công!';
+
+                alert(successMessage);
+                closeTeachingLessonModal();
+
+                if (calendar) {
+                    calendar.refetchEvents();
+                }
+                teachingState.cache.clear();
+                loadTeachingSchedule(true);
+            } catch (error) {
+                console.error('Create teaching lesson error:', error);
+                if (successfulSessions.length > 0) {
+                    if (calendar) {
+                        calendar.refetchEvents();
+                    }
+                    teachingState.cache.clear();
+                    loadTeachingSchedule(true);
+                    alert(`${error.message || 'Không thể tạo lịch giảng'}\n\nLưu ý: ${successfulSessions.length} khung giờ đầu tiên đã được lưu thành công.`);
+                } else {
+                    alert(error.message || 'Không thể tạo lịch giảng');
+                }
+                setTeachingLessonLoading(false);
+            }
+        }
+
+        function loadEvents() {
+            calendar.refetchEvents();
+        }
+
+        function changeTeachingWeek(direction) {
+            teachingState.currentWeekStart = getWeekStart(addDays(teachingState.currentWeekStart, direction * 7));
+            updateTeachingWeekLabel();
+            loadTeachingSchedule(true);
+        }
+
+        function updateTeachingWeekLabel() {
+            const label = document.getElementById('teachingWeekLabel');
+            if (!label) return;
+            const start = getWeekStart(teachingState.currentWeekStart);
+            const end = getWeekEnd(start);
+            label.textContent = `${formatDateLabel(start)} – ${formatDateLabel(end)}`;
+        }
+
+        async function loadTeachingSchedule(forceRefresh = false) {
+            try {
+                await loadCustomLecturers({ silent: true });
+            } catch (error) {
+                console.warn('Không thể đồng bộ giảng viên tùy chỉnh trước khi tải lịch:', error);
+            }
+            const start = getWeekStart(teachingState.currentWeekStart);
+            const cacheKey = formatCacheKey(start);
+
+            if (!forceRefresh && teachingState.cache.has(cacheKey)) {
+                const cachedData = teachingState.cache.get(cacheKey);
+                teachingState.lastData = cachedData;
+                renderTeachingSchedule(cachedData);
+                return;
+            }
+
+            setTeachingLoading();
+
+            const end = getWeekEnd(start);
+
+            try {
+                const params = new URLSearchParams({
+                    start: start.toISOString(),
+                    end: end.toISOString()
+                });
+
+                const response = await fetch(`/api/schedule/teaching?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error('Không thể tải lịch giảng.');
+                }
+
+                const data = await response.json();
+                teachingState.cache.set(cacheKey, data);
+                teachingState.lastData = data;
+                renderTeachingSchedule(data);
+            } catch (error) {
+                console.error('Load teaching schedule error:', error);
+                renderTeachingError(error.message || 'Không thể tải dữ liệu lịch giảng.');
+            }
+        }
+
+        function renderTeachingSchedule(data, options = {}) {
+            const table = document.getElementById('teachingTable');
+            const tableHead = document.getElementById('teachingTableHead');
+            const tableBody = document.getElementById('teachingTableBody');
+            const notesContainer = document.getElementById('teachingNotesContainer');
+            const notesList = document.getElementById('teachingNotes');
+
+            if (!table || !tableHead || !tableBody) {
+                return;
+            }
+
+            const start = getWeekStart(teachingState.currentWeekStart);
+            const todayIso = formatDateForInput(new Date());
+            const days = Array.from({ length: 7 }, (_, index) => {
+                const dayDate = addDays(start, index);
+                const iso = formatDateForInput(dayDate);
+                return {
+                    label: index === 6 ? 'Chủ nhật' : `Thứ ${index + 2}`,
+                    dateLabel: formatDateLabel(dayDate),
+                    index,
+                    iso,
+                    isToday: iso === todayIso
+                };
+            });
+
+            const events = Array.isArray(data?.events) ? data.events : [];
+            teachingState.lastData = data;
+
+            if (!options.skipFilterOptions) {
+                updateTeachingLecturerFilterOptions(events);
+            }
+
+            syncTeachingCustomizationControls(options);
+            table.dataset.lecturerWidth = teachingState.settings.lecturerColumnWidth || 'comfortable';
+
+            const selectedKey = teachingState.settings.selectedLecturer;
+            const filteredEvents = selectedKey === 'all'
+                ? events
+                : events.filter(event => getLecturerKey(event) === selectedKey);
+
+            const lecturerMap = buildLecturerMap(filteredEvents);
+            const searchQuery = (teachingState.settings.searchQuery || '').trim();
+            const normalizedSearch = normalizeSearchString(searchQuery);
+            const baseLecturers = Array.from(lecturerMap.values())
+                .filter(lecturer => matchesLecturerSearch(lecturer, normalizedSearch))
+                .sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }));
+
+            const lecturers = mergeLecturersWithCustom({
+                baseLecturers,
+                lecturerMap,
+                searchQuery: normalizedSearch,
+                selectedKey
+            });
+
+            tableHead.innerHTML = '';
+            const headRow = document.createElement('tr');
+            const lecturerTh = document.createElement('th');
+            lecturerTh.className = 'lecturer-col';
+            lecturerTh.textContent = 'Giảng viên';
+            headRow.appendChild(lecturerTh);
+            days.forEach(day => {
+                const th = document.createElement('th');
+                th.innerHTML = `${day.label}<span>${day.dateLabel}</span>`;
+                if (day.isToday) {
+                    th.classList.add('teaching-day-header-current');
+                    th.setAttribute('aria-current', 'date');
+                }
+                headRow.appendChild(th);
+            });
+            tableHead.appendChild(headRow);
+
+            if (lecturers.length === 0) {
+                const message = selectedKey === 'all'
+                    ? 'Chưa có lịch giảng trong tuần này.'
+                    : 'Giảng viên chưa có lịch giảng trong tuần được chọn.';
+                tableBody.innerHTML = `<tr><td class="teaching-empty" colspan="${days.length + 1}">${message}</td></tr>`;
+                if (notesContainer) {
+                    notesContainer.style.display = 'none';
+                }
+                const summaryBar = document.getElementById('teachingSummaryBar');
+                if (summaryBar) {
+                    summaryBar.style.display = 'none';
+                    summaryBar.innerHTML = '';
+                }
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            lecturers.forEach((lecturer) => {
+                const row = document.createElement('tr');
+                row.classList.add('teaching-row-striped');
+                row.dataset.lecturerKey = lecturer.key || '';
+                row.dataset.totalSessions = String(lecturer.totalSessions || 0);
+                if (lecturer.isCustom) {
+                    row.classList.add('manual-lecturer-row');
+                    if (lecturer.customId) {
+                        row.dataset.customId = lecturer.customId;
+                    }
+                }
+                const lecturerCell = document.createElement('th');
+                lecturerCell.className = 'lecturer-col';
+                lecturerCell.innerHTML = buildLecturerCell(lecturer);
+                row.appendChild(lecturerCell);
+
+                days.forEach(day => {
+                    const cell = document.createElement('td');
+                    cell.dataset.dayIndex = String(day.index);
+                    if (day.iso) {
+                        cell.dataset.date = day.iso;
+                    }
+                    const lessons = lecturer.eventsByDay[day.index] || [];
+                    if (lessons.length > 0) {
+                        cell.innerHTML = `<div class="teaching-cell-content">${lessons.map(createLessonCard).join('')}</div>`;
+                    } else {
+                        cell.classList.add('empty-state');
+                        cell.innerHTML = '<div class="teaching-cell-content"><div class="teaching-cell-empty">—</div></div>';
+                    }
+
+                    if (day.isToday) {
+                        cell.classList.add('teaching-cell-current-day');
+                    }
+
+                    const addBtn = document.createElement('button');
+                    addBtn.type = 'button';
+                    addBtn.className = 'teaching-add-row-btn';
+                    addBtn.innerHTML = '<i class="bi bi-plus-lg"></i>';
+                    addBtn.setAttribute('aria-label', `Thêm lịch giảng cho ${lecturer.name} vào ${day.label}`);
+                    addBtn.dataset.lecturerKey = lecturer.key || '';
+                    addBtn.dataset.lecturerName = lecturer.name || '';
+                    if (lecturer.id) {
+                        addBtn.dataset.organizerId = lecturer.id;
+                    }
+                    if (lecturer.email) {
+                        addBtn.dataset.lecturerEmail = lecturer.email;
+                    }
+                    addBtn.dataset.dayIndex = String(day.index);
+                    if (day.iso) {
+                        addBtn.dataset.date = day.iso;
+                    }
+                    cell.appendChild(addBtn);
+
+                    row.appendChild(cell);
+                });
+
+                fragment.appendChild(row);
+            });
+
+            tableBody.innerHTML = '';
+            tableBody.appendChild(fragment);
+
+            const displayedLecturerKeys = new Set(lecturers.map(lecturer => lecturer.key));
+            const displayedEvents = filteredEvents.filter(event => displayedLecturerKeys.has(getLecturerKey(event)));
+            renderTeachingSummary({
+                lecturers,
+                events: displayedEvents,
+                totalLecturerCount: teachingState.lecturers.size,
+                searchQuery
+            });
+
+            setupTeachingTableInteractions();
+
+            const annotatedNotes = filteredEvents
+                .filter(event => event.notes)
+                .map(event => ({
+                    time: `${event.start_time} - ${event.end_time}`,
+                    title: event.title,
+                    content: event.notes
+                }));
+
+            if (annotatedNotes.length > 0 && notesList && notesContainer) {
+                notesList.innerHTML = annotatedNotes
+                    .map(note => `<li><strong>${escapeHtml(note.time)}</strong> - ${escapeHtml(note.title)}: ${formatMultiline(note.content)}</li>`)
+                    .join('');
+                notesContainer.style.display = 'block';
+            } else if (notesContainer) {
+                notesContainer.style.display = 'none';
+            }
+        }
+
+        function setupTeachingTableInteractions() {
+            const tableBody = document.getElementById('teachingTableBody');
+            if (!tableBody || tableBody.dataset.interactionsBound === 'true') {
+                return;
+            }
+
+            tableBody.dataset.interactionsBound = 'true';
+
+            tableBody.addEventListener('click', event => {
+                const lecturerActionBtn = event.target.closest('.lecturer-action-btn');
+                if (lecturerActionBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    handleLecturerAction(lecturerActionBtn.dataset);
+                    return;
+                }
+
+                const addBtn = event.target.closest('.teaching-add-row-btn');
+                if (addBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    handleTeachingCellAdd(addBtn.dataset);
+                    return;
+                }
+
+                const lessonCard = event.target.closest('.lesson-card[data-clickable="true"]');
+                if (lessonCard && lessonCard.dataset.eventId) {
+                    event.preventDefault();
+                    openEditModal({ id: lessonCard.dataset.eventId });
+                }
+            });
+        }
+
+        function renderTeachingSummary({ lecturers = [], events = [], totalLecturerCount = 0, searchQuery = '' }) {
+            const summaryBar = document.getElementById('teachingSummaryBar');
+            if (!summaryBar) return;
+
+            if (!Array.isArray(lecturers) || lecturers.length === 0) {
+                summaryBar.style.display = 'none';
+                summaryBar.innerHTML = '';
+                return;
+            }
+
+            const safeEvents = Array.isArray(events) ? events : [];
+            const totalSessions = safeEvents.length;
+            const totalMinutes = safeEvents.reduce((sum, event) => sum + calculateDurationMinutes(event), 0);
+
+            let busiestLecturer = null;
+            lecturers.forEach(lecturer => {
+                if (!busiestLecturer || (lecturer.totalSessions || 0) > (busiestLecturer.totalSessions || 0)) {
+                    busiestLecturer = lecturer;
+                }
+            });
+
+            const now = new Date();
+            const nextEvent = safeEvents
+                .map(event => ({ event, start: new Date(event.start) }))
+                .filter(item => item.start && !Number.isNaN(item.start.getTime()) && item.start >= now)
+                .sort((a, b) => a.start - b.start)
+                .map(item => ({ ...item.event, _startDate: item.start }))
+                [0] || null;
+
+            const totalLecturersDisplayed = lecturers.length;
+            const lecturersMeta = totalLecturerCount && totalLecturerCount > 0
+                ? `Tổng ${totalLecturerCount} giảng viên`
+                : '';
+            const searchMeta = searchQuery ? `Đang lọc: "${escapeHtml(searchQuery)}"` : 'Hiển thị tất cả';
+
+            const sessionsMeta = totalMinutes > 0
+                ? `≈ ${formatDurationFromMinutes(totalMinutes)} giảng dạy`
+                : 'Không có thời lượng';
+
+            const busiestValue = busiestLecturer
+                ? escapeHtml(busiestLecturer.name)
+                : 'Chưa xác định';
+            const busiestMeta = busiestLecturer
+                ? `${busiestLecturer.totalSessions || 0} buổi trong tuần`
+                : 'Chưa có dữ liệu giảng dạy';
+
+            let upcomingValue = 'Không có';
+            let upcomingMeta = 'Chưa có buổi giảng tiếp theo trong tuần này.';
+            if (nextEvent) {
+                const dateLabel = formatDateLabel(nextEvent._startDate);
+                const timeLabel = nextEvent.start_time || formatTimeFromDate(nextEvent._startDate);
+                upcomingValue = `${dateLabel} • ${escapeHtml(timeLabel)}`;
+                const lecturerName = getLecturerName(nextEvent);
+                const title = escapeHtml(nextEvent.title || 'Chưa đặt tên');
+                upcomingMeta = `${title} — ${escapeHtml(lecturerName)}`;
+            }
+
+            summaryBar.style.display = 'flex';
+            summaryBar.innerHTML = `
+                <div class="teaching-summary-item" data-variant="default">
+                    <span class="teaching-summary-icon"><i class="bi bi-people-fill"></i></span>
+                    <div class="teaching-summary-content">
+                        <span class="teaching-summary-label">Giảng viên hiển thị</span>
+                        <span class="teaching-summary-value">${totalLecturersDisplayed}</span>
+                        <span class="teaching-summary-meta">${[lecturersMeta, searchMeta].filter(Boolean).join(' • ')}</span>
+                    </div>
+                </div>
+                <div class="teaching-summary-item" data-variant="success">
+                    <span class="teaching-summary-icon"><i class="bi bi-collection-play"></i></span>
+                    <div class="teaching-summary-content">
+                        <span class="teaching-summary-label">Tổng buổi trong tuần</span>
+                        <span class="teaching-summary-value">${totalSessions}</span>
+                        <span class="teaching-summary-meta">${sessionsMeta}</span>
+                    </div>
+                </div>
+                <div class="teaching-summary-item" data-variant="warning">
+                    <span class="teaching-summary-icon"><i class="bi bi-lightning-charge"></i></span>
+                    <div class="teaching-summary-content">
+                        <span class="teaching-summary-label">Giảng viên bận rộn nhất</span>
+                        <span class="teaching-summary-value">${busiestValue}</span>
+                        <span class="teaching-summary-meta">${busiestMeta}</span>
+                    </div>
+                </div>
+                <div class="teaching-summary-item" data-variant="default">
+                    <span class="teaching-summary-icon"><i class="bi bi-calendar-event"></i></span>
+                    <div class="teaching-summary-content">
+                        <span class="teaching-summary-label">Buổi kế tiếp</span>
+                        <span class="teaching-summary-value">${upcomingValue}</span>
+                        <span class="teaching-summary-meta">${upcomingMeta}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleTeachingCellAdd(dataset = {}) {
+            if (!dataset) return;
+
+            const dayIndex = Number.parseInt(dataset.dayIndex, 10);
+            const lecturerKey = dataset.lecturerKey || '';
+            let organizerId = dataset.organizerId ? Number.parseInt(dataset.organizerId, 10) : null;
+            if (Number.isNaN(organizerId)) {
+                organizerId = null;
+            }
+
+            const prefill = {
+                date: dataset.date || undefined,
+                lecturerName: dataset.lecturerName || '',
+                organizerId
+            };
+
+            const lastEvent = findLastTeachingEvent(lecturerKey, dayIndex);
+            if (lastEvent) {
+                if (lastEvent.class_name) {
+                    prefill.className = lastEvent.class_name;
+                }
+                if (lastEvent.start_time && lastEvent.end_time) {
+                    prefill.sessions = [{
+                        start: lastEvent.start_time,
+                        end: lastEvent.end_time
+                    }];
+                }
+            }
+
+            openTeachingLessonModal(prefill);
+        }
+
+        function findLastTeachingEvent(lecturerKey, dayIndex) {
+            if (!lecturerKey || Number.isNaN(dayIndex)) {
+                return null;
+            }
+
+            const events = Array.isArray(teachingState?.lastData?.events) ? teachingState.lastData.events : [];
+            const filtered = events
+                .filter(event => getLecturerKey(event) === lecturerKey && Number(event.weekday) === dayIndex)
+                .sort((a, b) => {
+                    const timeA = `${a.start_time || ''}`.padStart(5, '0');
+                    const timeB = `${b.start_time || ''}`.padStart(5, '0');
+                    return timeA.localeCompare(timeB);
+                });
+
+            return filtered.length ? filtered[filtered.length - 1] : null;
+        }
+
+        async function handleLecturerAction(dataset = {}) {
+            if (!dataset) return;
+            const action = dataset.action;
+            try {
+                switch (action) {
+                    case 'add-custom-after':
+                        openManualLecturerModal({
+                            mode: 'create',
+                            anchorKey: dataset.anchorKey || null
+                        });
+                        break;
+                    case 'edit-custom': {
+                        const lecturerKey = dataset.lecturerKey;
+                        const custom = findCustomLecturerByKey(lecturerKey);
+                        if (!custom) return;
+                        openManualLecturerModal({
+                            mode: 'edit',
+                            lecturerKey,
+                            custom
+                        });
+                        break;
+                    }
+                    case 'remove-custom': {
+                        const lecturerKey = dataset.lecturerKey;
+                        if (!lecturerKey) return;
+                        await removeCustomLecturer(lecturerKey);
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            } catch (error) {
+                console.error('Lỗi khi xử lý thao tác giảng viên tùy chỉnh:', error);
+                alert(error.message || 'Không thể thực hiện thao tác. Vui lòng thử lại.');
+            }
+        }
+
+        function openManualLecturerModal({ mode = 'create', anchorKey = null, lecturerKey = null, custom = null } = {}) {
+            const modal = document.getElementById('manualLecturerModal');
+            const title = document.getElementById('manualLecturerModalTitle');
+            const nameInput = document.getElementById('manualLecturerName');
+            const emailInput = document.getElementById('manualLecturerEmail');
+            const notesInput = document.getElementById('manualLecturerNotes');
+            const form = document.getElementById('manualLecturerForm');
+            if (!modal || !nameInput || !emailInput || !notesInput || !form) return;
+
+            manualLecturerModalState.mode = mode;
+            manualLecturerModalState.anchorKey = anchorKey;
+            manualLecturerModalState.lecturerKey = lecturerKey;
+            manualLecturerModalState.customId = custom?.id || null;
+
+            if (form) {
+                form.reset();
+            }
+
+            if (mode === 'edit' && custom) {
+                title.textContent = 'Cập nhật giảng viên tùy chỉnh';
+                nameInput.value = custom.name || '';
+                emailInput.value = custom.email || '';
+                notesInput.value = custom.note || '';
+            } else {
+                title.textContent = 'Thêm giảng viên tùy chỉnh';
+                nameInput.value = '';
+                emailInput.value = '';
+                notesInput.value = '';
+            }
+
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+
+            setTimeout(() => {
+                nameInput.focus();
+                nameInput.select();
+            }, 50);
+        }
+
+        function closeManualLecturerModal() {
+            const modal = document.getElementById('manualLecturerModal');
+            if (!modal) return;
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        async function submitManualLecturer() {
+            const form = document.getElementById('manualLecturerForm');
+            if (!form) return;
+
+            if (!form.reportValidity()) {
+                return;
+            }
+
+            const name = document.getElementById('manualLecturerName')?.value.trim();
+            const email = document.getElementById('manualLecturerEmail')?.value.trim();
+            const note = document.getElementById('manualLecturerNotes')?.value.trim();
+
+            if (!name) {
+                alert('Vui lòng nhập tên giảng viên.');
+                return;
+            }
+
+            try {
+                if (manualLecturerModalState.mode === 'edit' && manualLecturerModalState.customId) {
+                    await updateCustomLecturer(manualLecturerModalState.customId, { name, email, note });
+                } else {
+                    await addCustomLecturer({
+                        name,
+                        email,
+                        note,
+                        anchorKey: manualLecturerModalState.anchorKey || manualLecturerModalState.lecturerKey || null
+                    });
+                }
+                closeManualLecturerModal();
+            } catch (error) {
+                console.error('Không thể lưu giảng viên tùy chỉnh:', error);
+                alert(error.message || 'Không thể lưu giảng viên tùy chỉnh. Vui lòng thử lại.');
+            }
+        }
+
+        async function addCustomLecturer({ name, email, note, anchorKey = null }) {
+            const payload = {
+                name,
+                email: email || '',
+                note: note || '',
+                anchorKey: anchorKey && String(anchorKey).trim() ? String(anchorKey).trim() : null
+            };
+
+            const response = await fetch(CUSTOM_LECTURERS_API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await parseJsonSafe(response);
+            if (!response.ok) {
+                const message = data?.error || 'Không thể thêm giảng viên tùy chỉnh.';
+                throw new Error(message);
+            }
+
+            const created = data?.lecturer ? normalizeCustomLecturer(data.lecturer) : null;
+
+            try {
+                await loadCustomLecturers({ force: true, silent: true });
+            } catch (error) {
+                console.warn('Không thể đồng bộ danh sách giảng viên tùy chỉnh sau khi thêm mới:', error);
+                if (created) {
+                    const exists = teachingState.customLecturers.some(item => String(item.id) === String(created.id));
+                    if (!exists) {
+                        teachingState.customLecturers.push(created);
+                    }
+                }
+            }
+
+            if (created) {
+                const key = getCustomLecturerKey(created);
+                ensureLecturerFilterOption({ value: key, label: created.name, email: created.email });
+            }
+
+            teachingState.settings.selectedLecturer = 'all';
+            const filterSelect = document.getElementById('teachingLecturerFilter');
+            if (filterSelect) {
+                filterSelect.value = 'all';
+            }
+
+            refreshTeachingScheduleView();
+
+            return data?.lecturer || null;
+        }
+
+        async function updateCustomLecturer(customId, { name, email, note }) {
+            if (!customId) {
+                throw new Error('Không xác định được giảng viên cần cập nhật.');
+            }
+
+            const payload = {
+                name,
+                email: email || '',
+                note: note || ''
+            };
+
+            const response = await fetch(`${CUSTOM_LECTURERS_API}/${encodeURIComponent(customId)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await parseJsonSafe(response);
+            if (!response.ok) {
+                const message = data?.error || 'Không thể cập nhật giảng viên tùy chỉnh.';
+                throw new Error(message);
+            }
+
+            const normalized = data?.lecturer ? normalizeCustomLecturer(data.lecturer) : null;
+
+            try {
+                await loadCustomLecturers({ force: true, silent: true });
+            } catch (error) {
+                console.warn('Không thể đồng bộ danh sách giảng viên tùy chỉnh sau khi cập nhật:', error);
+                if (normalized) {
+                    const index = teachingState.customLecturers.findIndex(item => String(item.id) === String(normalized.id));
+                    if (index !== -1) {
+                        teachingState.customLecturers[index] = { ...teachingState.customLecturers[index], ...normalized };
+                    } else {
+                        teachingState.customLecturers.push(normalized);
+                    }
+                }
+            }
+
+            if (normalized) {
+                const key = getCustomLecturerKey(normalized);
+                ensureLecturerFilterOption({ value: key, label: normalized.name, email: normalized.email });
+            }
+
+            refreshTeachingScheduleView();
+
+            return data?.lecturer || null;
+        }
+
+        async function removeCustomLecturer(lecturerKey) {
+            const custom = findCustomLecturerByKey(lecturerKey);
+            if (!custom) return;
+
+            const confirmed = window.confirm(`Bạn có chắc muốn xóa giảng viên "${custom.name}"? Các lịch tùy chỉnh liên kết sẽ được chuyển lên đầu danh sách.`);
+            if (!confirmed) return;
+
+            const removalKey = getCustomLecturerKey(custom);
+
+            const response = await fetch(`${CUSTOM_LECTURERS_API}/${encodeURIComponent(custom.id)}`, {
+                method: 'DELETE'
+            });
+
+            const data = await parseJsonSafe(response);
+            if (!response.ok) {
+                const message = data?.error || 'Không thể xóa giảng viên tùy chỉnh.';
+                throw new Error(message);
+            }
+
+            if (teachingState.settings.selectedLecturer === removalKey) {
+                teachingState.settings.selectedLecturer = 'all';
+                const filterSelect = document.getElementById('teachingLecturerFilter');
+                if (filterSelect) {
+                    filterSelect.value = 'all';
+                }
+            }
+
+            removeLecturerFilterOption(removalKey);
+
+            const fallbackAnchor = data?.reassignTo !== undefined ? (data.reassignTo || null) : (custom.anchorKey || null);
+
+            try {
+                await loadCustomLecturers({ force: true, silent: true });
+            } catch (error) {
+                console.warn('Không thể đồng bộ danh sách giảng viên tùy chỉnh sau khi xóa:', error);
+                teachingState.customLecturers = teachingState.customLecturers
+                    .filter(entry => String(entry.id) !== String(custom.id))
+                    .map(entry => {
+                        if (entry.anchorKey === removalKey) {
+                            return { ...entry, anchorKey: fallbackAnchor };
+                        }
+                        return entry;
+                    });
+            }
+
+            refreshTeachingScheduleView();
+
+            return data;
+        }
+
+        function refreshTeachingScheduleView() {
+            if (teachingState.lastData) {
+                renderTeachingSchedule(teachingState.lastData);
+            } else {
+                loadTeachingSchedule(true);
+            }
+        }
+
+        function getLecturerKey(event) {
+            if (!event) return 'unknown';
+            if (event.organizer_id) return `id:${event.organizer_id}`;
+            if (event.organizer && String(event.organizer).trim()) {
+                return `name:${String(event.organizer).trim()}`;
+            }
+            if (event.tags && event.tags.lecturer) {
+                return `name:${String(event.tags.lecturer).trim()}`;
+            }
+            return 'unknown';
+        }
+
+        function getLecturerName(event) {
+            if (!event) return 'Giảng viên chưa xác định';
+            if (event.organizer && String(event.organizer).trim()) {
+                return String(event.organizer).trim();
+            }
+            if (event.tags && event.tags.lecturer) {
+                return String(event.tags.lecturer).trim();
+            }
+            return 'Giảng viên chưa xác định';
+        }
+
+        function buildLecturerMap(events) {
+            const map = new Map();
+            events.forEach(event => {
+                const key = getLecturerKey(event);
+                const name = getLecturerName(event);
+                const email = event.organizer_email || event.lecturer_email || '';
+
+                if (!map.has(key)) {
+                    map.set(key, {
+                        key,
+                        id: event.organizer_id || null,
+                        name,
+                        email,
+                        classes: new Set(),
+                        totalSessions: 0,
+                        eventsByDay: Array.from({ length: 7 }, () => [])
+                    });
+                }
+
+                const entry = map.get(key);
+                if (event.class_name) {
+                    entry.classes.add(event.class_name);
+                }
+                if (!entry.email && email) {
+                    entry.email = email;
+                }
+                entry.totalSessions += 1;
+
+                const dayIndex = Number.isInteger(event.weekday) ? event.weekday : null;
+                if (dayIndex !== null && entry.eventsByDay[dayIndex]) {
+                    entry.eventsByDay[dayIndex].push(event);
+                }
+            });
+
+            map.forEach(entry => {
+                entry.eventsByDay.forEach(dayEvents => {
+                    dayEvents.sort((a, b) => {
+                        const timeA = `${a.start_time || ''}`;
+                        const timeB = `${b.start_time || ''}`;
+                        return timeA.localeCompare(timeB);
+                    });
+                });
+            });
+
+            return map;
+        }
+
+        function createLecturerFromCustom(custom) {
+            return {
+                key: getCustomLecturerKey(custom),
+                id: null,
+                name: custom.name,
+                email: custom.email || '',
+                note: custom.note || '',
+                classes: new Set(),
+                totalSessions: 0,
+                eventsByDay: Array.from({ length: 7 }, () => []),
+                isCustom: true,
+                customId: custom.id,
+                anchorKey: custom.anchorKey || null,
+                createdAt: custom.createdAt || Date.now()
+            };
+        }
+
+        function mergeLecturersWithCustom({ baseLecturers = [], lecturerMap = new Map(), searchQuery = '', selectedKey = 'all' }) {
+            const normalizedSearch = searchQuery;
+            const customLecturersRaw = Array.isArray(teachingState.customLecturers) ? teachingState.customLecturers : [];
+            const customLecturers = customLecturersRaw
+                .map(createLecturerFromCustom)
+                .filter(lecturer => matchesLecturerSearch(lecturer, normalizedSearch));
+
+            const anchorBuckets = new Map();
+            customLecturers.forEach(lecturer => {
+                const anchorKey = lecturer.anchorKey && lecturer.anchorKey.trim() ? lecturer.anchorKey.trim() : null;
+                if (!anchorBuckets.has(anchorKey)) {
+                    anchorBuckets.set(anchorKey, []);
+                }
+                anchorBuckets.get(anchorKey).push(lecturer);
+            });
+
+            anchorBuckets.forEach(list => {
+                list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+            });
+
+            const finalLecturers = [];
+            const visited = new Set();
+
+            function appendLecturer(lecturer) {
+                if (!lecturer) return;
+                finalLecturers.push(lecturer);
+                const bucket = anchorBuckets.get(lecturer.key);
+                if (bucket && bucket.length) {
+                    bucket.forEach(child => {
+                        visited.add(child.customId);
+                        appendLecturer(child);
+                    });
+                }
+            }
+
+            baseLecturers.forEach(lecturer => {
+                appendLecturer(lecturer);
+            });
+
+            // Custom lecturers anchored to keys that are currently hidden (e.g., due to filter) should still appear if selected explicitly.
+            customLecturers.forEach(lecturer => {
+                if (!visited.has(lecturer.customId)) {
+                    appendLecturer(lecturer);
+                }
+            });
+
+            if (selectedKey && selectedKey !== 'all') {
+                return finalLecturers.filter(lecturer => lecturer.key === selectedKey);
+            }
+
+            return finalLecturers;
+        }
+
+        function buildLecturerCell(lecturer) {
+            const details = [];
+            const detailMode = teachingState.settings.lecturerDetails;
+
+            if ((detailMode === 'name-email' || detailMode === 'full') && lecturer.email) {
+                details.push(`<span><i class="bi bi-envelope"></i> ${escapeHtml(lecturer.email)}</span>`);
+            }
+
+            if ((detailMode === 'name-classes' || detailMode === 'full') && lecturer.classes && lecturer.classes.size) {
+                const classes = Array.from(lecturer.classes).sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
+                const limit = detailMode === 'full' ? 5 : 3;
+                const displayed = classes.slice(0, limit);
+                let classesText = displayed.join(', ');
+                if (classes.length > limit) {
+                    classesText += ` (+${classes.length - limit})`;
+                }
+                details.push(`<span><i class="bi bi-collection"></i> ${escapeHtml(classesText)}</span>`);
+            }
+
+            if (detailMode === 'full') {
+                details.push(`<span><i class="bi bi-clock-history"></i> ${lecturer.totalSessions} tiết</span>`);
+            }
+
+            if (lecturer.note) {
+                details.push(`<span><i class="bi bi-journal-text"></i> ${escapeHtml(lecturer.note)}</span>`);
+            }
+
+            const metaHtml = details.length ? `<div class="lecturer-meta">${details.join('')}</div>` : '';
+            const badges = [];
+            if (lecturer.isCustom) {
+                badges.push('<span class="manual-lecturer-tag"><i class="bi bi-person-gear"></i> tùy chỉnh</span>');
+            }
+
+            const badgeHtml = badges.length ? `<div class="lecturer-badges">${badges.join('')}</div>` : '';
+
+            const actions = [];
+            if (lecturer.isCustom) {
+                actions.push(`<button type="button" class="lecturer-action-btn" data-action="add-custom-after" data-anchor-key="${escapeHtml(lecturer.key || '')}" title="Thêm giảng viên mới phía dưới"><i class="bi bi-plus-lg"></i></button>`);
+                actions.push(`<button type="button" class="lecturer-action-btn" data-action="edit-custom" data-lecturer-key="${escapeHtml(lecturer.key)}" title="Chỉnh sửa giảng viên"><i class="bi bi-pencil"></i></button>`);
+                actions.push(`<button type="button" class="lecturer-action-btn" data-action="remove-custom" data-variant="danger" data-lecturer-key="${escapeHtml(lecturer.key)}" title="Xóa giảng viên"><i class="bi bi-trash"></i></button>`);
+            } else {
+                actions.push(`<button type="button" class="lecturer-action-btn" data-action="add-custom-after" data-anchor-key="${escapeHtml(lecturer.key || '')}" title="Thêm giảng viên mới phía dưới"><i class="bi bi-plus-lg"></i></button>`);
+            }
+            const actionsHtml = actions.length ? `<div class="lecturer-actions">${actions.join('')}</div>` : '';
+
+            return `
+                <div class="lecturer-info">
+                    <div class="lecturer-header">
+                        <div class="lecturer-identifiers">
+                            <span class="lecturer-name">${escapeHtml(lecturer.name)}</span>
+                            ${badgeHtml}
+                        </div>
+                        ${actionsHtml}
+                    </div>
+                    ${metaHtml}
+                </div>
+            `;
+        }
+
+        function updateTeachingLecturerFilterOptions(events) {
+            const filterSelect = document.getElementById('teachingLecturerFilter');
+            if (!filterSelect) return;
+
+            teachingState.lecturers.clear();
+            events.forEach(event => {
+                const key = getLecturerKey(event);
+                if (!teachingState.lecturers.has(key)) {
+                    teachingState.lecturers.set(key, {
+                        value: key,
+                        label: getLecturerName(event),
+                        email: event.organizer_email || ''
+                    });
+                } else {
+                    const lecturer = teachingState.lecturers.get(key);
+                    if (!lecturer.email && event.organizer_email) {
+                        lecturer.email = event.organizer_email;
+                    }
+                }
+            });
+
+            if (Array.isArray(teachingState.customLecturers) && teachingState.customLecturers.length) {
+                teachingState.customLecturers.forEach(custom => {
+                    const key = getCustomLecturerKey(custom);
+                    if (!teachingState.lecturers.has(key)) {
+                        teachingState.lecturers.set(key, {
+                            value: key,
+                            label: custom.name,
+                            email: custom.email || '',
+                            isCustom: true
+                        });
+                    }
+                });
+            }
+
+            const selectedKey = teachingState.settings.selectedLecturer;
+            const options = Array.from(teachingState.lecturers.values()).sort((a, b) => a.label.localeCompare(b.label, 'vi', { sensitivity: 'base' }));
+
+            filterSelect.innerHTML = '';
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'Tất cả giảng viên';
+            filterSelect.appendChild(allOption);
+
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option.value;
+                opt.textContent = option.label;
+                if (option.email) {
+                    opt.dataset.email = option.email;
+                }
+                if (option.isCustom) {
+                    opt.dataset.custom = 'true';
+                }
+                filterSelect.appendChild(opt);
+            });
+
+            if (selectedKey !== 'all' && !options.some(option => option.value === selectedKey)) {
+                const fallback = document.createElement('option');
+                fallback.value = selectedKey;
+                fallback.textContent = selectedKey.startsWith('id:')
+                    ? `${CURRENT_USER_NAME || 'Giảng viên'} (chưa có lịch)`
+                    : 'Giảng viên chưa xác định';
+                filterSelect.appendChild(fallback);
+            }
+
+            if (filterSelect.querySelector(`option[value="${selectedKey}"]`)) {
+                filterSelect.value = selectedKey;
+            } else {
+                filterSelect.value = 'all';
+                teachingState.settings.selectedLecturer = 'all';
+            }
+        }
+
+        function syncTeachingCustomizationControls(options = {}) {
+            const filterSelect = document.getElementById('teachingLecturerFilter');
+            if (filterSelect && !options.skipLecturerSelectUpdate) {
+                const targetValue = teachingState.settings.selectedLecturer;
+                if (filterSelect.querySelector(`option[value="${targetValue}"]`) && filterSelect.value !== targetValue) {
+                    filterSelect.value = targetValue;
+                }
+            }
+
+            const widthSelect = document.getElementById('teachingLecturerWidth');
+            if (widthSelect) {
+                const targetWidth = teachingState.settings.lecturerColumnWidth || 'comfortable';
+                if (widthSelect.value !== targetWidth) {
+                    widthSelect.value = targetWidth;
+                }
+            }
+
+            const detailSelect = document.getElementById('teachingLecturerDetails');
+            if (detailSelect) {
+                const targetDetail = teachingState.settings.lecturerDetails || 'name-email';
+                if (detailSelect.value !== targetDetail) {
+                    detailSelect.value = targetDetail;
+                }
+            }
+
+            const searchInput = document.getElementById('teachingLecturerSearch');
+            if (searchInput) {
+                const targetSearch = teachingState.settings.searchQuery || '';
+                if (searchInput.value !== targetSearch) {
+                    searchInput.value = targetSearch;
+                }
+            }
+        }
+
+        function setTeachingLoading() {
+            const tableBody = document.getElementById('teachingTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = `<tr><td colspan="${getTeachingColspan()}" class="teaching-empty">Đang tải dữ liệu lịch giảng...</td></tr>`;
+            }
+            const summaryBar = document.getElementById('teachingSummaryBar');
+            if (summaryBar) {
+                summaryBar.style.display = 'none';
+                summaryBar.innerHTML = '';
+            }
+        }
+
+        function renderTeachingError(message) {
+            const tableBody = document.getElementById('teachingTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = `<tr><td colspan="${getTeachingColspan()}" class="teaching-empty">${escapeHtml(message)}</td></tr>`;
+            }
+            const notesContainer = document.getElementById('teachingNotesContainer');
+            if (notesContainer) {
+                notesContainer.style.display = 'none';
+            }
+            const summaryBar = document.getElementById('teachingSummaryBar');
+            if (summaryBar) {
+                summaryBar.style.display = 'none';
+                summaryBar.innerHTML = '';
+            }
+        }
+
+        function getTeachingColspan() {
+            const head = document.getElementById('teachingTableHead');
+            if (head) {
+                const thCount = head.querySelectorAll('th').length;
+                if (thCount > 0) {
+                    return thCount;
+                }
+            }
+            return 8;
+        }
+
+        function createLessonCard(lesson) {
+            const details = [];
+            if (lesson.organizer) {
+                details.push(`<span><i class="bi bi-person-badge"></i> ${escapeHtml(lesson.organizer)}</span>`);
+            }
+            if (lesson.room || lesson.location) {
+                const locationText = [lesson.room, lesson.location].filter(Boolean).join(' - ');
+                if (locationText) {
+                    details.push(`<span><i class="bi bi-geo-alt"></i> ${escapeHtml(locationText)}</span>`);
+                }
+            }
+            details.push(`<span><i class="bi bi-clock"></i> ${escapeHtml(lesson.start_time)} - ${escapeHtml(lesson.end_time)}</span>`);
+            if (lesson.description) {
+                details.push(`<span><i class="bi bi-journal-text"></i> ${formatMultiline(lesson.description)}</span>`);
+            }
+
+            const attributes = [];
+            if (lesson && lesson.id !== undefined && lesson.id !== null) {
+                attributes.push(`data-event-id="${escapeHtml(String(lesson.id))}"`);
+                attributes.push('data-clickable="true"');
+            }
+            if (lesson && lesson.start) {
+                attributes.push(`data-event-start="${escapeHtml(String(lesson.start))}"`);
+            }
+            if (lesson && lesson.end) {
+                attributes.push(`data-event-end="${escapeHtml(String(lesson.end))}"`);
+            }
+            if (lesson && lesson.organizer_id) {
+                attributes.push(`data-organizer-id="${escapeHtml(String(lesson.organizer_id))}"`);
+            }
+            const attributeString = attributes.length ? ` ${attributes.join(' ')}` : '';
+
+            return `
+                <div class="lesson-card"${attributeString}>
+                    <div class="lesson-class">${escapeHtml(lesson.class_name || 'Lớp chưa xác định')}</div>
+                    <h4>${escapeHtml(lesson.title || 'Chưa đặt tên')}</h4>
+                    <div class="lesson-meta">${details.join('')}</div>
+                </div>
+            `;
+        }
+
+        function exportTeachingSchedule() {
+            const card = document.getElementById('teachingModuleCard');
+            if (!card) return;
+
+            const printWindow = window.open('', '_blank');
+            const stylesheet = `
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 2rem; color: #1f2937; }
+                h2 { margin-bottom: 1rem; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #cbd5f5; padding: 0.75rem; vertical-align: top; }
+                th { background: #f1f5ff; }
+                .lesson-card { background: #f8f9ff; border: 1px solid #cbd5f5; border-radius: 8px; padding: 0.75rem; }
+                .lesson-class { font-weight: 600; text-transform: uppercase; margin-bottom: 0.35rem; }
+                .lesson-meta span { display: block; margin-bottom: 0.25rem; }
+                ul { margin-top: 1rem; }
+            `;
+
+            printWindow.document.write('<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Lịch giảng</title>');
+            printWindow.document.write(`<style>${stylesheet}</style>`);
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(`<h2>Lịch giảng tuần ${document.getElementById('teachingWeekLabel').textContent}</h2>`);
+            printWindow.document.write(card.querySelector('.teaching-table-wrapper').outerHTML);
+            const notes = document.getElementById('teachingNotesContainer');
+            if (notes && notes.style.display !== 'none') {
+                printWindow.document.write(notes.outerHTML);
+            }
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        }
+
+        function getWeekStart(date) {
+            const result = new Date(date);
+            const day = result.getDay();
+            const diff = day === 0 ? -6 : 1 - day;
+            result.setDate(result.getDate() + diff);
+            result.setHours(0, 0, 0, 0);
+            return result;
+        }
+
+        function getWeekEnd(start) {
+            const end = new Date(start);
+            end.setDate(end.getDate() + 6);
+            end.setHours(23, 59, 59, 999);
+            return end;
+        }
+
+        function addDays(date, days) {
+            const result = new Date(date);
+            result.setDate(result.getDate() + days);
+            return result;
+        }
+
+        function formatCacheKey(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDateLabel(date) {
+            return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        }
+
+        async function loadCustomLecturers({ force = false, silent = false } = {}) {
+            if (teachingState.customLecturerLoading) {
+                if (!force) {
+                    return teachingState.customLecturers;
+                }
+            } else if (teachingState.customLecturersLoaded && !force) {
+                return teachingState.customLecturers;
+            }
+
+            teachingState.customLecturerLoading = true;
+
+            try {
+                const response = await fetch(CUSTOM_LECTURERS_API);
+                const data = await parseJsonSafe(response);
+
+                if (!response.ok) {
+                    const message = data?.error || 'Không thể tải danh sách giảng viên tùy chỉnh.';
+                    throw new Error(message);
+                }
+
+                const normalized = Array.isArray(data?.lecturers)
+                    ? data.lecturers.map(normalizeCustomLecturer).filter(Boolean)
+                    : [];
+
+                normalized.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+                teachingState.customLecturers = normalized;
+                teachingState.customLecturersLoaded = true;
+                return teachingState.customLecturers;
+            } catch (error) {
+                if (!silent) {
+                    console.error('Không thể tải danh sách giảng viên tùy chỉnh:', error);
+                } else {
+                    console.warn('Không thể tải danh sách giảng viên tùy chỉnh:', error);
+                }
+                if (!teachingState.customLecturersLoaded) {
+                    teachingState.customLecturers = [];
+                }
+                throw error;
+            } finally {
+                teachingState.customLecturerLoading = false;
+            }
+        }
+
+        function normalizeCustomLecturer(entry) {
+            if (!entry || typeof entry !== 'object') return null;
+
+            const rawId = entry.id ?? entry.custom_id ?? entry.uuid ?? null;
+            const id = rawId !== null && rawId !== undefined ? rawId : generateCustomLecturerId();
+
+            const name = String(entry.name || '').trim();
+            if (!name) return null;
+
+            const email = entry.email ? String(entry.email).trim() : '';
+            const note = entry.note ? String(entry.note).trim() : '';
+            const anchorKeyRaw = entry.anchorKey ?? entry.anchor_key ?? entry.anchor ?? null;
+            const anchorKey = anchorKeyRaw && String(anchorKeyRaw).trim() ? String(anchorKeyRaw).trim() : null;
+
+            let createdAt = Date.now();
+            if (Number.isFinite(entry.createdAt)) {
+                createdAt = Number(entry.createdAt);
+            } else if (entry.created_at) {
+                const parsed = Date.parse(entry.created_at);
+                if (!Number.isNaN(parsed)) {
+                    createdAt = parsed;
+                }
+            }
+
+            return {
+                id,
+                name,
+                email,
+                note,
+                anchorKey,
+                createdAt
+            };
+        }
+
+        async function parseJsonSafe(response) {
+            try {
+                return await response.json();
+            } catch (error) {
+                return {};
+            }
+        }
+
+        function generateCustomLecturerId() {
+            if (window.crypto?.randomUUID) {
+                return window.crypto.randomUUID();
+            }
+            return `c-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+        }
+
+        function getCustomLecturerKey(custom) {
+            return `custom:${custom.id}`;
+        }
+
+        function findCustomLecturerByKey(key) {
+            if (!key) return null;
+            return teachingState.customLecturers.find(custom => getCustomLecturerKey(custom) === key) || null;
+        }
+
+        function normalizeSearchString(value) {
+            return String(value || '')
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[^a-z0-9\s]/g, '')
+                .replace(/[\u0300-\u036f]/g, '')
+                .trim();
+        }
+
+        function cssEscape(value) {
+            if (typeof value !== 'string') {
+                return value;
+            }
+            if (window.CSS && typeof window.CSS.escape === 'function') {
+                return window.CSS.escape(value);
+            }
+            return value.replace(/[^a-zA-Z0-9_\-]/g, '\\$&');
+        }
+
+        function matchesLecturerSearch(lecturer, normalizedQuery) {
+            if (!normalizedQuery) return true;
+            const fragments = [lecturer?.name, lecturer?.email];
+            if (lecturer?.classes && lecturer.classes.size) {
+                fragments.push(Array.from(lecturer.classes).join(' '));
+            }
+            if (lecturer?.note) {
+                fragments.push(lecturer.note);
+            }
+            const haystack = normalizeSearchString(fragments.filter(Boolean).join(' '));
+            return haystack.includes(normalizedQuery);
+        }
+
+        function calculateDurationMinutes(event) {
+            if (!event) return 0;
+            const start = event.start ? new Date(event.start) : null;
+            const end = event.end ? new Date(event.end) : null;
+            if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+                return Math.max(0, (end.getTime() - start.getTime()) / 60000);
+            }
+
+            const startTime = event.start_time;
+            const endTime = event.end_time;
+            if (startTime && endTime) {
+                const [startHour, startMinute] = startTime.split(':').map(Number);
+                const [endHour, endMinute] = endTime.split(':').map(Number);
+                if ([startHour, startMinute, endHour, endMinute].every(value => Number.isInteger(value))) {
+                    return Math.max(0, (endHour * 60 + endMinute) - (startHour * 60 + startMinute));
+                }
+            }
+
+            return 0;
+        }
+
+        function formatDurationFromMinutes(minutes) {
+            const total = Math.max(0, Math.round(minutes));
+            const hours = Math.floor(total / 60);
+            const remaining = total % 60;
+            if (hours && remaining) {
+                return `${hours} giờ ${remaining} phút`;
+            }
+            if (hours) {
+                return `${hours} giờ`;
+            }
+            return `${remaining} phút`;
+        }
+
+        function formatTimeFromDate(date) {
+            if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+                return '';
+            }
+            return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatMultiline(value) {
+            return escapeHtml(value).replace(/\n/g, '<br>');
+        }
+
+        function formatDateTimeForConflict(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return value;
+            }
+            const day = date.toLocaleDateString('vi-VN');
+            const time = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            return `${day} ${time}`;
+        }
+
+        function openCreateModal(dateStr = null) {
+            currentEvent = null;
+            document.getElementById('modalTitle').textContent = 'Tạo sự kiện mới';
+            document.getElementById('eventForm').reset();
+            document.getElementById('eventId').value = '';
+            
+            if (dateStr) {
+                const date = new Date(dateStr);
+                date.setHours(9, 0);
+                document.getElementById('start_datetime').value = formatDateTimeLocal(date);
+                date.setHours(10, 0);
+                document.getElementById('end_datetime').value = formatDateTimeLocal(date);
+            }
+            
+            document.getElementById('eventModal').classList.add('active');
+        }
+
+        async function openEditModal(event) {
+            currentEvent = event;
+            document.getElementById('modalTitle').textContent = 'Chỉnh sửa sự kiện';
+            
+            // Fetch full event details
+            const response = await fetch(`/api/schedule/${event.id}`);
+            const data = await response.json();
+            
+            document.getElementById('eventId').value = data.id;
+            document.getElementById('title').value = data.title;
+            document.getElementById('description').value = data.description || '';
+            document.getElementById('event_type').value = data.event_type;
+            document.getElementById('start_datetime').value = formatDateTimeLocal(new Date(data.start_datetime));
+            document.getElementById('end_datetime').value = formatDateTimeLocal(new Date(data.end_datetime));
+            document.getElementById('location').value = data.location || '';
+            document.getElementById('room').value = data.room || '';
+            document.getElementById('organizer_id').value = data.organizer_id;
+            document.getElementById('status').value = data.status;
+            document.getElementById('priority').value = data.priority;
+            document.getElementById('color').value = data.color || '';
+            
+            // Select color
+            document.querySelectorAll('.color-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.color === data.color);
+            });
+            
+            document.getElementById('eventModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('eventModal').classList.remove('active');
+            currentEvent = null;
+        }
+
+        async function saveEvent() {
+            const form = document.getElementById('eventForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const eventId = document.getElementById('eventId').value;
+            const data = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                event_type: document.getElementById('event_type').value,
+                start_datetime: document.getElementById('start_datetime').value,
+                end_datetime: document.getElementById('end_datetime').value,
+                location: document.getElementById('location').value,
+                room: document.getElementById('room').value,
+                organizer_id: parseInt(document.getElementById('organizer_id').value),
+                status: document.getElementById('status').value,
+                priority: document.getElementById('priority').value,
+                color: document.getElementById('color').value
+            };
+
+            try {
+                const url = eventId ? `/api/schedule/${eventId}` : '/api/schedule';
+                const method = eventId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    const customError = new Error(error.error || 'Lỗi khi lưu sự kiện');
+                    if (Array.isArray(error.conflicts)) {
+                        customError.conflicts = error.conflicts;
+                    }
+                    throw customError;
+                }
+
+                closeModal();
+                calendar.refetchEvents();
+                teachingState.cache.clear();
+                if (document.getElementById('teachingModule').classList.contains('active')) {
+                    loadTeachingSchedule(true);
+                }
+                alert(eventId ? 'Cập nhật thành công!' : 'Tạo sự kiện thành công!');
+            } catch (error) {
+                console.error('Save event error:', error);
+                if (Array.isArray(error.conflicts) && error.conflicts.length > 0) {
+                    const conflictMessages = error.conflicts.map(conflict => {
+                        const start = formatDateTimeForConflict(conflict.start_datetime || conflict.start);
+                        const end = formatDateTimeForConflict(conflict.end_datetime || conflict.end);
+                        return `• ${escapeHtml(conflict.title || 'Sự kiện khác')} (${start} - ${end})`;
+                    }).join('\n');
+
+                    alert(`Không thể lưu do trùng lịch:\n${conflictMessages}\n\nVui lòng chọn thời gian khác hoặc điều chỉnh sự kiện hiện có.`);
+                } else {
+                    alert(error.message);
+                }
+            }
+        }
+
+        async function updateEventDateTime(event) {
+            try {
+                const response = await fetch(`/api/schedule/${event.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        start_datetime: event.start.toISOString(),
+                        end_datetime: event.end.toISOString()
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Lỗi khi cập nhật');
+                }
+
+                teachingState.cache.clear();
+                if (document.getElementById('teachingModule').classList.contains('active')) {
+                    loadTeachingSchedule(true);
+                }
+            } catch (error) {
+                console.error('Update datetime error:', error);
+                alert(error.message || 'Lỗi khi cập nhật thời gian');
+                calendar.refetchEvents();
+            }
+        }
+
+        function setupColorPicker() {
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                    document.getElementById('color').value = this.dataset.color;
+                });
+            });
+        }
+
+        function formatDateTimeLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('eventModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('teachingLessonModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTeachingLessonModal();
+            }
+        });
+
+        document.getElementById('manualLecturerModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeManualLecturerModal();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/staff.css?v=2024100701">
+<style>
+.criteria-page {
+  max-width: 1400px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+
+.criteria-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  padding: 2.5rem;
+  border-radius: 20px;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 20px 50px rgba(102, 126, 234, 0.3);
+}
+
+.criteria-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.criteria-header p {
+  font-size: 1.05rem;
+  opacity: 0.95;
+}
+
+.criteria-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.criteria-tab {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.criteria-tab:hover {
+  background: #f1f5f9;
+}
+
+.criteria-tab.is-active {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.criteria-section {
+  background: #fff;
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.criteria-section.is-hidden { display: none; }
+
+.criteria-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.criteria-section__title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.criteria-section__title i {
+  color: #3b82f6;
+}
+
+.criteria-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.criteria-table thead {
+  background: #f8fafc;
+}
+
+.criteria-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: #475569;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.criteria-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.criteria-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.criteria-name {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.criteria-desc {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.criteria-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.criteria-badge--numeric {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.criteria-badge--grade {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.criteria-badge--boolean {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.criteria-weight {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.criteria-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-icon--edit {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.btn-icon--edit:hover {
+  background: #bfdbfe;
+  transform: translateY(-2px);
+}
+
+.btn-icon--delete {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.btn-icon--delete:hover {
+  background: #fecaca;
+  transform: translateY(-2px);
+}
+
+.btn-add-criteria {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-add-criteria:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+}
+
+.period-info {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.period-info h3 {
+  font-size: 1.1rem;
+  color: #78350f;
+  margin-bottom: 0.5rem;
+}
+
+.period-info p {
+  color: #92400e;
+  margin-bottom: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  color: #cbd5e1;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  color: #94a3b8;
+}
+</style>
+
+<div class="criteria-page">
+  <header class="criteria-header">
+    <h1><i class="fa-solid fa-sliders"></i> Thiết lập tiêu chí đánh giá</h1>
+    <p>Quản lý các tiêu chí đánh giá hiệu suất công tác của cán bộ theo từng năm học và học kỳ.</p>
+  </header>
+
+  <% if (activePeriod) { %>
+    <div class="period-info">
+      <h3><i class="fa-solid fa-calendar-check"></i> Đợt đánh giá đang hoạt động</h3>
+      <p><strong><%= activePeriod.name %></strong> - <%= activePeriod.notes || 'Không có ghi chú' %></p>
+    </div>
+  <% } %>
+
+  <nav class="criteria-tabs">
+    <a href="#teaching" class="criteria-tab is-active" data-category="teaching">
+      <i class="fa-solid fa-chalkboard-user"></i> Giảng dạy
+    </a>
+    <a href="#research" class="criteria-tab" data-category="research">
+      <i class="fa-solid fa-microscope"></i> Nghiên cứu KH
+    </a>
+    <a href="#service" class="criteria-tab" data-category="service">
+      <i class="fa-solid fa-handshake-angle"></i> Phục vụ cộng đồng
+    </a>
+    <a href="#professional" class="criteria-tab" data-category="professional">
+      <i class="fa-solid fa-user-graduate"></i> Phát triển nghề nghiệp
+    </a>
+    <a href="#other" class="criteria-tab" data-category="other">
+      <i class="fa-solid fa-clipboard-check"></i> Kỷ luật & Đạo đức
+    </a>
+  </nav>
+
+  <% 
+    const categories = ['teaching', 'research', 'service', 'professional', 'other'];
+    categories.forEach(category => {
+      const categoryData = criteriaByCategory[category] || [];
+      const totalWeight = categoryData.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0);
+  %>
+  <section class="criteria-section <%= category !== 'teaching' ? 'is-hidden' : '' %>" data-category="<%= category %>">
+      <header class="criteria-section__header">
+        <h2 class="criteria-section__title">
+          <i class="fa-solid fa-list-check"></i>
+          <%= categoryLabels[category] %> 
+          <span style="font-size: 0.9rem; color: #64748b;">(Tổng trọng số: <%= totalWeight %>%)</span>
+        </h2>
+        <button class="btn-add-criteria">
+          <i class="fa-solid fa-plus"></i>
+          Thêm tiêu chí
+        </button>
+      </header>
+
+      <% if (categoryData.length > 0) { %>
+        <table class="criteria-table">
+          <thead>
+            <tr>
+              <th style="width: 35%;">Tiêu chí</th>
+              <th style="width: 15%;">Loại đo lường</th>
+              <th style="width: 12%;">Đơn vị</th>
+              <th style="width: 10%;">Trọng số</th>
+              <th style="width: 10%;">Bắt buộc</th>
+              <th style="width: 18%;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% categoryData.forEach(criteria => { %>
+              <tr>
+                <td>
+                  <div class="criteria-name"><%= criteria.name %></div>
+                  <% if (criteria.description) { %>
+                    <div class="criteria-desc"><%= criteria.description %></div>
+                  <% } %>
+                </td>
+                <td>
+                  <span class="criteria-badge criteria-badge--<%= criteria.measurement_type %>">
+                    <%= measurementTypeLabels[criteria.measurement_type] || criteria.measurement_type %>
+                  </span>
+                </td>
+                <td><%= criteria.unit || '-' %></td>
+                <td>
+                  <span class="criteria-weight"><%= criteria.weight %>%</span>
+                </td>
+                <td>
+                  <% if (criteria.is_required) { %>
+                    <i class="fa-solid fa-check-circle" style="color: #10b981;"></i> Bắt buộc
+                  <% } else { %>
+                    <i class="fa-regular fa-circle" style="color: #94a3b8;"></i> Tùy chọn
+                  <% } %>
+                </td>
+                <td>
+                  <div class="criteria-actions">
+                    <button class="btn-icon btn-icon--edit" title="Chỉnh sửa" data-future-feature>
+                      <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="btn-icon btn-icon--delete" title="Xóa" data-future-feature>
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state">
+          <i class="fa-solid fa-folder-open"></i>
+          <h3>Chưa có tiêu chí nào</h3>
+          <p>Hãy thêm tiêu chí đánh giá cho nhóm này</p>
+        </div>
+      <% } %>
+    </section>
+  <% }) %>
+</div>
+
+<%- contentFor('js') %>
+<script>
+(function() {
+  const tabs = document.querySelectorAll('.criteria-tab');
+  const sections = document.querySelectorAll('.criteria-section');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      const category = this.getAttribute('data-category');
+      
+      // Update active tab
+      tabs.forEach(t => t.classList.remove('is-active'));
+      this.classList.add('is-active');
+      
+      // Show corresponding section
+      sections.forEach(section => {
+        if (section.getAttribute('data-category') === category) {
+          section.style.display = 'block';
+        } else {
+          section.style.display = 'none';
+        }
+      });
+    });
+  });
+
+  // Handle future feature buttons
+  // Modal thêm tiêu chí
+  const modalTpl = `
+    <div class="modal-backdrop" style="position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;">
+      <div class="modal" role="dialog" aria-modal="true" style="background:#fff;border-radius:16px;max-width:720px;width:100%;box-shadow:0 30px 60px rgba(15,23,42,.35);overflow:hidden;">
+        <header style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
+          <h3 style="margin:0;font-size:1.2rem;font-weight:700;color:#0f172a"><i class="fa-solid fa-plus"></i> Thêm tiêu chí mới</h3>
+          <button id="btnCloseModal" style="border:none;background:transparent;font-size:1.25rem;cursor:pointer">×</button>
+        </header>
+        <form id="formAddCriteria" style="padding:1rem 1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <label style="display:flex;flex-direction:column;gap:.4rem">Tên tiêu chí*
+            <input name="name" required class="modal-input" style="padding:.6rem .8rem;border:1px solid #e2e8f0;border-radius:10px"/>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:.4rem">Mã tiêu chí*
+            <input name="code" required placeholder="VD: TEACH_NEW" class="modal-input" style="padding:.6rem .8rem;border:1px solid #e2e8f0;border-radius:10px"/>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:.4rem">Nhóm*
+            <select name="category" required style="padding:.6rem .8rem;border:1px solid #e2e8f0;border-radius:10px">
+              <option value="teaching">Giảng dạy</option>
+              <option value="research">Nghiên cứu khoa học</option>
+              <option value="service">Phục vụ cộng đồng</option>
+              <option value="professional">Phát triển nghề nghiệp</option>
+              <option value="other">Kỷ luật & Đạo đức</option>
+            </select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:.4rem">Loại đo lường*
+            <select name="measurement_type" required style="padding:.6rem .8rem;border:1px solid #e2e8f0;border-radius:10px">
+              <option value="numeric">Số lượng</option>
+              <option value="percentage">Phần trăm</option>
+              <option value="grade">Xếp loại</option>
+              <option value="boolean">Có/Không</option>
+              <option value="text">Văn bản</option>
+            </select>
+          </label>
+          <label style="grid-column:1 / -1;display:flex;flex-direction:column;gap:.4rem">Mô tả
+            <textarea name="description" rows="3" style="padding:.6rem .8rem;border:1px solid #e2e8f0;border-radius:10px"></textarea>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:.4rem">Đơn vị
+            <input name="unit" placeholder="giờ, bài, %..." style="padding:.6rem .8rem;border:1px solid #e2e8f0;border-radius:10px"/>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:.4rem">Trọng số (%)
+            <input name="weight" type="number" min="0" max="100" step="0.01" value="0" style="padding:.6rem .8rem;border:1px solid #e2e8f0;border-radius:10px"/>
+          </label>
+          <label style="display:flex;align-items:center;gap:.6rem"><input type="checkbox" name="is_required"/> Bắt buộc</label>
+          <div style="grid-column:1 / -1;display:flex;justify-content:flex-end;gap:.6rem;padding-top:.5rem;border-top:1px solid #e2e8f0">
+            <button type="button" id="btnCancel" style="padding:.6rem 1rem;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc">Hủy</button>
+            <button type="submit" style="padding:.6rem 1rem;border-radius:10px;border:none;background:#16a34a;color:#fff;font-weight:700">Lưu tiêu chí</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  function openModal(presetCategory) {
+    document.body.insertAdjacentHTML('beforeend', modalTpl);
+    const root = document.querySelector('.modal-backdrop');
+    const close = () => root?.remove();
+    root.querySelector('#btnCloseModal').addEventListener('click', close);
+    root.querySelector('#btnCancel').addEventListener('click', close);
+
+    root.addEventListener('click', (e) => {
+      if (e.target === root) close();
+    });
+
+    // Preselect category based on the section where the button was clicked
+    if (presetCategory) {
+      const sel = root.querySelector('select[name="category"]');
+      if (sel) sel.value = presetCategory;
+    }
+
+    const form = root.querySelector('#formAddCriteria');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const payload = Object.fromEntries(formData.entries());
+      payload.is_required = formData.get('is_required') ? 1 : 0;
+
+      try {
+        const res = await fetch('/api/staff/evaluation-criteria', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (!json.ok) {
+          alert(json.message || 'Không thể tạo tiêu chí.');
+          return;
+        }
+        // Optionally attach to active period with its base weight
+        await fetch('/api/staff/evaluation-criteria/attach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ criteria_id: json.id, weight: payload.weight, is_required: payload.is_required })
+        });
+
+        alert('Đã thêm tiêu chí thành công. Trang sẽ tải lại để cập nhật.');
+        location.reload();
+      } catch (err) {
+        console.error(err);
+        alert('Có lỗi khi lưu tiêu chí');
+      }
+    });
+  }
+
+  // Bind all "Thêm tiêu chí" buttons (one per category section)
+  document.querySelectorAll('.btn-add-criteria').forEach(btn => {
+    btn.addEventListener('click', function(){
+      const section = this.closest('.criteria-section');
+      const category = section?.getAttribute('data-category') || 'teaching';
+      openModal(category);
+    });
+  });
+})();
+</script>

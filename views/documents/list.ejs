@@ -1,0 +1,602 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/documents.css">
+
+<%- contentFor('content') %>
+<div class="documents-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><%= direction === 'incoming' ? 'Văn bản đến' : 'Văn bản đi' %></h1>
+      <p class="page-subtitle">Danh sách <%= direction === 'incoming' ? 'các văn bản được tiếp nhận' : 'các văn bản ban hành' %> trong hệ thống</p>
+    </div>
+    <div class="page-actions">
+      <a href="/documents/create" class="btn btn-primary"><i class="fas fa-plus"></i> Thêm văn bản</a>
+    </div>
+  </div>
+
+  <% if (typeof success !== 'undefined' && success.length > 0) { %>
+    <div class="alert alert-success">
+      <%= success %>
+    </div>
+  <% } %>
+  <% if (typeof error !== 'undefined' && error.length > 0) { %>
+    <div class="alert alert-danger">
+      <%= error %>
+    </div>
+  <% } %>
+
+  <div class="tabs">
+    <a href="/documents/incoming" class="tab <%= direction==='incoming' ? 'active' : '' %>">Văn bản đến</a>
+    <a href="/documents/outgoing" class="tab <%= direction==='outgoing' ? 'active' : '' %>">Văn bản đi</a>
+  </div>
+
+  <div class="stats-cards">
+    <div class="stat-card">
+      <div class="stat-value"><%= stats?.total || 0 %></div>
+      <div class="stat-label">Tổng</div>
+    </div>
+    <div class="stat-card stat-card--pending">
+      <div class="stat-value"><%= stats?.pending || 0 %></div>
+      <div class="stat-label">Chờ xử lý</div>
+    </div>
+    <div class="stat-card stat-card--processing">
+      <div class="stat-value"><%= stats?.processing || 0 %></div>
+      <div class="stat-label">Đang xử lý</div>
+    </div>
+    <div class="stat-card stat-card--completed">
+      <div class="stat-value"><%= stats?.completed || 0 %></div>
+      <div class="stat-label">Hoàn tất</div>
+    </div>
+    <div class="stat-card stat-card--overdue">
+      <div class="stat-value"><%= stats?.overdue || 0 %></div>
+      <div class="stat-label">Quá hạn</div>
+    </div>
+  </div>
+
+  <form method="get" class="filters" autocomplete="off">
+    <div class="filter-group">
+      <label>Tìm kiếm</label>
+      <input type="text" name="search" value="<%= filters.search || '' %>" placeholder="Số hiệu, tiêu đề, trích yếu..." />
+    </div>
+    <div class="filter-group">
+      <label>Trạng thái</label>
+      <select name="status">
+        <option value="">-- Tất cả --</option>
+        <% ['pending','processing','completed','approved'].forEach(function(st){ %>
+          <option value="<%= st %>" <%= filters.status===st ? 'selected' : '' %>><%= st %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Loại</label>
+      <select name="type_id">
+        <option value="">-- Tất cả --</option>
+        <% (types||[]).forEach(function(t){ %>
+          <option value="<%= t.id %>" <%= (filters.type_id == t.id)? 'selected' : '' %>><%= t.name %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Từ ngày</label>
+      <input type="date" name="from_date" value="<%= filters.from_date || '' %>" />
+    </div>
+    <div class="filter-group">
+      <label>Đến ngày</label>
+      <input type="date" name="to_date" value="<%= filters.to_date || '' %>" />
+    </div>
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-secondary">Lọc</button>
+      <a class="btn btn-light" href="<%= direction==='incoming' ? '/documents/incoming' : '/documents/outgoing' %>">Xóa</a>
+    </div>
+  </form>
+
+  <div class="table-wrapper">
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th style="width:120px">Số hiệu</th>
+          <th>Tiêu đề</th>
+          <th style="width:130px">Loại</th>
+          <th style="width:160px"><%= direction==='incoming' ? 'Cơ quan gửi' : 'Nơi nhận' %></th>
+          <th style="width:200px">Chỉ đạo</th>
+          <th style="width:140px">Người xử lý</th>
+          <th style="width:110px">Ngày ban hành</th>
+          <th style="width:110px">Hạn xử lý</th>
+          <th style="width:120px">Trạng thái</th>
+          <th style="width:140px">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (documents && documents.length) { %>
+          <% documents.forEach(function(d){ %>
+            <tr>
+              <td class="mono"><%= d.document_number || '-' %></td>
+              <td class="title-cell">
+                <span class="doc-title"><%= d.title || '(Không tiêu đề)' %></span>
+                <% if (d.priority === 'urgent') { %><span class="badge badge-urgent">Gấp</span><% } %>
+              </td>
+              <td><%= d.document_type_name || '-' %></td>
+              <td><%= direction==='incoming' ? (d.from_organization_name || '-') : (d.to_organization_name || '-') %></td>
+              <td class="directive-cell">
+                <div class="directive-content">
+                  <div class="directive-text"><%= d.chi_dao ? d.chi_dao.substring(0,80) : '' %></div>
+                  <div class="directive-actions">
+                    <button class="icon-btn directive-edit" title="<%= d.chi_dao ? 'Sửa chỉ đạo' : 'Thêm chỉ đạo' %>" data-id="<%= d.id %>" data-directive="<%= d.chi_dao || '' %>">
+                      <i class="fas <%= d.chi_dao ? 'fa-edit' : 'fa-plus' %>"></i>
+                    </button>
+                    <% if (d.chi_dao && d.chi_dao.trim()) { %>
+                      <button class="icon-btn directive-approve" title="Phê duyệt chỉ đạo" data-id="<%= d.id %>">
+                        <i class="fas fa-check-circle"></i>
+                      </button>
+                    <% } %>
+                  </div>
+                </div>
+              </td>
+              <td><%= d.assigned_to_name || '-' %></td>
+              <td><%= d.issue_date ? new Date(d.issue_date).toLocaleDateString('vi-VN') : '-' %></td>
+              <td><%= d.processing_deadline ? new Date(d.processing_deadline).toLocaleDateString('vi-VN') : '-' %></td>
+              <td>
+                <% const st = d.status || 'pending'; %>
+                <span class="status-badge status-<%= st %>"><%= st %></span>
+              </td>
+              <td class="actions">
+                <div class="action-buttons">
+                  <button class="icon-btn view-doc" title="Xem chi tiết văn bản" data-id="<%= d.id %>">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="icon-btn edit-doc" title="Chỉnh sửa văn bản" data-id="<%= d.id %>">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                   <button class="icon-btn attachments-doc" title="Tệp đính kèm" data-id="<%= d.id %>" data-number="<%= d.document_number %>">
+                     <i class="fas fa-paperclip"></i>
+                   </button>
+                  <button class="icon-btn delete-doc" title="Xóa văn bản (<%= d.document_number %>)" data-id="<%= d.id %>" data-number="<%= d.document_number %>">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        <% } else { %>
+          <tr>
+            <td colspan="10" class="empty">Không có văn bản phù hợp.</td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <% if (pagination && pagination.totalPages > 1) { %>
+      <div class="pagination-info">Trang <%= pagination.page %>/<%= pagination.totalPages %> ( <%= pagination.total %> bản ghi )</div>
+      <div class="pagination-controls">
+        <% const baseUrl = direction==='incoming' ? '/documents/incoming' : '/documents/outgoing'; %>
+        <% const qs = (page) => {
+             const params = new URLSearchParams(filters);
+             params.set('page', page);
+             return baseUrl + '?' + params.toString();
+           }; %>
+        <a class="pg-btn <%= !pagination.hasPrev ? 'disabled' : '' %>" href="<%= pagination.hasPrev ? qs(pagination.page - 1) : '#' %>"><i class="fas fa-chevron-left"></i></a>
+        <a class="pg-btn <%= !pagination.hasNext ? 'disabled' : '' %>" href="<%= pagination.hasNext ? qs(pagination.page + 1) : '#' %>"><i class="fas fa-chevron-right"></i></a>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<!-- Modal: Sửa chỉ đạo -->
+<div class="modal" id="directiveModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Chỉ đạo / Tham mưu</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <form id="directiveForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="directiveContent">Nội dung chỉ đạo:</label>
+            <textarea id="directiveContent" name="chi_dao" rows="4" class="form-control" 
+                      placeholder="Nhập nội dung chỉ đạo hoặc ý kiến tham mưu..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="directiveNote">Ghi chú (tùy chọn):</label>
+            <input type="text" id="directiveNote" name="note" class="form-control" 
+                   placeholder="Ghi chú bổ sung...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu chỉ đạo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Danh sách tệp đính kèm -->
+<div class="modal" id="attachmentsModal">
+  <div class="modal-dialog" style="max-width:650px;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Tệp đính kèm <span id="attachmentsDocNumber"></span></h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div id="attachmentsList" class="attachments-list loading">Đang tải...</div>
+        <template id="attachmentRowTpl">
+          <div class="file-row">
+            <div class="file-icon"><i class="fas fa-file"></i></div>
+            <div class="file-meta">
+              <div class="file-name"></div>
+              <div class="file-info"></div>
+            </div>
+            <div class="file-actions">
+              <button class="icon-btn file-preview" title="Xem trước"><i class="fas fa-eye"></i></button>
+              <a class="icon-btn file-download" title="Tải xuống"><i class="fas fa-download"></i></a>
+            </div>
+          </div>
+        </template>
+        <div id="previewContainer" class="preview-container" style="display:none;">
+          <div class="preview-header">
+            <strong>Xem trước</strong>
+            <button class="close-preview" title="Đóng">&times;</button>
+          </div>
+          <div class="preview-content" id="previewContent">Chưa chọn tệp.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Xác nhận phê duyệt -->
+<div class="modal" id="approveModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Phê duyệt chỉ đạo</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <form id="approveForm">
+        <div class="modal-body">
+          <p>Bạn có chắc chắn muốn phê duyệt nội dung chỉ đạo này?</p>
+          <div class="current-directive">
+            <strong>Nội dung hiện tại:</strong>
+            <div id="currentDirectiveText" class="directive-preview"></div>
+          </div>
+          <div class="form-group mt-3">
+            <label for="approveNote">Ghi chú phê duyệt (tùy chọn):</label>
+            <input type="text" id="approveNote" name="note" class="form-control" 
+                   placeholder="Ghi chú khi phê duyệt...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-success">Phê duyệt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Xác nhận xóa -->
+<div class="modal" id="deleteModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Xác nhận xóa văn bản</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Bạn có chắc chắn muốn xóa văn bản này?</p>
+        <div class="delete-info">
+          <strong>Số hiệu:</strong> <span id="deleteDocNumber"></span>
+        </div>
+        <div class="alert alert-warning mt-2">
+          <i class="fas fa-exclamation-triangle"></i>
+          Thao tác này không thể hoàn tác!
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+        <button type="button" id="confirmDelete" class="btn btn-danger">Xóa văn bản</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentDocId = null;
+    
+    // Utility functions
+    function showModal(modalId) {
+        document.getElementById(modalId).style.display = 'block';
+        document.body.classList.add('modal-open');
+    }
+    
+    function hideModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+        document.body.classList.remove('modal-open');
+    }
+    
+    function showToast(message, type = 'success') {
+        // Simple toast notification (you can enhance this)
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            padding: 12px 20px; border-radius: 4px; color: white;
+            background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#ffc107'};
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    // Event handlers for directive actions
+    document.querySelectorAll('.directive-edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentDocId = this.dataset.id;
+            const currentDirective = this.dataset.directive || '';
+            
+            document.getElementById('directiveContent').value = currentDirective;
+            document.getElementById('directiveNote').value = '';
+            showModal('directiveModal');
+        });
+    });
+    
+    document.querySelectorAll('.directive-approve').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentDocId = this.dataset.id;
+            const currentDirective = this.dataset.directive || '';
+            
+            document.getElementById('currentDirectiveText').textContent = currentDirective;
+            document.getElementById('approveNote').value = '';
+            showModal('approveModal');
+        });
+    });
+    
+    // View document
+    document.querySelectorAll('.view-doc').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const docId = this.dataset.id;
+            window.location.href = `/documents/${docId}`;
+        });
+    });
+    
+    // Edit document
+    document.querySelectorAll('.edit-doc').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const docId = this.dataset.id;
+            window.location.href = `/documents/${docId}/edit`;
+        });
+    });
+    
+    // Delete document
+    document.querySelectorAll('.delete-doc').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentDocId = this.dataset.id;
+            const docNumber = this.dataset.number;
+            
+            document.getElementById('deleteDocNumber').textContent = docNumber;
+            showModal('deleteModal');
+        });
+    });
+    
+    // Form submissions
+    document.getElementById('directiveForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = {
+            chi_dao: formData.get('chi_dao'),
+            note: formData.get('note')
+        };
+        
+        try {
+            const response = await fetch(`/documents/${currentDocId}/directive`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Đã cập nhật chỉ đạo thành công');
+                hideModal('directiveModal');
+                location.reload(); // Refresh to show updated data
+            } else {
+                showToast(result.message || 'Có lỗi xảy ra', 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi kết nối', 'error');
+        }
+    });
+    
+    document.getElementById('approveForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = {
+            note: formData.get('note')
+        };
+        
+        try {
+            const response = await fetch(`/documents/${currentDocId}/directive/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Đã phê duyệt chỉ đạo thành công');
+                hideModal('approveModal');
+                location.reload();
+            } else {
+                showToast(result.message || 'Có lỗi xảy ra', 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi kết nối', 'error');
+        }
+    });
+    
+    document.getElementById('confirmDelete').addEventListener('click', async function() {
+        try {
+            const response = await fetch(`/documents/${currentDocId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Đã xóa văn bản thành công');
+                hideModal('deleteModal');
+                location.reload();
+            } else {
+                showToast(result.message || 'Có lỗi xảy ra', 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi kết nối', 'error');
+        }
+    });
+
+  // Attachments handler
+  document.querySelectorAll('.attachments-doc').forEach(btn => {
+    btn.addEventListener('click', async function() {
+      const docId = this.dataset.id;
+      const number = this.dataset.number;
+      currentDocId = docId;
+      document.getElementById('attachmentsDocNumber').textContent = `(#${number})`;
+      const listEl = document.getElementById('attachmentsList');
+      listEl.classList.add('loading');
+      listEl.innerHTML = 'Đang tải...';
+      showModal('attachmentsModal');
+      try {
+        const res = await fetch(`/documents/${docId}/files`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Lỗi tải');
+        if (!data.data.length) {
+          listEl.innerHTML = '<div class="empty-files">Chưa có tệp đính kèm.</div>';
+        } else {
+          listEl.innerHTML = '';
+          const tpl = document.getElementById('attachmentRowTpl');
+          data.data.forEach(f => {
+            const node = tpl.content.cloneNode(true);
+            node.querySelector('.file-name').textContent = f.original_name;
+            node.querySelector('.file-info').textContent = `${(f.size/1024).toFixed(1)} KB · ${f.mime_type}`;
+            const dl = node.querySelector('.file-download');
+            dl.href = `/documents/files/${f.id}/download`;
+            const pvBtn = node.querySelector('.file-preview');
+            pvBtn.addEventListener('click', async () => {
+              const previewContainer = document.getElementById('previewContainer');
+              const previewContent = document.getElementById('previewContent');
+              previewContent.innerHTML = 'Đang tải preview...';
+              previewContainer.style.display = 'block';
+              
+              // Fetch preview info from backend
+              try {
+                const infoRes = await fetch(`/documents/files/${f.id}/preview-info`);
+                const info = await infoRes.json();
+                
+                if (!info.success) {
+                  previewContent.innerHTML = `<div class="error">${info.message}</div>`;
+                  return;
+                }
+                
+                // Render based on type
+                if (info.type === 'pdf' && info.previewable) {
+                  previewContent.innerHTML = `<iframe src="/documents/files/${f.id}/preview" style="width:100%;height:400px;border:1px solid #e5e7eb;border-radius:4px;" frameborder="0"></iframe>`;
+                } else if (info.type === 'image') {
+                  previewContent.innerHTML = `<img src="/documents/files/${f.id}/preview" style="max-width:100%;max-height:400px;border:1px solid #e5e7eb;border-radius:4px;object-fit:contain;" />`;
+                } else if (info.type === 'text') {
+                  previewContent.innerHTML = `<pre style="white-space:pre-wrap;max-height:400px;overflow:auto;">${info.content.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</pre>`;
+                } else if (info.type === 'word' && info.previewable) {
+                  const downloadUrl = window.location.origin + '/documents/files/' + f.id + '/download';
+                  const googleViewerUrl = 'https://docs.google.com/viewer?url=' + encodeURIComponent(downloadUrl) + '&embedded=true';
+                  previewContent.innerHTML = `
+                    <div style="text-align: center; padding: 20px;">
+                      <p><i class="fas fa-file-word" style="font-size: 36px; color: #2b579a;"></i></p>
+                      <p><strong>${info.filename}</strong></p>
+                      <p style="color: #666;">File Word - Chọn cách xem:</p>
+                      <div style="margin-top: 15px;">
+                        <a href="/documents/files/${f.id}/download" class="btn btn-sm btn-primary" style="margin: 5px;">
+                          <i class="fas fa-download"></i> Tải xuống
+                        </a>
+                        <a href="${googleViewerUrl}" target="_blank" class="btn btn-sm btn-info" style="margin: 5px;">
+                          <i class="fas fa-external-link-alt"></i> Xem qua Google Docs
+                        </a>
+                      </div>
+                    </div>`;
+                } else if (info.type === 'archive') {
+                  previewContent.innerHTML = `
+                    <div style="text-align: center; padding: 20px;">
+                      <p><i class="fas fa-file-archive" style="font-size: 36px; color: #ffa500;"></i></p>
+                      <p><strong>${info.filename}</strong></p>
+                      <p style="color: #666;">${info.message || 'File nén không hỗ trợ xem trước'}</p>
+                      <a href="/documents/files/${f.id}/download" class="btn btn-sm btn-success" style="margin-top: 10px;">
+                        <i class="fas fa-download"></i> Tải xuống
+                      </a>
+                    </div>`;
+                } else {
+                  previewContent.innerHTML = '<div class="unsupported">Loại file không hỗ trợ xem trước. <a href="/documents/files/' + f.id + '/download">Tải về</a></div>';
+                }
+              } catch (err) {
+                previewContent.innerHTML = `<div class="error">Lỗi: ${err.message}</div>`;
+              }
+            });
+            listEl.appendChild(node);
+          });
+        }
+      } catch (err) {
+        listEl.innerHTML = `<div class="error">${err.message}</div>`;
+      } finally {
+        listEl.classList.remove('loading');
+      }
+    });
+  });
+
+  document.addEventListener('click', function(e){
+    if (e.target.classList.contains('close-preview')) {
+      document.getElementById('previewContainer').style.display='none';
+    }
+  });
+    
+    // Close modal handlers
+    document.querySelectorAll('[data-dismiss="modal"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) {
+                hideModal(modal.id);
+            }
+        });
+    });
+    
+    // Close modal when clicking outside
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideModal(this.id);
+            }
+        });
+    });
+});
+</script>

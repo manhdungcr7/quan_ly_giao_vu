@@ -1,0 +1,365 @@
+const User = require('../models/User');
+const CONSTANTS = require('../../config/constants');
+
+class UserController {
+    constructor() {
+        this.userModel = new User();
+    }
+
+    // Hiển thị danh sách user
+    async index(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 20;
+            const search = req.query.search || '';
+
+            const result = await this.userModel.getUsersWithRole(page, limit, search);
+
+            res.render('users/index', {
+                title: 'Quản lý người dùng',
+                user: req.session.user,
+                users: result.data,
+                pagination: result.pagination,
+                search: search,
+                success: req.flash('success'),
+                error: req.flash('error')
+            });
+
+        } catch (error) {
+            console.error('Error in UserController index:', error);
+            req.flash('error', CONSTANTS.MESSAGES.ERROR.SERVER_ERROR);
+            res.redirect('/dashboard');
+        }
+    }
+
+    // Hiển thị form tạo user mới
+    async create(req, res) {
+        try {
+            // Kiểm tra quyền admin
+            if (req.session.user.role_name !== 'admin') {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.UNAUTHORIZED);
+                return res.redirect('/users');
+            }
+
+            // Lấy danh sách roles
+            const roles = await this.userModel.query('SELECT * FROM roles WHERE is_active = 1');
+
+            res.render('users/create', {
+                title: 'Tạo người dùng mới',
+                user: req.session.user,
+                roles: roles,
+                error: req.flash('error'),
+                success: req.flash('success')
+            });
+
+        } catch (error) {
+            console.error('Error in UserController create:', error);
+            req.flash('error', CONSTANTS.MESSAGES.ERROR.SERVER_ERROR);
+            res.redirect('/users');
+        }
+    }
+
+    // Xử lý tạo user mới
+    async store(req, res) {
+        try {
+            // Kiểm tra quyền admin
+            if (req.session.user.role_name !== 'admin') {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.UNAUTHORIZED);
+                return res.redirect('/users');
+            }
+
+            const { username, email, password, confirm_password, full_name, role_id, phone } = req.body;
+
+            // Validate input
+            if (!username || !email || !password || !confirm_password || !full_name || !role_id) {
+                req.flash('error', 'Vui lòng nhập đầy đủ thông tin bắt buộc');
+                return res.redirect('/users/create');
+            }
+
+            if (password !== confirm_password) {
+                req.flash('error', 'Mật khẩu xác nhận không khớp');
+                return res.redirect('/users/create');
+            }
+
+            if (password.length < CONSTANTS.VALIDATION.PASSWORD_MIN_LENGTH) {
+                req.flash('error', `Mật khẩu phải có ít nhất ${CONSTANTS.VALIDATION.PASSWORD_MIN_LENGTH} ký tự`);
+                return res.redirect('/users/create');
+            }
+
+            // Check if username exists
+            const existingUsername = await this.userModel.isUsernameExists(username);
+            if (existingUsername) {
+                req.flash('error', 'Tên đăng nhập đã tồn tại');
+                return res.redirect('/users/create');
+            }
+
+            // Check if email exists
+            const existingEmail = await this.userModel.isEmailExists(email);
+            if (existingEmail) {
+                req.flash('error', 'Email đã tồn tại');
+                return res.redirect('/users/create');
+            }
+
+            // Create user
+            const userData = {
+                username,
+                email,
+                password,
+                full_name,
+                role_id: parseInt(role_id),
+                phone: phone || null
+            };
+
+            const result = await this.userModel.create(userData);
+            if (result.insertId) {
+                req.flash('success', CONSTANTS.MESSAGES.SUCCESS.CREATED);
+                res.redirect('/users');
+            } else {
+                req.flash('error', 'Không thể tạo người dùng');
+                res.redirect('/users/create');
+            }
+
+        } catch (error) {
+            console.error('Error in UserController store:', error);
+            req.flash('error', CONSTANTS.MESSAGES.ERROR.SERVER_ERROR);
+            res.redirect('/users/create');
+        }
+    }
+
+    // Hiển thị chi tiết user
+    async show(req, res) {
+        try {
+            const userId = parseInt(req.params.id);
+            const user = await this.userModel.findWithRole(userId);
+
+            if (!user) {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.NOT_FOUND);
+                return res.redirect('/users');
+            }
+
+            res.render('users/show', {
+                title: 'Chi tiết người dùng',
+                user: req.session.user,
+                userDetail: user,
+                success: req.flash('success'),
+                error: req.flash('error')
+            });
+
+        } catch (error) {
+            console.error('Error in UserController show:', error);
+            req.flash('error', CONSTANTS.MESSAGES.ERROR.SERVER_ERROR);
+            res.redirect('/users');
+        }
+    }
+
+    // Hiển thị form chỉnh sửa user
+    async edit(req, res) {
+        try {
+            const userId = parseInt(req.params.id);
+            
+            // Kiểm tra quyền: admin hoặc chính user đó
+            if (req.session.user.role_name !== 'admin' && req.session.user.id !== userId) {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.UNAUTHORIZED);
+                return res.redirect('/users');
+            }
+
+            const user = await this.userModel.findWithRole(userId);
+            if (!user) {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.NOT_FOUND);
+                return res.redirect('/users');
+            }
+
+            // Lấy danh sách roles (chỉ admin mới được thay đổi role)
+            let roles = [];
+            if (req.session.user.role_name === 'admin') {
+                roles = await this.userModel.query('SELECT * FROM roles WHERE is_active = 1');
+            }
+
+            res.render('users/edit', {
+                title: 'Chỉnh sửa người dùng',
+                user: req.session.user,
+                userDetail: user,
+                roles: roles,
+                error: req.flash('error'),
+                success: req.flash('success')
+            });
+
+        } catch (error) {
+            console.error('Error in UserController edit:', error);
+            req.flash('error', CONSTANTS.MESSAGES.ERROR.SERVER_ERROR);
+            res.redirect('/users');
+        }
+    }
+
+    // Xử lý cập nhật user
+    async update(req, res) {
+        try {
+            const userId = parseInt(req.params.id);
+            
+            // Kiểm tra quyền: admin hoặc chính user đó
+            if (req.session.user.role_name !== 'admin' && req.session.user.id !== userId) {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.UNAUTHORIZED);
+                return res.redirect('/users');
+            }
+
+            const { email, full_name, role_id, phone } = req.body;
+
+            // Validate input
+            if (!email || !full_name) {
+                req.flash('error', 'Vui lòng nhập đầy đủ thông tin bắt buộc');
+                return res.redirect(`/users/${userId}/edit`);
+            }
+
+            // Check if email exists (exclude current user)
+            const existingEmail = await this.userModel.isEmailExists(email, userId);
+            if (existingEmail) {
+                req.flash('error', 'Email đã tồn tại');
+                return res.redirect(`/users/${userId}/edit`);
+            }
+
+            // Prepare update data
+            const updateData = {
+                email,
+                full_name,
+                phone: phone || null
+            };
+
+            // Chỉ admin mới được thay đổi role
+            if (req.session.user.role_name === 'admin' && role_id) {
+                updateData.role_id = parseInt(role_id);
+            }
+
+            const result = await this.userModel.update(userId, updateData);
+            
+            if (result.affectedRows > 0) {
+                // Cập nhật session nếu user chỉnh sửa chính mình
+                if (req.session.user.id === userId) {
+                    req.session.user.email = email;
+                    req.session.user.full_name = full_name;
+                }
+
+                req.flash('success', CONSTANTS.MESSAGES.SUCCESS.UPDATED);
+                res.redirect('/users');
+            } else {
+                req.flash('error', 'Không có thay đổi nào được thực hiện');
+                res.redirect(`/users/${userId}/edit`);
+            }
+
+        } catch (error) {
+            console.error('Error in UserController update:', error);
+            req.flash('error', CONSTANTS.MESSAGES.ERROR.SERVER_ERROR);
+            res.redirect(`/users/${req.params.id}/edit`);
+        }
+    }
+
+    // Xóa user (soft delete)
+    async destroy(req, res) {
+        try {
+            // Kiểm tra quyền admin
+            if (req.session.user.role_name !== 'admin') {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.UNAUTHORIZED);
+                return res.redirect('/users');
+            }
+
+            const userId = parseInt(req.params.id);
+
+            // Không cho phép xóa chính mình
+            if (req.session.user.id === userId) {
+                req.flash('error', 'Không thể xóa chính mình');
+                return res.redirect('/users');
+            }
+
+            const result = await this.userModel.softDelete(userId);
+            
+            if (result.affectedRows > 0) {
+                req.flash('success', CONSTANTS.MESSAGES.SUCCESS.DELETED);
+            } else {
+                req.flash('error', 'Không thể xóa người dùng');
+            }
+
+            res.redirect('/users');
+
+        } catch (error) {
+            console.error('Error in UserController destroy:', error);
+            req.flash('error', CONSTANTS.MESSAGES.ERROR.SERVER_ERROR);
+            res.redirect('/users');
+        }
+    }
+
+    // Reset password user
+    async resetPassword(req, res) {
+        try {
+            // Kiểm tra quyền admin
+            if (req.session.user.role_name !== 'admin') {
+                return res.status(403).json({
+                    success: false,
+                    message: CONSTANTS.MESSAGES.ERROR.UNAUTHORIZED
+                });
+            }
+
+            const userId = parseInt(req.params.id);
+            const { new_password } = req.body;
+
+            if (!new_password || new_password.length < CONSTANTS.VALIDATION.PASSWORD_MIN_LENGTH) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Mật khẩu phải có ít nhất ${CONSTANTS.VALIDATION.PASSWORD_MIN_LENGTH} ký tự`
+                });
+            }
+
+            await this.userModel.resetPassword(userId, new_password);
+
+            res.json({
+                success: true,
+                message: 'Reset mật khẩu thành công'
+            });
+
+        } catch (error) {
+            console.error('Error in UserController resetPassword:', error);
+            res.status(500).json({
+                success: false,
+                message: CONSTANTS.MESSAGES.ERROR.SERVER_ERROR
+            });
+        }
+    }
+
+    // API: Lấy danh sách user cho select dropdown
+    async getUsers(req, res) {
+        try {
+            const search = req.query.search || '';
+            const limit = parseInt(req.query.limit) || 10;
+
+            let sql = `
+                SELECT id, username, full_name, email
+                FROM users 
+                WHERE is_active = 1
+            `;
+            const params = [];
+
+            if (search) {
+                sql += ' AND (username LIKE ? OR full_name LIKE ? OR email LIKE ?)';
+                const searchTerm = `%${search}%`;
+                params.push(searchTerm, searchTerm, searchTerm);
+            }
+
+            sql += ' ORDER BY full_name ASC LIMIT ?';
+            params.push(limit);
+
+            const users = await this.userModel.query(sql, params);
+
+            res.json({
+                success: true,
+                data: users
+            });
+
+        } catch (error) {
+            console.error('Error in UserController getUsers:', error);
+            res.status(500).json({
+                success: false,
+                message: CONSTANTS.MESSAGES.ERROR.SERVER_ERROR
+            });
+        }
+    }
+}
+
+module.exports = UserController;

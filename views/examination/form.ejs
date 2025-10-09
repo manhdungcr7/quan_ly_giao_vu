@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - <%= appName || 'Quản lý Giáo vụ' %></title>
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/documents.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <%- include('../partials/navbar') %>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <%- include('../partials/sidebar') %>
+            
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">
+                        <i class="fas fa-clipboard-check"></i> <%= title %>
+                    </h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <a href="/examination" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Quay lại
+                        </a>
+                    </div>
+                </div>
+
+                <% if (typeof error !== 'undefined' && error && error.length > 0) { %>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <%= error %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <% } %>
+
+                <% if (typeof success !== 'undefined' && success && success.length > 0) { %>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <%= success %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <% } %>
+
+                <div class="card">
+                    <div class="card-body">
+                        <form id="examForm" method="POST" action="<%= session ? `/examination/${session.id}` : '/examination' %>">
+                            <% if (session) { %>
+                                <input type="hidden" name="_method" value="PUT">
+                            <% } %>
+
+                            <div class="row">
+                                <!-- Cột trái -->
+                                <div class="col-md-6">
+                                    <h5 class="mb-3"><i class="fas fa-info-circle"></i> Thông tin cơ bản</h5>
+
+                                    <div class="mb-3">
+                                        <label for="exam_code" class="form-label">Mã ca thi <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="exam_code" name="exam_code" 
+                                               value="<%= session ? session.exam_code : '' %>" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="exam_name" class="form-label">Tên ca thi <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="exam_name" name="exam_name" 
+                                               value="<%= session ? session.exam_name : '' %>" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="period_id" class="form-label">Kỳ thi <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="period_id" name="period_id" required>
+                                            <option value="">-- Chọn kỳ thi --</option>
+                                            <% (periods || []).forEach(period => { %>
+                                                <option value="<%= period.id %>" 
+                                                    <%= session && session.period_id == period.id ? 'selected' : '' %>>
+                                                    <%= period.name %>
+                                                </option>
+                                            <% }) %>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="subject_id" class="form-label">Môn học <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="subject_id" name="subject_id" required>
+                                            <option value="">-- Chọn môn học --</option>
+                                            <% (subjects || []).forEach(subject => { %>
+                                                <option value="<%= subject.id %>" 
+                                                    <%= session && session.subject_id == subject.id ? 'selected' : '' %>>
+                                                    <%= subject.code %> - <%= subject.name %>
+                                                </option>
+                                            <% }) %>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="class_id" class="form-label">Lớp học</label>
+                                        <select class="form-select" id="class_id" name="class_id">
+                                            <option value="">-- Chọn lớp (nếu có) --</option>
+                                            <% (classes || []).forEach(cls => { %>
+                                                <option value="<%= cls.id %>" 
+                                                    <%= session && session.class_id == cls.id ? 'selected' : '' %>>
+                                                    <%= cls.code %> - <%= cls.name %>
+                                                </option>
+                                            <% }) %>
+                                        </select>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="exam_date" class="form-label">Ngày thi <span class="text-danger">*</span></label>
+                                            <input type="date" class="form-control" id="exam_date" name="exam_date" 
+                                                   value="<%= session && session.exam_date ? new Date(session.exam_date).toISOString().split('T')[0] : '' %>" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="exam_time" class="form-label">Giờ thi <span class="text-danger">*</span></label>
+                                            <input type="time" class="form-control" id="exam_time" name="exam_time" 
+                                                   value="<%= session && session.exam_time ? session.exam_time.substring(0,5) : '' %>" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="duration" class="form-label">Thời lượng (phút)</label>
+                                            <input type="number" class="form-control" id="duration" name="duration" 
+                                                   value="<%= session ? session.duration : 90 %>" min="30" max="240" step="15">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="student_count" class="form-label">Số lượng SV</label>
+                                            <input type="number" class="form-control" id="student_count" name="student_count" 
+                                                   value="<%= session ? session.student_count : 0 %>" min="0">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Cột phải -->
+                                <div class="col-md-6">
+                                    <h5 class="mb-3"><i class="fas fa-cogs"></i> Chi tiết & Phân công</h5>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="room" class="form-label">Phòng thi</label>
+                                            <input type="text" class="form-control" id="room" name="room" 
+                                                   value="<%= session ? session.room : '' %>">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="building" class="form-label">Tòa nhà</label>
+                                            <input type="text" class="form-control" id="building" name="building" 
+                                                   value="<%= session ? session.building : '' %>">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="expected_copies" class="form-label">Dự kiến số bản in</label>
+                                        <input type="number" class="form-control" id="expected_copies" name="expected_copies" 
+                                               value="<%= session ? session.expected_copies : '' %>" min="0">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="grader_id" class="form-label"><i class="fas fa-user-check"></i> Cán bộ chấm thi</label>
+                                        <select class="form-select" id="grader_id" name="grader_id">
+                                            <option value="">-- Chọn cán bộ chấm --</option>
+                                            <% (graders || []).forEach(grader => { %>
+                                                <option value="<%= grader.id %>" 
+                                                    <%= session && session.grader_id == grader.id ? 'selected' : '' %>>
+                                                    <%= grader.full_name %> (<%= grader.email %>)
+                                                </option>
+                                            <% }) %>
+                                        </select>
+                                        <small class="text-muted">Phân công cán bộ chịu trách nhiệm chấm bài</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="grading_deadline" class="form-label"><i class="fas fa-calendar-times"></i> Hạn chấm bài</label>
+                                        <input type="date" class="form-control" id="grading_deadline" name="grading_deadline" 
+                                               value="<%= session && session.grading_deadline ? new Date(session.grading_deadline).toISOString().split('T')[0] : '' %>">
+                                        <small class="text-muted">Thời hạn hoàn thành chấm bài thi</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="exam_type" class="form-label">Hình thức thi</label>
+                                        <select class="form-select" id="exam_type" name="exam_type">
+                                            <option value="offline" <%= session && session.exam_type == 'offline' ? 'selected' : '' %>>Offline</option>
+                                            <option value="online" <%= session && session.exam_type == 'online' ? 'selected' : '' %>>Online</option>
+                                            <option value="hybrid" <%= session && session.exam_type == 'hybrid' ? 'selected' : '' %>>Hybrid</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="link" class="form-label">Link thi online</label>
+                                        <input type="url" class="form-control" id="link" name="link" 
+                                               value="<%= session ? session.link : '' %>" 
+                                               placeholder="https://...">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="status" class="form-label">Trạng thái</label>
+                                        <select class="form-select" id="status" name="status">
+                                            <option value="scheduled" <%= !session || session.status == 'scheduled' ? 'selected' : '' %>>Đã lên lịch</option>
+                                            <option value="in_progress" <%= session && session.status == 'in_progress' ? 'selected' : '' %>>Đang thi</option>
+                                            <option value="completed" <%= session && session.status == 'completed' ? 'selected' : '' %>>Hoàn thành</option>
+                                            <option value="cancelled" <%= session && session.status == 'cancelled' ? 'selected' : '' %>>Hủy</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="notes" class="form-label">Ghi chú</label>
+                                        <textarea class="form-control" id="notes" name="notes" rows="3"><%= session ? session.notes : '' %></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-end mt-4">
+                                <a href="/examination" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Hủy
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> <%= session ? 'Cập nhật' : 'Tạo mới' %>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <%- include('../partials/footer') %>
+    
+    <script src="/js/app.js"></script>
+    <script>
+    document.getElementById('examForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Convert empty strings to null
+        Object.keys(data).forEach(key => {
+            if (data[key] === '') data[key] = null;
+        });
+        
+        const method = data._method || 'POST';
+        delete data._method;
+        
+        try {
+            const response = await fetch(this.action, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('<%= session ? "Cập nhật" : "Tạo" %> ca thi thành công!');
+                window.location.href = '/examination';
+            } else {
+                alert('Lỗi: ' + result.message);
+            }
+        } catch (error) {
+            alert('Lỗi khi gửi dữ liệu');
+            console.error(error);
+        }
+    });
+    </script>
+</body>
+</html>

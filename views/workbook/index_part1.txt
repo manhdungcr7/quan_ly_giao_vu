@@ -1,0 +1,25 @@
+﻿<% contentFor('css', '<link rel="stylesheet" href="/css/workbook-new.css?v=3">') %>
+
+<div class="workbook-layout">
+  <aside class="workbook-sidebar">
+    <div class="sidebar-card">
+      <h3 class="sidebar-card-title">
+        <i class="fas fa-calendar-week"></i>
+        Chọn tuần
+      </h3>
+      <div class="week-selector">
+        <button class="week-nav-btn" data-action="prev-week">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="current-week">
+          <div class="week-label">Tuần hiện tại</div>
+          <div class="week-dates">
+            <%= new Date(weekStart).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'}) %> - 
+            <%= new Date(weekEnd).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'}) %>
+          </div>
+        </div>
+        <button class="week-nav-btn" data-action="next-week">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>

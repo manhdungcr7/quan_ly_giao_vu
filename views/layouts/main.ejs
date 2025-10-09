@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title ? title + ' - ' : '' %><%= appName %></title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+DQogIDxkZWZzPg0KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+DQogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjM2I4MmY2Ii8+DQogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM4YjVjZjYiLz4NCiAgICA8L2xpbmVhckdyYWRpZW50Pg0KICA8L2RlZnM+DQogIDxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE0IiBmaWxsPSJ1cmwoI2cpIi8+DQogIDxnIGZpbGw9IiNmZmYiIGZvbnQtZmFtaWx5PSInSW50ZXInLCAnU2Vnb2UgVUknLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCI+DQogICAgPHRleHQgeD0iMzIiIHk9IjM0Ij5LQTwvdGV4dD4NCiAgPC9nPg0KPC9zdmc+DQo=">
+    <script>
+        (function(){
+            var protocol = window.location.protocol;
+            var host = window.location.hostname;
+            var port = window.location.port ? ':' + window.location.port : '';
+            if (protocol === 'https:' && (host === 'localhost' || host === '127.0.0.1')) {
+                var targetHost = host === 'localhost' ? '127.0.0.1' : host;
+                var target = 'http://' + targetHost + port + window.location.pathname + window.location.search + window.location.hash;
+                if (target !== window.location.href) {
+                    window.location.replace(target);
+                }
+            }
+        })();
+    </script>
+    
+    <!-- Custom CSS -->
+    <link href="/css/app.css" rel="stylesheet">
+    <link href="/assets/css/style.css" rel="stylesheet">
+    <link href="/css/layout.css" rel="stylesheet">
+    <!-- Font Awesome for file type icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <!-- Additional CSS -->
+    <%- defineContent('css') %>
+</head>
+<body class="<%= isAuthenticated ? 'app-auth' : '' %>">
+    <% if (isAuthenticated) { %>
+        <div class="app-layout">
+            <aside class="app-sidebar" id="appSidebar">
+                <div class="sidebar-brand">
+                    <span class="sidebar-brand__logo">KA</span>
+                    <div class="sidebar-brand__text">
+                        <span class="sidebar-brand__title"><%= appName %></span>
+                        <small class="sidebar-brand__subtitle">Khoa An ninh điều tra</small>
+                    </div>
+                </div>
+                <%- include('../partials/sidebar') %>
+            </aside>
+            <div class="app-main">
+                <header class="app-topbar">
+                    <div class="topbar-brand">
+                        <span class="topbar-brand__logo">KA</span>
+                        <div class="topbar-brand__text">
+                            <span class="topbar-brand__title">Khoa An ninh điều tra</span>
+                            <span class="topbar-brand__subtitle">Quản lý công việc nội bộ</span>
+                        </div>
+                    </div>
+                    <div class="topbar-page">
+                        <h1><%= title || 'Trang chủ' %></h1>
+                        <p>Xin chào, <%= (user && (user.fullName || user.full_name || user.username)) || 'Người dùng' %></p>
+                    </div>
+                    <div class="topbar-actions">
+                        <div class="topbar-date"><%= new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) %></div>
+                        <div class="topbar-user">
+                            <div class="topbar-user__meta">
+                                <span class="topbar-user__name"><%= (user && (user.fullName || user.full_name || user.username)) || 'Người dùng' %></span>
+                                <span class="topbar-user__role"><%= (user && user.roleName) || 'Administrator' %></span>
+                            </div>
+                            <div class="topbar-user__avatar"><%= (user && (user.fullName || user.full_name || user.username) || '?').charAt(0).toUpperCase() %></div>
+                        </div>
+                    </div>
+                </header>
+                <main class="app-content">
+                    <%- include('../partials/alerts') %>
+                    <%- body %>
+                </main>
+            </div>
+        </div>
+    <% } else { %>
+        <div class="auth-page">
+            <div class="auth-alerts">
+                <%- include('../partials/alerts') %>
+            </div>
+            <%- body %>
+        </div>
+    <% } %>
+    
+    <!-- Footer -->
+    <%- include('../partials/footer') %>
+    
+    <!-- Custom JS -->
+    <script src="/js/app.js"></script>
+    
+    <!-- Additional JS -->
+    <%- defineContent('js') %>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title ? title + ' - ' : '' %><%= appName %></title>
+    
+    <!-- Custom CSS -->
+    <link href="/css/app.css" rel="stylesheet">
+    <link href="/css/layout.css" rel="stylesheet">
+    <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+<body class="app-auth">
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand__logo">🏛️</div>
+                <div class="sidebar-brand__text">
+                    <div class="brand-title">KA Management</div>
+                    <div class="brand-subtitle">Nội bộ</div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="sidebar-section">
+                    <p class="section-label">TỔNG QUAN</p>
+                    <a class="sidebar-link <%= currentPath === '/dashboard' ? 'active' : '' %>" href="/dashboard">
+                        <i class="fa fa-home">🏠</i>
+                        <span>Trang chủ</span>
+                    </a>
+                </div>
+
+                <div class="sidebar-section">
+                    <p class="section-label">QUẢN LÝ HÀNH CHÍNH</p>
+                    <a class="sidebar-link <%= currentPath.startsWith('/documents') ? 'active' : '' %>" href="/documents">
+                        <i class="fa fa-file-text">📄</i>
+                        <span>Quản lý văn bản</span>
+                    </a>
+                    <a class="sidebar-link <%= currentPath.startsWith('/legal-documents') ? 'active' : '' %>" href="/legal-documents">
+                        <i class="fa fa-gavel">⚖️</i>
+                        <span>Văn bản pháp lý</span>
+                    </a>
+                    <a class="sidebar-link <%= currentPath.startsWith('/staff') ? 'active' : '' %>" href="/staff">
+                        <i class="fa fa-users">👥</i>
+                        <span>Quản lý cán bộ</span>
+                    </a>
+                    <a class="sidebar-link <%= currentPath.startsWith('/assets') ? 'active' : '' %>" href="/assets">
+                        <i class="fa fa-building">🏢</i>
+                        <span>Quản lý tài sản</span>
+                    </a>
+                </div>
+
+                <div class="sidebar-section">
+                    <p class="section-label">NGHIỆP VỤ GIẢNG DẠY</p>
+                    <a class="sidebar-link <%= currentPath.startsWith('/examination') ? 'active' : '' %>" href="/examination">
+                        <i class="fa fa-clipboard-check">📋</i>
+                        <span>Công tác khảo thí</span>
+                    </a>
+                    <a class="sidebar-link <%= currentPath.startsWith('/teaching-handbook') ? 'active' : '' %>" href="/teaching-handbook">
+                        <i class="fa fa-book">📚</i>
+                        <span>Sổ tay công tác</span>
+                    </a>
+                </div>
+
+                <div class="sidebar-section">
+                    <p class="section-label">NGHIÊN CỨU & DỰ ÁN</p>
+                    <a class="sidebar-link <%= currentPath.startsWith('/research') ? 'active' : '' %>" href="/research">
+                        <i class="fa fa-flask">🧪</i>
+                        <span>Nghiên cứu khoa học</span>
+                    </a>
+                    <a class="sidebar-link <%= currentPath.startsWith('/projects') ? 'active' : '' %>" href="/projects">
+                        <i class="fa fa-project-diagram">📊</i>
+                        <span>Quản lý dự án</span>
+                    </a>
+                </div>
+
+                <div class="sidebar-section">
+                    <p class="section-label">CÔNG CỤ HỖ TRỢ</p>
+                    <a class="sidebar-link <%= currentPath.startsWith('/schedule') ? 'active' : '' %>" href="/schedule">
+                        <i class="fa fa-calendar-alt">📅</i>
+                        <span>Lịch công tác</span>
+                    </a>
+                    <a class="sidebar-link <%= currentPath.startsWith('/reminders') ? 'active' : '' %>" href="/reminders">
+                        <i class="fa fa-bell">🔔</i>
+                        <span>Nhắc việc</span>
+                    </a>
+                    <a class="sidebar-link <%= currentPath.startsWith('/reports') ? 'active' : '' %>" href="/reports">
+                        <i class="fa fa-chart-bar">📈</i>
+                        <span>Báo cáo tổng hợp</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div>Phiên bản</div>
+                <div class="badge">v2.1.0</div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="app-main">
+            <!-- Top Navigation Bar -->
+            <header class="app-topbar">
+                <div class="topbar-start">
+                    <button class="btn-sidebar-toggle">
+                        <i class="fa fa-bars">☰</i>
+                    </button>
+                    <div class="topbar-breadcrumb">
+                        <span class="breadcrumb-item">Trang chủ</span>
+                        <span class="breadcrumb-separator">/</span>
+                        <span class="breadcrumb-item active">Dashboard</span>
+                    </div>
+                </div>
+                <div class="topbar-end">
+                    <div class="topbar-date">
+                        📅 <%= new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) %>
+                    </div>
+                    <div class="topbar-user">
+                        <div class="user-avatar">👤</div>
+                        <div class="user-info">
+                            <div class="user-name"><%= (user && (user.fullName || user.full_name || user.username)) || 'Admin' %></div>
+                            <div class="user-role"><%= (user && user.roleName) || 'Quản trị viên' %></div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <main class="app-content">
+                <%- include('../partials/alerts') %>
+                
+                <% 
+                const notificationItems = [
+                    ...((notifications && notifications.upcomingDeadlines) || []),
+                    ...((notifications && notifications.overdueDocuments) || [])
+                ].slice(0, 4);
+                const documentItems = (recentDocuments || []).slice(0, 4);
+                %>
+
+                <div class="dashboard-shell">
+                    <header class="dashboard-shell__header">
+                        <div class="dashboard-heading">
+                            <h1>Trang chủ</h1>
+                            <p>Chào mừng quay trở lại, <%= (user && (user.fullName || user.full_name || user.username)) || 'Administrator' %></p>
+                            <% if (activeScope) { %>
+                                <p class="dashboard-scope__label">
+                                    Thống kê: <strong><%= activeScope.label %></strong>
+                                    <% if (scopeRangeLabel) { %>
+                                        · <span><%= scopeRangeLabel %></span>
+                                    <% } %>
+                                </p>
+                            <% } %>
+                        </div>
+                        <div class="dashboard-header-actions">
+                            <% if (Array.isArray(scopeOptions) && scopeOptions.length) { %>
+                                <form class="scope-switcher" method="get" action="/dashboard">
+                                    <label for="dashboard-scope-select">Khoảng thống kê</label>
+                                    <select id="dashboard-scope-select" name="scope" data-scope-select>
+                                        <% scopeOptions.forEach(function(group){ %>
+                                            <optgroup label="<%= group.label %>">
+                                                <% group.options.forEach(function(option){ %>
+                                                    <option value="<%= option.value %>" <%= (scopeSelectionValue === option.value) ? 'selected' : '' %>>
+                                                        <%= option.label %>
+                                                    </option>
+                                                <% }) %>
+                                            </optgroup>
+                                        <% }) %>
+                                    </select>
+                                </form>
+                            <% } %>
+                            <span class="status-chip status-chip--online">Trực tuyến</span>
+                        </div>
+                    </header>
+
+                    <section class="dashboard-summary">
+                        <% summaryCards.forEach(function(card){ %>
+                            <article class="summary-card summary-card--<%= card.color %>">
+                                <span class="summary-card__marker"></span>
+                                <div class="summary-card__value"><%= card.value || 0 %></div>
+                                <div class="summary-card__title"><%= card.title %></div>
+                                <div class="summary-card__desc"><%= card.subtitle %></div>
+                            </article>
+                        <% }) %>
+                    </section>
+
+                    <section class="dashboard-grid">
+                        <div class="dashboard-grid__primary">
+                            <article class="panel panel--operations">
+                                <header class="panel__header">
+                                    <div>
+                                        <h2>Điều hành nhanh</h2>
+                                        <p>Truy cập tức thì vào các phân hệ chính</p>
+                                    </div>
+                                </header>
+                                <div class="quick-actions">
+                                    <% quickActions.forEach(function(action){ %>
+                                        <a class="quick-actions__item quick-actions__item--<%= action.color %>" href="<%= action.href %>">
+                                            <span><%= action.label %></span>
+                                        </a>
+                                    <% }) %>
+                                </div>
+                                <section class="progress-board">
+                                    <header>
+                                        <h3>Tiến độ xử lý</h3>
+                                        <span>
+                                            <% if (activeScope) { %>
+                                                <%= activeScope.label %>
+                                                <% if (scopeRangeLabel) { %>
+                                                    · <%= scopeRangeLabel %>
+                                                <% } %>
+                                            <% } else { %>
+                                                Cập nhật theo số liệu mới nhất
+                                            <% } %>
+                                        </span>
+                                    </header>
+                                    <div class="progress-board__list">
+                                        <% progressOverview.forEach(function(metric){ %>
+                                            <div class="progress-pill">
+                                                <div class="progress-pill__header">
+                                                    <span><%= metric.title %></span>
+                                                    <strong><%= metric.value %></strong>
+                                                </div>
+                                                <div class="progress-pill__bar">
+                                                    <span class="progress-pill__fill progress-pill__fill--<%= metric.color %>" style="--progress-fill:<%= metric.percent %>;"></span>
+                                                </div>
+                                            </div>
+                                        <% }) %>
+                                    </div>
+                                </section>
+                            </article>
+
+                            <article class="panel panel--activity">
+                                <header class="panel__header">
+                                    <div>
+                                        <h2>Hoạt động gần đây</h2>
+                                        <span>Nhật ký thao tác mới nhất</span>
+                                    </div>
+                                </header>
+                                <div class="timeline">
+                                    <% if (recentActivities && recentActivities.length) { %>
+                                        <% recentActivities.forEach(function(activity){ %>
+                                            <div class="timeline__item">
+                                                <div class="timeline__dot"></div>
+                                                <div class="timeline__content">
+                                                    <h4><%= activity.title %></h4>
+                                                    <p><%= activity.description %></p>
+                                                    <% if (activity.time) { %>
+                                                        <span class="timeline__time"><%= activity.time %></span>
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <p class="placeholder-text">Chưa có hoạt động nào gần đây.</p>
+                                    <% } %>
+                                </div>
+                            </article>
+
+                            <article class="panel panel--documents">
+                                <header class="panel__header">
+                                    <div>
+                                        <h2>Tài liệu đang xử lý</h2>
+                                        <span>Danh sách gán cho bạn hoặc đơn vị</span>
+                                    </div>
+                                </header>
+                                <div class="document-stack">
+                                    <% if (documentItems.length) { %>
+                                        <% documentItems.forEach(function(doc){ %>
+                                            <div class="document-card">
+                                                <div class="document-card__marker"></div>
+                                                <div class="document-card__body">
+                                                    <h4><%= doc.title || doc.document_number || 'Tài liệu' %></h4>
+                                                    <% if (doc.processing_deadline) { %>
+                                                        <span class="document-card__meta">Hạn xử lý: <%= doc.processing_deadline %></span>
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <p class="placeholder-text">Không có tài liệu nào đang được giao.</p>
+                                    <% } %>
+                                </div>
+                            </article>
+                        </div>
+
+                        <div class="dashboard-grid__secondary">
+                            <article class="panel panel--notifications">
+                                <header class="panel__header">
+                                    <div>
+                                        <h2>Thông báo nội bộ</h2>
+                                        <span>Tự động tổng hợp hạn xử lý và công việc</span>
+                                    </div>
+                                </header>
+                                <div class="notification-list">
+                                    <% if (notificationItems.length) { %>
+                                        <% notificationItems.forEach(function(item){ %>
+                                            <div class="notification-card">
+                                                <div class="notification-card__badge <%= item.badgeColor || (item.status === 'overdue' ? 'is-danger' : '') %>">
+                                                </div>
+                                                <div class="notification-card__body">
+                                                    <h4><%= item.title || item.document_number || 'Thông báo' %></h4>
+                                                    <p><%= item.content_summary || 'Tài liệu sắp đến hạn xử lý, vui lòng kiểm tra.' %></p>
+                                                    <% if (item.processing_deadline) { %>
+                                                        <span class="notification-card__meta">Hạn: <%= item.processing_deadline %></span>
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <p class="placeholder-text">Chưa có thông báo mới.</p>
+                                    <% } %>
+                                </div>
+                            </article>
+
+                            <article class="panel panel--schedule">
+                                <header class="panel__header">
+                                    <div>
+                                        <h2>Lịch tuần (cá nhân)</h2>
+                                        <span>Lịch họp và công tác sắp tới</span>
+                                    </div>
+                                </header>
+                                <div class="schedule-board">
+                                    <% if (scheduleEvents && scheduleEvents.length) { %>
+                                        <% scheduleEvents.forEach(function(event){ %>
+                                            <div class="schedule-board__item">
+                                                <strong><%= event.title %></strong>
+                                                <% if (event.timeRange) { %>
+                                                    <span><%= event.timeRange %></span>
+                                                <% } %>
+                                                <% if (event.location) { %>
+                                                    <span><%= event.location %></span>
+                                                <% } %>
+                                            </div>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <p class="placeholder-text">Không có lịch công tác nào trong tuần.</p>
+                                    <% } %>
+                                </div>
+                            </article>
+
+                            <article class="panel panel--reminders">
+                                <header class="panel__header">
+                                    <div>
+                                        <h2>Nhắc việc</h2>
+                                        <span>Sắp xếp theo mức ưu tiên</span>
+                                    </div>
+                                </header>
+                                <div class="reminder-grid" data-reminder-grid>
+                                    <% if (reminders && reminders.length) { %>
+                                        <% reminders.forEach(function(reminder){ %>
+                                            <div class="reminder-pill" data-reminder-id="<%= reminder.id %>">
+                                                <div class="reminder-pill__header">
+                                                    <span class="reminder-pill__badge reminder-pill__badge--<%= reminder.badgeColor %>"><%= reminder.badge %></span>
+                                                    <span class="reminder-pill__priority">Ưu tiên: <strong><%= reminder.priority %></strong></span>
+                                                </div>
+                                                <h4><%= reminder.title %></h4>
+                                                <p><%= reminder.description %></p>
+                                                <div class="reminder-pill__meta">
+                                                    <% if (reminder.deadlineLabel) { %>
+                                                        <span class="reminder-pill__deadline">Hạn: <%= reminder.deadlineLabel %></span>
+                                                    <% } %>
+                                                    <% if (reminder.relativeLabel) { %>
+                                                        <span class="reminder-pill__relative <%= reminder.isOverdue ? 'is-overdue' : '' %>"><%= reminder.relativeLabel %></span>
+                                                    <% } %>
+                                                </div>
+                                                <% if (reminder.canComplete) { %>
+                                                    <button 
+                                                        class="reminder-pill__action" 
+                                                        data-action="complete" 
+                                                        data-document-id="<%= reminder.id %>">
+                                                        Hoàn thành
+                                                    </button>
+                                                <% } else if (reminder.status === 'completed') { %>
+                                                    <span class="reminder-pill__status">Đã hoàn thành</span>
+                                                <% } %>
+                                            </div>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <p class="placeholder-text">Không có nhắc việc nào.</p>
+                                    <% } %>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="/assets/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const reminderGrid = document.querySelector('[data-reminder-grid]');
+            if (reminderGrid) {
+                    reminderGrid.addEventListener('click', async function (event) {
+                        const actionButton = event.target.closest('[data-action="complete"]');
+                        if (!actionButton) {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        if (actionButton.disabled) {
+                            return;
+                        }
+
+                        const documentId = actionButton.getAttribute('data-document-id');
+                        if (!documentId) {
+                            return;
+                        }
+
+                        const originalLabel = actionButton.textContent;
+                        actionButton.disabled = true;
+                        actionButton.textContent = 'Đang xử lý…';
+
+                        try {
+                            const response = await fetch(`/dashboard/reminders/${documentId}/complete`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                credentials: 'same-origin'
+                            });
+
+                            if (response.status === 401) {
+                                window.location.href = '/auth/login';
+                                return;
+                            }
+
+                            const payload = await response.json();
+                            if (!response.ok || !payload.success) {
+                                throw new Error(payload.message || 'Không thể cập nhật trạng thái nhắc việc');
+                            }
+
+                            actionButton.textContent = 'Đang cập nhật…';
+                            const reminderItem = actionButton.closest('.reminder-pill');
+                            if (reminderItem) {
+                                reminderItem.classList.add('reminder-pill--completed');
+                                const badge = reminderItem.querySelector('.reminder-pill__badge');
+                                if (badge) {
+                                    badge.textContent = 'Đã hoàn thành';
+                                    badge.classList.remove('reminder-pill__badge--warning', 'reminder-pill__badge--danger');
+                                    badge.classList.add('reminder-pill__badge--success');
+                                }
+                                const relative = reminderItem.querySelector('.reminder-pill__relative');
+                                if (relative) {
+                                    relative.textContent = 'Đã hoàn tất';
+                                    relative.classList.remove('is-overdue');
+                                }
+
+                                window.setTimeout(() => {
+                                    reminderItem.remove();
+                                    const remainingItems = reminderGrid.querySelectorAll('.reminder-pill');
+                                    if (!remainingItems.length) {
+                                        const placeholder = document.createElement('p');
+                                        placeholder.className = 'placeholder-text';
+                                        placeholder.textContent = 'Không có nhắc việc nào.';
+                                        reminderGrid.appendChild(placeholder);
+                                    }
+                                }, 200);
+                            }
+                        } catch (error) {
+                            console.error(error);
+                            actionButton.disabled = false;
+                            actionButton.textContent = originalLabel;
+                            window.alert(error.message || 'Không thể hoàn tất nhắc việc. Vui lòng thử lại.');
+                        }
+                    });
+                }
+
+                const scopeSelect = document.querySelector('[data-scope-select]');
+                if (scopeSelect && scopeSelect.form) {
+                    scopeSelect.addEventListener('change', () => {
+                        scopeSelect.form.submit();
+                    });
+                }
+        });
+    </script>
+</body>
+</html>

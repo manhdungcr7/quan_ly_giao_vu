@@ -1,0 +1,298 @@
+<%- contentFor('content') %>
+<div class="auth-wrapper">
+    <div class="auth-card shadow-lg">
+        <div class="auth-side d-none d-xl-flex">
+            <div class="auth-side-inner">
+                <span class="badge bg-light text-dark mb-3 px-3 py-2 fw-semibold">
+                    <i class="fas fa-user-shield me-2 text-success"></i>Tạo tài khoản mới
+                </span>
+                <h2 class="display-6 fw-semibold text-white mb-3">Mở rộng quyền truy cập cho đội ngũ của bạn</h2>
+                <p class="text-white-50 mb-4">Tài khoản cá nhân giúp bạn theo dõi nhiệm vụ, quản lý tài liệu và phối hợp với đồng nghiệp một cách linh hoạt.</p>
+                <div class="d-flex flex-column gap-3">
+                    <div class="feature-card bg-white bg-opacity-10 rounded-4 p-3">
+                        <h6 class="text-white-75 text-uppercase small mb-1">Quyền truy cập bảo mật</h6>
+                        <p class="text-white-50 mb-0">Hệ thống phân quyền theo vai trò, đảm bảo dữ liệu nhạy cảm luôn an toàn.</p>
+                    </div>
+                    <div class="feature-card bg-white bg-opacity-10 rounded-4 p-3">
+                        <h6 class="text-white-75 text-uppercase small mb-1">Quy trình thống nhất</h6>
+                        <p class="text-white-50 mb-0">Từ hồ sơ học vụ tới lịch công tác, mọi thao tác đều được chuẩn hoá.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="auth-form p-4 p-md-5">
+            <div class="mb-4 text-center text-md-start">
+                <h3 class="fw-bold text-success mb-1">Đăng ký tài khoản</h3>
+                <% if (isAdmin) { %>
+                    <p class="text-muted mb-0">Thêm thành viên vào hệ thống và chỉ định vai trò phù hợp.</p>
+                <% } else { %>
+                    <p class="text-muted mb-0">Điền đầy đủ thông tin để bắt đầu sử dụng nền tảng quản lý giáo vụ.</p>
+                <% } %>
+            </div>
+
+            <form action="/auth/register" method="POST" class="needs-validation" novalidate>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label for="full_name" class="form-label fw-semibold">Họ và tên</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-id-card text-secondary"></i></span>
+                            <input type="text" class="form-control border-start-0" id="full_name" name="full_name" placeholder="Nguyễn Văn A" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="username" class="form-label fw-semibold">Tên đăng nhập</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-user text-secondary"></i></span>
+                            <input type="text" class="form-control border-start-0" id="username" name="username" placeholder="tối thiểu 4 ký tự" minlength="4" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="email" class="form-label fw-semibold">Email</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-secondary"></i></span>
+                            <input type="email" class="form-control border-start-0" id="email" name="email" placeholder="email@domain.com" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="role_id" class="form-label fw-semibold">Vai trò</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-user-shield text-secondary"></i></span>
+                            <% if (isAdmin && roles && roles.length) { %>
+                                <select class="form-select border-start-0" id="role_id" name="role_id">
+                                    <% roles.forEach(r => { %>
+                                        <option value="<%= r.id %>" <%= defaultRole && defaultRole.id === r.id ? 'selected' : '' %>><%= r.name %></option>
+                                    <% }) %>
+                                </select>
+                            <% } else { %>
+                                <input type="text" class="form-control border-start-0" value="<%= defaultRole ? defaultRole.name : 'staff' %>" readonly>
+                                <input type="hidden" name="role_id" value="<%= defaultRole && defaultRole.id ? defaultRole.id : 2 %>">
+                            <% } %>
+                        </div>
+                        <% if (!isAdmin) { %>
+                            <small class="text-muted d-block mt-2"><i class="fas fa-info-circle me-1"></i>Bạn sẽ sở hữu quyền truy cập chuẩn dành cho nhân viên.</small>
+                        <% } %>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="password" class="form-label fw-semibold">Mật khẩu</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-secondary"></i></span>
+                            <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="Tối thiểu 6 ký tự" required>
+                            <button class="btn btn-outline-secondary border-start-0 toggle-password" type="button" data-target="#password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="confirm_password" class="form-label fw-semibold">Xác nhận mật khẩu</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-secondary"></i></span>
+                            <input type="password" class="form-control border-start-0" id="confirm_password" name="confirm_password" placeholder="Nhập lại mật khẩu" required>
+                            <button class="btn btn-outline-secondary border-start-0 toggle-password" type="button" data-target="#confirm_password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-start gap-3 mt-4">
+                    <span class="text-success bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                    <p class="mb-0 text-muted small">Bằng việc đăng ký, bạn đồng ý với quy định bảo mật và sử dụng dữ liệu của hệ thống. Mọi thông tin sẽ được mã hóa theo tiêu chuẩn hiện hành.</p>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Tạo tài khoản
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-4 pt-3 border-top text-center">
+                <% if (isAdmin) { %>
+                    <a href="/users" class="text-decoration-none fw-semibold"><i class="fas fa-arrow-left me-2"></i>Quản lý thành viên</a>
+                <% } else { %>
+                    <span class="text-muted">Đã có tài khoản?</span>
+                    <a href="/auth/login" class="text-decoration-none fw-semibold ms-1">Đăng nhập</a>
+                <% } %>
+            </div>
+
+            <div class="mt-4 small text-muted text-center">
+                <i class="fas fa-info-circle me-1"></i>Thông tin đăng ký được bảo vệ theo chính sách an ninh dữ liệu của Học viện.
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- contentFor('css') %>
+<style>
+    .auth-page {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        padding-inline: 12px;
+    }
+
+    .auth-alerts {
+        width: min(520px, 100%);
+        align-self: center;
+    }
+
+    body.auth-layout {
+        background: radial-gradient(circle at top left, rgba(16, 185, 129, 0.12), transparent 45%),
+                    radial-gradient(circle at bottom right, rgba(14, 116, 144, 0.14), transparent 50%),
+                    linear-gradient(135deg, #ecfdf5 0%, #f9fafb 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 16px;
+    }
+
+    .auth-wrapper {
+        width: 100%;
+        max-width: 1100px;
+    }
+
+    .auth-card {
+        background: #ffffff;
+        border-radius: 28px;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
+        position: relative;
+    }
+
+    .auth-side {
+        background: linear-gradient(135deg, #047857, #0f766e);
+        padding: 56px;
+        position: relative;
+        isolation: isolate;
+    }
+
+    .auth-side::after {
+        content: '';
+        position: absolute;
+        inset: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 24px;
+        opacity: 0.7;
+        z-index: -1;
+    }
+
+    .auth-side-inner {
+        max-width: 340px;
+        color: #fff;
+    }
+
+    .feature-card {
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .auth-form .form-control,
+    .auth-form .form-select {
+        border-radius: 16px;
+        padding: 0.85rem 1rem;
+    }
+
+    .auth-form .input-group-text {
+        border-radius: 16px 0 0 16px;
+    }
+
+    .auth-form .btn.btn-outline-secondary {
+        border-radius: 0 16px 16px 0;
+    }
+
+    .auth-form .form-control:focus,
+    .auth-form .form-select:focus {
+        box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.18);
+        border-color: rgba(5, 150, 105, 0.4);
+    }
+
+    .auth-form .btn-success {
+        border-radius: 16px;
+        background: linear-gradient(135deg, #047857, #10b981);
+        border: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .auth-form .btn-success:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 35px -14px rgba(16, 185, 129, 0.45);
+    }
+
+    @media (max-width: 1200px) {
+        .auth-card {
+            grid-template-columns: 1fr;
+        }
+
+        .auth-side {
+            display: none !important;
+        }
+    }
+
+    @media (max-width: 992px) {
+        body.auth-layout {
+            padding: 32px 12px;
+        }
+
+        .auth-form {
+            padding: 36px 28px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        body.auth-layout {
+            padding: 24px 12px;
+        }
+
+        .auth-form .input-group {
+            flex-direction: column;
+        }
+
+        .auth-form .input-group-text {
+            width: 100%;
+            border-radius: 14px;
+            margin-bottom: 6px;
+        }
+
+        .auth-form .btn.btn-outline-secondary {
+            width: 100%;
+            border-radius: 14px;
+            margin-top: 6px;
+        }
+
+        .auth-form .form-control,
+        .auth-form .form-select {
+            border-radius: 14px;
+        }
+    }
+</style>
+
+<%- contentFor('js') %>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    document.body.classList.add('auth-layout');
+});
+
+document.addEventListener('click', function(e){
+    const toggle = e.target.closest('.toggle-password');
+    if(toggle){
+        const input = document.querySelector(toggle.getAttribute('data-target'));
+        if(input){
+            const icon = toggle.querySelector('i');
+            if(input.type === 'password'){
+                input.type = 'text';
+                icon.classList.replace('fa-eye','fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash','fa-eye');
+            }
+        }
+    }
+});
+</script>

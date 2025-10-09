@@ -1,0 +1,245 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/reports.css?v=20241008">
+
+<section class="reports-create">
+  <header class="reports-create__hero">
+    <div>
+      <span class="reports-hero__eyebrow">Cập nhật lịch báo cáo</span>
+      <h1>Chỉnh sửa lịch báo cáo định kỳ</h1>
+      <p>Cập nhật thông tin, tần suất nhắc hạn và phạm vi điều hành cho lịch báo cáo hiện tại.</p>
+    </div>
+    <a href="/reports/schedules/<%= scheduleId %>" class="reports-create__back">
+      <i class="fa-solid fa-arrow-left"></i>
+      Quay lại chi tiết lịch báo cáo
+    </a>
+  </header>
+
+  <% if (errors && errors.length) { %>
+    <div class="reports-alert reports-alert--error">
+      <h2><i class="fa-solid fa-circle-exclamation"></i> Có lỗi trong biểu mẫu</h2>
+      <ul>
+        <% errors.forEach(function(error){ %>
+          <li><%= error %></li>
+        <% }) %>
+      </ul>
+    </div>
+  <% } %>
+
+  <form class="reports-create__form" method="post" action="/reports/schedules/<%= scheduleId %>">
+    <div class="reports-create__section">
+      <h2>Thông tin chung</h2>
+      <div class="reports-create__grid">
+        <label class="reports-field">
+          <span>Tiêu đề báo cáo <sup>*</sup></span>
+          <input type="text" name="title" value="<%= formData.title %>" required>
+        </label>
+
+        <label class="reports-field">
+          <span>Tần suất <sup>*</sup></span>
+          <select name="frequency" id="frequency" required>
+            <% frequencyOptions.forEach(function(option){ %>
+              <option value="<%= option.value %>" <%= formData.frequency === option.value ? 'selected' : '' %>><%= option.label %></option>
+            <% }) %>
+          </select>
+        </label>
+
+        <label class="reports-field">
+          <span>Trạng thái</span>
+          <select name="status" required>
+            <% statusOptions.forEach(function(option){ %>
+              <option value="<%= option.value %>" <%= formData.status === option.value ? 'selected' : '' %>><%= option.label %></option>
+            <% }) %>
+          </select>
+        </label>
+
+        <label class="reports-field">
+          <span>Kênh chia sẻ</span>
+          <input type="text" name="channel" value="<%= formData.channel %>">
+        </label>
+      </div>
+    </div>
+
+    <div class="reports-create__section">
+      <h2>Đơn vị phụ trách</h2>
+      <div class="reports-create__grid">
+        <label class="reports-field">
+          <span>Chọn đơn vị</span>
+          <select name="owner_unit_id">
+            <option value="">--- Chưa chọn ---</option>
+            <% departments.forEach(function(dep){ %>
+              <option value="<%= dep.id %>" <%= String(formData.owner_unit_id) === String(dep.id) ? 'selected' : '' %>><%= dep.name %></option>
+            <% }) %>
+          </select>
+        </label>
+
+        <label class="reports-field">
+          <span>Hoặc nhập tên đơn vị phụ trách</span>
+          <input type="text" name="owner_custom" value="<%= formData.owner_custom %>">
+        </label>
+      </div>
+    </div>
+
+    <div class="reports-create__section">
+      <h2>Cấu hình hạn và nhắc việc</h2>
+      <div class="reports-create__grid">
+        <label class="reports-field">
+          <span>Ngày đến hạn kế tiếp</span>
+          <input type="date" name="next_due_date" value="<%= formData.next_due_date %>">
+        </label>
+
+        <label class="reports-field">
+          <span>Nhắc trước (giờ)</span>
+          <select name="remind_before_hours">
+            <% reminderOptions.forEach(function(option){ %>
+              <option value="<%= option.value %>" <%= Number(formData.remind_before_hours) === Number(option.value) ? 'selected' : '' %>><%= option.label %></option>
+            <% }) %>
+            <option value="<%= formData.remind_before_hours %>" <%= reminderOptions.some(function(opt){ return Number(opt.value) === Number(formData.remind_before_hours); }) ? '' : 'selected' %>>Tùy chỉnh: <%= formData.remind_before_hours %> giờ</option>
+          </select>
+        </label>
+
+        <label class="reports-field">
+          <span>Tỷ lệ hoàn thành đúng hạn (%)</span>
+          <input type="number" name="completion_rate" min="0" max="100" value="<%= formData.completion_rate %>" required>
+        </label>
+
+        <label class="reports-field">
+          <span>Tiến độ triển khai (%)</span>
+          <input type="number" name="progress" min="0" max="100" value="<%= formData.progress %>" required>
+        </label>
+      </div>
+
+      <div class="reports-create__recurrence" data-recurring-wrapper>
+        <div class="reports-create__recurrence-group" data-frequency-group="weekly">
+          <h3>Tần suất theo tuần</h3>
+          <label class="reports-field">
+            <span>Chọn thứ</span>
+            <select name="weekly_day">
+              <% weekdayOptions.forEach(function(option){ %>
+                <option value="<%= option.value %>" <%= Number(formData.weekly_day) === Number(option.value) ? 'selected' : '' %>><%= option.label %></option>
+              <% }) %>
+            </select>
+          </label>
+        </div>
+
+        <div class="reports-create__recurrence-group" data-frequency-group="monthly">
+          <h3>Tần suất theo tháng</h3>
+          <label class="reports-field">
+            <span>Ngày trong tháng</span>
+            <select name="monthly_day">
+              <% dayOptions.forEach(function(day){ %>
+                <option value="<%= day %>" <%= Number(formData.monthly_day) === Number(day) ? 'selected' : '' %>>Ngày <%= day %></option>
+              <% }) %>
+            </select>
+          </label>
+        </div>
+
+        <div class="reports-create__recurrence-group" data-frequency-group="quarterly">
+          <h3>Tần suất theo quý</h3>
+          <div class="reports-create__grid">
+            <label class="reports-field">
+              <span>Tháng</span>
+              <select name="quarter_month">
+                <% monthOptions.forEach(function(option){ %>
+                  <option value="<%= option.value %>" <%= Number(formData.quarter_month) === Number(option.value) ? 'selected' : '' %>><%= option.label %></option>
+                <% }) %>
+              </select>
+            </label>
+            <label class="reports-field">
+              <span>Ngày</span>
+              <select name="quarter_day">
+                <% dayOptions.forEach(function(day){ %>
+                  <option value="<%= day %>" <%= Number(formData.quarter_day) === Number(day) ? 'selected' : '' %>>Ngày <%= day %></option>
+                <% }) %>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="reports-create__recurrence-group" data-frequency-group="annual">
+          <h3>Tần suất theo năm</h3>
+          <div class="reports-create__grid">
+            <label class="reports-field">
+              <span>Tháng</span>
+              <select name="annual_month">
+                <% monthOptions.forEach(function(option){ %>
+                  <option value="<%= option.value %>" <%= Number(formData.annual_month) === Number(option.value) ? 'selected' : '' %>><%= option.label %></option>
+                <% }) %>
+              </select>
+            </label>
+            <label class="reports-field">
+              <span>Ngày</span>
+              <select name="annual_day">
+                <% dayOptions.forEach(function(day){ %>
+                  <option value="<%= day %>" <%= Number(formData.annual_day) === Number(day) ? 'selected' : '' %>>Ngày <%= day %></option>
+                <% }) %>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="reports-create__recurrence-group" data-frequency-group="custom">
+          <h3>Chu kỳ tùy chỉnh</h3>
+          <label class="reports-field">
+            <span>Mô tả</span>
+            <textarea name="custom_recurrence" rows="3"><%= formData.custom_recurrence %></textarea>
+          </label>
+        </div>
+      </div>
+
+      <label class="reports-field">
+        <span>Nhãn hạn hiển thị</span>
+        <input type="text" name="due_label" value="<%= formData.due_label %>">
+      </label>
+    </div>
+
+    <div class="reports-create__section">
+      <h2>Thông tin bổ sung</h2>
+      <div class="reports-create__grid">
+        <label class="reports-field">
+          <span>Số tài liệu dự kiến</span>
+          <input type="number" name="attachments_expected" min="0" max="50" value="<%= formData.attachments_expected %>">
+        </label>
+        <label class="reports-field">
+          <span>Thẻ (phân cách bởi dấu phẩy)</span>
+          <input type="text" name="tags" value="<%= formData.tags %>">
+        </label>
+      </div>
+
+      <label class="reports-field">
+        <span>Phạm vi / ghi chú</span>
+        <textarea name="scope" rows="4"><%= formData.scope %></textarea>
+      </label>
+    </div>
+
+    <footer class="reports-create__actions">
+      <a href="/reports/schedules/<%= scheduleId %>" class="btn-ghost"><i class="fa-solid fa-arrow-rotate-left"></i> Huỷ bỏ</a>
+      <button type="submit" class="btn-primary">
+        <i class="fa-solid fa-floppy-disk"></i>
+        Lưu thay đổi
+      </button>
+    </footer>
+  </form>
+</section>
+
+<%- contentFor('js') %>
+<script>
+(function(){
+  function toggleRecurrence() {
+    var frequency = document.getElementById('frequency');
+    if (!frequency) return;
+    var current = frequency.value;
+    document.querySelectorAll('[data-frequency-group]').forEach(function(group){
+      var required = group.getAttribute('data-frequency-group');
+      group.style.display = required === current ? 'block' : 'none';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var frequencySelect = document.getElementById('frequency');
+    if (frequencySelect) {
+      frequencySelect.addEventListener('change', toggleRecurrence);
+      toggleRecurrence();
+    }
+  });
+})();
+</script>

@@ -1,0 +1,83 @@
+<nav class="sidebar-nav">
+    <div class="sidebar-section">
+        <p class="section-label">TỔNG QUAN</p>
+        <a class="sidebar-link <%= currentPath === '/dashboard' ? 'active' : '' %>" href="/dashboard">
+            <i class="fa fa-home"></i>
+            <span>Trang chủ</span>
+        </a>
+    </div>
+
+    <div class="sidebar-section">
+        <p class="section-label">QUẢN LÝ HÀNH CHÍNH</p>
+        <a class="sidebar-link <%= currentPath.startsWith('/documents') ? 'active' : '' %>" href="/documents">
+            <i class="fa fa-file-text"></i>
+            <span>Quản lý văn bản</span>
+        </a>
+        <a class="sidebar-link <%= currentPath.startsWith('/legal-documents') ? 'active' : '' %>" href="/legal-documents">
+            <i class="fa fa-gavel"></i>
+            <span>Văn bản pháp lý</span>
+        </a>
+        <a class="sidebar-link <%= currentPath.startsWith('/staff') ? 'active' : '' %>" href="/staff">
+            <i class="fa fa-users"></i>
+            <span>Quản lý cán bộ</span>
+        </a>
+        <a class="sidebar-link <%= currentPath.startsWith('/assets') ? 'active' : '' %>" href="/assets">
+            <i class="fa fa-building"></i>
+            <span>Quản lý tài sản</span>
+        </a>
+    </div>
+
+    <div class="sidebar-section">
+        <p class="section-label">NGHIỆP VỤ GIẢNG DẠY</p>
+        <a class="sidebar-link <%= currentPath.startsWith('/examination') ? 'active' : '' %>" href="/examination">
+            <i class="fa fa-clipboard-check"></i>
+            <span>Công tác khảo thí</span>
+        </a>
+        <a class="sidebar-link <%= currentPath.startsWith('/workbook') ? 'active' : '' %>" href="/workbook" aria-label="Sổ tay công tác tuần">
+            <i class="fa fa-book"></i>
+            <span>Sổ tay công tác tuần</span>
+        </a>
+    </div>
+
+    <div class="sidebar-section">
+        <p class="section-label">NGHIÊN CỨU & DỰ ÁN</p>
+        <a class="sidebar-link <%= currentPath === '/research' ? 'active' : '' %>" href="/research">
+            <i class="fa fa-flask"></i>
+            <span>Nghiên cứu khoa học</span>
+        </a>
+        <a class="sidebar-link <%= currentPath.startsWith('/research/manage') ? 'active' : '' %>" href="/research/manage">
+            <i class="fa fa-pen-to-square"></i>
+            <span>Quản lý nghiên cứu</span>
+        </a>
+        <a class="sidebar-link <%= currentPath.startsWith('/projects') ? 'active' : '' %>" href="/projects">
+            <i class="fa fa-project-diagram"></i>
+            <span>Quản lý dự án</span>
+        </a>
+    </div>
+
+    <div class="sidebar-section">
+        <p class="section-label">CÔNG CỤ HỖ TRỢ</p>
+    <a class="sidebar-link <%= currentPath.startsWith('/schedule') ? 'active' : '' %>" href="/schedule">
+            <i class="fa fa-calendar-alt"></i>
+            <span>Lịch công tác</span>
+        </a>
+        <a class="sidebar-link <%= currentPath.startsWith('/reminders') ? 'active' : '' %>" href="/reminders">
+            <i class="fa fa-bell"></i>
+            <span>Nhắc việc</span>
+        </a>
+        <a class="sidebar-link <%= currentPath.startsWith('/reports') ? 'active' : '' %>" href="/reports">
+            <i class="fa fa-chart-bar"></i>
+            <span>Báo cáo tổng hợp</span>
+        </a>
+    </div>
+
+    <div class="sidebar-footer">
+        <div>Kiểm thử</div>
+        <div class="badge">
+            TEST START
+        </div>
+        <div class="badge">
+            TEST DOCS
+        </div>
+    </div>
+</nav>

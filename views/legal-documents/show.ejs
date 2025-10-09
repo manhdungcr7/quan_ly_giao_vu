@@ -1,0 +1,691 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/documents.css">
+
+<%- contentFor('content') %>
+<div class="documents-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">📜 Chi tiết văn bản pháp lý</h1>
+      <p class="page-subtitle"><%= document.document_number %> - <%= document.title %></p>
+    </div>
+    <div class="page-actions">
+      <a href="/legal-documents/<%= document.id %>/edit" class="btn btn-primary">
+        <i class="fas fa-edit"></i> Sửa văn bản
+      </a>
+      <a href="/legal-documents" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Quay lại danh sách
+      </a>
+    </div>
+  </div>
+
+  <% if (typeof success !== 'undefined' && success.length > 0) { %>
+    <div class="alert alert-success">
+      <%= success %>
+    </div>
+  <% } %>
+
+  <% if (typeof error !== 'undefined' && error.length > 0) { %>
+    <div class="alert alert-danger">
+      <%= error %>
+    </div>
+  <% } %>
+
+  <div class="document-detail">
+    <div class="detail-grid">
+      <!-- Thông tin cơ bản -->
+      <div class="detail-section">
+        <h3>📋 Thông tin cơ bản</h3>
+        
+        <div class="detail-row">
+          <label>Số hiệu văn bản:</label>
+          <span class="mono"><%= document.document_number %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Tiêu đề:</label>
+          <span><%= document.title %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Loại văn bản:</label>
+          <span><%= document.document_type || '(Không xác định)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Cơ quan ban hành:</label>
+          <span><%= document.issuing_authority || '(Không có)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Lĩnh vực:</label>
+          <span><%= document.subject || '(Chưa có)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Từ khóa:</label>
+          <span><%= document.keywords || '(Chưa có)' %></span>
+        </div>
+      </div>
+
+      <!-- Thông tin pháp lý -->
+      <div class="detail-section">
+        <h3>⚖️ Thông tin pháp lý</h3>
+        <div class="detail-row">
+          <label>Ngày ban hành:</label>
+          <span><%= document.issue_date ? new Date(document.issue_date).toLocaleDateString('vi-VN') : '(Chưa có)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Ngày có hiệu lực:</label>
+          <span><%= document.effective_date ? new Date(document.effective_date).toLocaleDateString('vi-VN') : '(Chưa có)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Ngày hết hiệu lực:</label>
+          <span><%= document.expiry_date ? new Date(document.expiry_date).toLocaleDateString('vi-VN') : '(Chưa có)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Trạng thái:</label>
+          <% if (document.status === 'Còn hiệu lực') { %>
+            <span class="status-badge status-completed">✅ Còn hiệu lực</span>
+          <% } else if (document.status === 'Hết hiệu lực') { %>
+            <span class="status-badge status-pending">⏳ Hết hiệu lực</span>
+          <% } else if (document.status === 'Bị thay thế') { %>
+            <span class="status-badge status-processing">🔄 Bị thay thế</span>
+          <% } else if (document.status === 'Dự thảo') { %>
+            <span class="status-badge" style="background: #fff3cd; color: #856404;">📝 Dự thảo</span>
+          <% } else if (document.status === 'Đã hủy') { %>
+            <span class="status-badge status-overdue">❌ Đã hủy</span>
+          <% } else { %>
+            <span class="status-badge"><%= document.status || '(Không có)' %></span>
+          <% } %>
+        </div>
+
+        <% if (document.signer_name) { %>
+        <div class="detail-row">
+          <label>Người ký:</label>
+          <span><%= document.signer_name %></span>
+        </div>
+        <% } %>
+
+        <% if (document.signer_position) { %>
+        <div class="detail-row">
+          <label>Chức vụ:</label>
+          <span><%= document.signer_position %></span>
+        </div>
+        <% } %>
+
+        <% if (document.replaced_by) { %>
+        <div class="detail-row">
+          <label>Văn bản thay thế:</label>
+          <span><%= document.replaced_by %></span>
+        </div>
+        <% } %>
+
+        <div class="detail-row">
+          <label>Phiên bản:</label>
+          <span><%= document.version || 1 %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Người tạo:</label>
+          <span><%= document.created_by_name || 'Hệ thống' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Ngày tạo:</label>
+          <span><%= document.created_at ? new Date(document.created_at).toLocaleString('vi-VN') : '(Chưa có)' %></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tóm tắt nội dung -->
+    <% if (document.summary) { %>
+    <div class="detail-section full-width">
+      <h3>📄 Tóm tắt nội dung</h3>
+      <div class="content-display">
+        <%- document.summary.replace(/\n/g, '<br>') %>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Văn bản liên quan -->
+    <% if (document.related_documents) { %>
+    <div class="detail-section full-width">
+      <h3>🔗 Văn bản liên quan</h3>
+      <div class="content-display">
+        <%- document.related_documents.replace(/\n/g, '<br>') %>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Trích yếu nội dung cũ - XÓA SECTION NÀY -->
+    <div class="detail-section full-width" style="display: none;">
+      <h3>Trích yếu nội dung</h3>
+      <div class="content-display">
+        <%= document.content_summary ? document.content_summary.replace(/\n/g, '<br>') : '(Chưa có trích yếu)' %>
+      </div>
+    </div>
+
+    <!-- Files đính kèm -->
+    <div class="detail-section full-width">
+      <h3>Files đính kèm</h3>
+      <% if (document.files && document.files.length > 0) { %>
+        <div class="attachment-list">
+          <% document.files.forEach(function(file) { 
+            // Determine file icon and class based on mime type
+            let iconClass = 'fa-file';
+            let fileTypeClass = '';
+            if (file.mime_type) {
+              if (file.mime_type === 'application/pdf') {
+                iconClass = 'fa-file-pdf';
+                fileTypeClass = 'pdf';
+              } else if (file.mime_type.includes('word')) {
+                iconClass = 'fa-file-word';
+                fileTypeClass = 'word';
+              } else if (file.mime_type.includes('excel') || file.mime_type.includes('spreadsheet')) {
+                iconClass = 'fa-file-excel';
+                fileTypeClass = 'excel';
+              } else if (file.mime_type.startsWith('image/')) {
+                iconClass = 'fa-file-image';
+                fileTypeClass = 'image';
+              } else if (file.mime_type.includes('zip') || file.mime_type.includes('rar') || file.mime_type.includes('7z')) {
+                iconClass = 'fa-file-archive';
+                fileTypeClass = 'archive';
+              } else if (file.mime_type === 'text/plain') {
+                iconClass = 'fa-file-alt';
+                fileTypeClass = 'text';
+              }
+            }
+          %>
+            <div class="attachment-item">
+              <div class="file-info">
+                <i class="file-icon <%= fileTypeClass %> fas <%= iconClass %>"></i>
+                <div class="file-details">
+                  <span class="file-name"><%= file.original_name %></span>
+                  <small class="file-size">(<%= file.size ? (file.size / 1024).toFixed(1) : '0.0' %> KB)</small>
+                </div>
+              </div>
+              <div class="file-actions">
+                <button type="button" class="btn btn-sm btn-outline-info preview-file-btn" data-file-id="<%= file.id %>">
+                  <i class="fas fa-eye"></i> Xem trước
+                </button>
+                <a href="/legal-documents/files/<%= file.id %>/download" class="btn btn-sm btn-outline-success">
+                  <i class="fas fa-download"></i> Tải về
+                </a>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="no-attachments">
+          <i class="fas fa-paperclip"></i>
+          <span>Chưa có files đính kèm</span>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Removed obsolete directive section -->
+    <!-- Removed obsolete history section (chi_dao history not applicable to legal documents) -->
+  </div>
+</div>
+
+<!-- Include modals from list.ejs -->
+<!-- Removed obsolete modal dialogs (directiveModal and approveModal not applicable to legal documents) -->
+
+<style>
+.detail-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  margin-bottom: 2rem;
+}
+
+.detail-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.detail-section.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.directive-actions-header {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.detail-row {
+  display: flex;
+  margin-bottom: 0.75rem;
+  align-items: flex-start;
+}
+
+.detail-row label {
+  min-width: 140px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-right: 1rem;
+}
+
+.content-display, .directive-display {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+  line-height: 1.6;
+  color: #374151;
+  white-space: pre-wrap;
+}
+
+.badge-incoming, .badge-outgoing {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-incoming {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-outgoing {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.priority-low { color: #6b7280; }
+.priority-medium { color: #059669; }
+.priority-high { color: #d97706; }
+.priority-urgent { color: #dc2626; font-weight: 600; }
+
+.history-timeline {
+  position: relative;
+}
+
+.timeline-item {
+  display: flex;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.timeline-item:not(:last-child):before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 36px;
+  bottom: -24px;
+  width: 2px;
+  background: #e5e7eb;
+}
+
+.timeline-marker {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.875rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.timeline-marker.action-update {
+  background: #0ea5e9;
+}
+
+.timeline-marker.action-approve {
+  background: #10b981;
+}
+
+.timeline-content {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.timeline-header {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.timeline-action {
+  color: #6b7280;
+}
+
+.timeline-time {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-left: auto;
+}
+
+.timeline-changes {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.change-old, .change-new {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 0.75rem;
+}
+
+.change-old label, .change-new label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.change-old {
+  border-left: 3px solid #ef4444;
+}
+
+.change-new {
+  border-left: 3px solid #10b981;
+}
+
+.timeline-value, .timeline-note {
+  line-height: 1.5;
+  color: #374151;
+}
+
+.timeline-note {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.9rem;
+  color: #92400e;
+}
+
+@media (max-width: 768px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .directive-actions-header {
+    width: 100%;
+  }
+  
+  .timeline-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .timeline-time {
+    margin-left: 0;
+  }
+}
+
+/* File Attachments */
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.attachment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.file-icon {
+  color: #6b7280;
+  width: 20px;
+}
+
+.file-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+.file-size {
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.file-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.no-attachments {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem;
+  font-style: italic;
+}
+
+.no-attachments i {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 2rem;
+  color: #d1d5db;
+}
+
+/* File Preview Modal */
+.file-preview-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.file-preview-content {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  height: 90%;
+  max-width: 1000px;
+  max-height: 800px;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.file-preview-body {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.file-preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.close-preview {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+</style>
+
+<!-- File Preview Modal -->
+<div id="filePreviewModal" class="file-preview-modal">
+  <div class="file-preview-content">
+    <div class="file-preview-header">
+      <h5 id="previewFileName">Xem trước file</h5>
+      <button class="close-preview" id="closePreviewBtn">&times;</button>
+    </div>
+    <div class="file-preview-body">
+      <div id="previewContent"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// File Preview Functions
+function previewFile(fileId) {
+  fetch(`/legal-documents/files/${fileId}/preview-info`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('previewFileName').textContent = data.filename || 'Xem trước file';
+        const previewContent = document.getElementById('previewContent');
+        
+        if (data.type === 'pdf' && data.previewable) {
+          previewContent.innerHTML = `<iframe src="/legal-documents/files/${fileId}/preview" class="file-preview-iframe"></iframe>`;
+        } else if (data.type === 'image') {
+          previewContent.innerHTML = `<img src="/legal-documents/files/${fileId}/preview" style="max-width: 100%; height: auto;" alt="${data.filename || 'Image'}">`;
+        } else if (data.type === 'text') {
+          previewContent.innerHTML = `<pre style="white-space: pre-wrap; font-family: monospace;">${data.content || ''}</pre>`;
+        } else if (data.type === 'word' && data.previewable) {
+          // Word: Hiển thị iframe (browser sẽ tải file) hoặc dùng Google Docs Viewer
+          previewContent.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+              <p><i class="fas fa-file-word" style="font-size: 48px; color: #2b579a;"></i></p>
+              <p><strong>File Word: ${data.filename || 'Document'}</strong></p>
+              <p>Chọn cách xem:</p>
+              <div style="margin-top: 15px;">
+                <a href="/legal-documents/files/${fileId}/download" class="btn btn-primary" style="margin: 5px;">
+                  <i class="fas fa-download"></i> Tải xuống để xem
+                </a>
+                <button class="btn btn-info open-gdocs-viewer" data-file-id="${fileId}" style="margin: 5px;">
+                  <i class="fas fa-external-link-alt"></i> Xem qua Google Docs
+                </button>
+              </div>
+            </div>`;
+        } else if (data.type === 'archive') {
+          // RAR/ZIP: không thể preview
+          previewContent.innerHTML = `
+            <div style="text-align: center; padding: 30px;">
+              <p><i class="fas fa-file-archive" style="font-size: 48px; color: #ffa500;"></i></p>
+              <p><strong>${data.filename || 'Archive'}</strong></p>
+              <p style="color: #666; margin-top: 10px;">${data.message || 'File nén không hỗ trợ xem trước'}</p>
+              <a href="/legal-documents/files/${fileId}/download" class="btn btn-success" style="margin-top: 15px;">
+                <i class="fas fa-download"></i> Tải xuống
+              </a>
+            </div>`;
+        } else {
+          previewContent.innerHTML = `<p>Không thể xem trước loại file này. <a href="/legal-documents/files/${fileId}/download">Tải về để xem</a></p>`;
+        }
+        
+        document.getElementById('filePreviewModal').style.display = 'flex';
+      }
+    })
+    .catch(error => {
+      console.error('Lỗi xem trước file:', error);
+      alert('Có lỗi khi xem trước file');
+    });
+}
+
+function openGoogleDocsViewer(fileId) {
+  // Mở Google Docs Viewer trong tab mới (cần public URL)
+  const downloadUrl = window.location.origin + '/legal-documents/files/' + fileId + '/download';
+  const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
+  window.open(viewerUrl, '_blank');
+}
+
+function closePreview() {
+  document.getElementById('filePreviewModal').style.display = 'none';
+  document.getElementById('previewContent').innerHTML = '';
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  // Preview file buttons
+  document.querySelectorAll('.preview-file-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const fileId = this.getAttribute('data-file-id');
+      previewFile(fileId);
+    });
+  });
+  
+  // Close preview button
+  const closeBtn = document.getElementById('closePreviewBtn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closePreview);
+  }
+  
+  // Close modal when clicking outside
+  const modal = document.getElementById('filePreviewModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === this) {
+        closePreview();
+      }
+    });
+  }
+  
+  // Google Docs viewer buttons (dynamically added)
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('open-gdocs-viewer')) {
+      const fileId = e.target.getAttribute('data-file-id');
+      openGoogleDocsViewer(fileId);
+    }
+  });
+});
+</script>

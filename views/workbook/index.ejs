@@ -1,0 +1,4283 @@
+<% contentFor('css', '<link rel="stylesheet" href="/css/workbook-enhanced.css?v=2024100302">') %>
+
+<style>
+/* ===== WORKBOOK INLINE STYLES - PRIORITY ===== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Reset cho workbook page */
+.app-main {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+body {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background-attachment: fixed !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* Layout chính */
+.workbook-layout {
+  display: grid !important;
+  grid-template-columns: 300px 1fr !important;
+  gap: 2rem !important;
+  max-width: 1600px !important;
+  margin: 0 auto !important;
+  padding: 2rem !important;
+  min-height: 100vh !important;
+}
+
+/* Sidebar */
+.workbook-sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+}
+
+.sidebar-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-radius: 16px !important;
+  padding: 1.5rem !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(20px) !important;
+  transition: all 0.3s ease !important;
+}
+
+.sidebar-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+.sidebar-card-title {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  margin-bottom: 1.5rem !important;
+  padding-bottom: 1rem !important;
+  border-bottom: 2px solid #f3f4f6 !important;
+}
+
+.sidebar-card-title i {
+  width: 28px !important;
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  font-size: 0.875rem !important;
+}
+
+/* Week Selector */
+.week-selector {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.25rem !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.1)) !important;
+  border-radius: 18px !important;
+  padding: 1.5rem !important;
+  border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  overflow: hidden !important;
+}
+
+.week-selector::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(59, 130, 246, 0.05)) !important;
+  border-radius: inherit !important;
+  opacity: 0.6 !important;
+  pointer-events: none !important;
+}
+
+.week-selector > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.week-selector-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+}
+
+.week-nav-btn {
+  background: white !important;
+  border: 2px solid rgba(99, 102, 241, 0.3) !important;
+  border-radius: 12px !important;
+  width: 44px !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  color: #4c1d95 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.15) !important;
+}
+
+.week-nav-btn:hover {
+  background: linear-gradient(135deg, #6366f1, #4338ca) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.25) !important;
+}
+
+.week-current {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+}
+
+.week-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  padding: 0.35rem 0.9rem !important;
+  border-radius: 999px !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  font-weight: 700 !important;
+  color: #4c1d95 !important;
+  background: rgba(99, 102, 241, 0.12) !important;
+  border: 1px solid rgba(99, 102, 241, 0.25) !important;
+}
+
+.week-dates {
+  font-size: 1.1rem !important;
+  font-weight: 800 !important;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.week-chip-rail {
+  display: flex !important;
+  gap: 0.75rem !important;
+  overflow-x: auto !important;
+  padding: 0.1rem 0 !important;
+}
+
+.week-chip-rail::-webkit-scrollbar {
+  height: 6px !important;
+}
+
+.week-chip-rail::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.35) !important;
+  border-radius: 999px !important;
+}
+
+.week-chip {
+  min-width: 140px !important;
+  border: none !important;
+  border-radius: 14px !important;
+  padding: 0.75rem 1.1rem !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.08) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.35rem !important;
+  cursor: pointer !important;
+  transition: all 0.25s ease !important;
+  border: 1px solid transparent !important;
+}
+
+.week-chip:hover {
+  transform: translateY(-3px) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  box-shadow: 0 14px 26px rgba(79, 70, 229, 0.15) !important;
+}
+
+.week-chip.active {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  color: white !important;
+  border-color: transparent !important;
+}
+
+.week-chip.active .week-chip-label,
+.week-chip.active .week-chip-range {
+  color: white !important;
+}
+
+.week-chip-label {
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  color: #4338ca !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.week-chip-range {
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
+  font-weight: 600 !important;
+}
+
+.week-picker {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-radius: 14px !important;
+  padding: 1rem !important;
+  border: 1px dashed rgba(99, 102, 241, 0.35) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.6rem !important;
+}
+
+.week-picker-body {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+}
+
+.week-picker-body i {
+  font-size: 1.4rem !important;
+  color: #6366f1 !important;
+}
+
+.week-picker input[type="date"] {
+  flex: 1 !important;
+  padding: 0.65rem 0.9rem !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(148, 163, 184, 0.6) !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  color: #111827 !important;
+  background: #fff !important;
+  transition: border 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.week-picker input[type="date"]:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+  outline: none !important;
+}
+
+.week-picker button {
+  border: none !important;
+  background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+  color: white !important;
+  padding: 0.65rem 1.2rem !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.25) !important;
+}
+
+.week-picker button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 16px 28px rgba(59, 130, 246, 0.3) !important;
+}
+
+.week-picker-hint {
+  font-size: 0.8rem !important;
+  color: #6b7280 !important;
+  margin: 0 !important;
+}
+
+/* Info List */
+.info-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+.info-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 1rem !important;
+  background: #f9fafb !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.info-item:hover {
+  background: #f3f4f6 !important;
+  transform: translateX(4px) !important;
+}
+
+.info-label {
+  font-size: 0.875rem !important;
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+}
+
+.info-value {
+  font-size: 0.875rem !important;
+  color: #1f2937 !important;
+  font-weight: 700 !important;
+}
+
+.status-badge {
+  padding: 0.375rem 0.875rem !important;
+  border-radius: 20px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.status-draft {
+  background: linear-gradient(135deg, #fef3c7, #fcd34d) !important;
+  color: #92400e !important;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2) !important;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+.action-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.75rem !important;
+  padding: 1rem 1.5rem !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  text-decoration: none !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.action-btn i {
+  font-size: 1.125rem !important;
+}
+
+.btn-add {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+}
+
+.btn-add:hover {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+.btn-submit:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Main Content */
+.workbook-main {
+  display: grid !important;
+  grid-template-columns: 1fr 340px !important;
+  gap: 2rem !important;
+  align-items: start !important;
+}
+
+.workbook-content {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2rem !important;
+}
+
+/* Main Header */
+.main-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(20px) !important;
+  padding: 2rem !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.page-title {
+  font-size: 1.75rem !important;
+  font-weight: 800 !important;
+  color: #1f2937 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  margin: 0 !important;
+}
+
+.page-title i {
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  color: white !important;
+  border-radius: 12px !important;
+  font-size: 1.25rem !important;
+}
+
+/* View Toggle */
+.view-toggle {
+  display: flex !important;
+  background: #f3f4f6 !important;
+  border-radius: 12px !important;
+  padding: 0.25rem !important;
+  gap: 0.25rem !important;
+}
+
+.toggle-btn {
+  padding: 0.75rem 1rem !important;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  color: #6b7280 !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+}
+
+.toggle-btn.active {
+  background: white !important;
+  color: #3b82f6 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Days Grid */
+.days-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+  gap: 2rem !important;
+}
+
+/* Day Card */
+.day-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-radius: 16px !important;
+  padding: 2rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(20px) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.day-card::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 5px !important;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6) !important;
+}
+
+.day-card:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+.day-card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.day-info {
+  flex: 1 !important;
+}
+
+.day-title {
+  font-size: 1.375rem !important;
+  font-weight: 800 !important;
+  margin-bottom: 0.25rem !important;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.day-date {
+  font-size: 0.875rem !important;
+  color: #6b7280 !important;
+  font-weight: 600 !important;
+}
+
+.card-edit-btn {
+  background: #f3f4f6 !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  color: #6b7280 !important;
+}
+
+.card-edit-btn:hover {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  border-color: transparent !important;
+  color: white !important;
+  transform: rotate(90deg) scale(1.1) !important;
+}
+
+/* Progress Bar */
+.progress-bar-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  margin-bottom: 2rem !important;
+  padding: 1.5rem !important;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe) !important;
+  border-radius: 12px !important;
+  border: 2px solid #bae6fd !important;
+}
+
+.progress-bar {
+  flex: 1 !important;
+  height: 12px !important;
+  background: white !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+}
+
+.progress-fill {
+  height: 100% !important;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6) !important;
+  border-radius: 6px !important;
+  transition: width 0.5s ease !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4) !important;
+}
+
+.progress-text {
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  min-width: 50px !important;
+  text-align: right !important;
+}
+
+/* Card Body */
+.day-card-body {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+}
+
+.card-section {
+  padding: 1.5rem !important;
+  background: #f9fafb !important;
+  border-radius: 12px !important;
+  border-left: 4px solid #3b82f6 !important;
+  transition: all 0.2s ease !important;
+}
+
+.card-section:hover {
+  background: white !important;
+  border-left-color: #8b5cf6 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+.section-title {
+  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  color: #374151 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  margin-bottom: 1rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.section-title i {
+  color: #3b82f6 !important;
+  font-size: 1rem !important;
+}
+
+.section-content {
+  font-size: 0.9375rem !important;
+  color: #374151 !important;
+  line-height: 1.7 !important;
+}
+
+.section-content.empty {
+  color: #9ca3af !important;
+  font-style: italic !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+}
+
+.task-list {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.task-list li {
+  padding: 1rem !important;
+  background: white !important;
+  border-radius: 8px !important;
+  margin-bottom: 0.75rem !important;
+  position: relative !important;
+  padding-left: 2.5rem !important;
+  transition: all 0.2s ease !important;
+  border: 2px solid transparent !important;
+}
+
+.task-list li:hover {
+  border-color: #3b82f6 !important;
+  transform: translateX(4px) !important;
+}
+
+.task-list li:last-child {
+  margin-bottom: 0 !important;
+}
+
+.task-list li::before {
+  content: '✓' !important;
+  position: absolute !important;
+  left: 1rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 24px !important;
+  height: 24px !important;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  color: white !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 800 !important;
+  font-size: 0.75rem !important;
+}
+
+/* Stats Panel */
+.workbook-stats {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+}
+
+.stats-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-radius: 16px !important;
+  padding: 2rem !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(20px) !important;
+  transition: all 0.3s ease !important;
+}
+
+.stats-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+.stats-card-title {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  margin-bottom: 1.5rem !important;
+  padding-bottom: 1rem !important;
+  border-bottom: 2px solid #f3f4f6 !important;
+}
+
+.stats-card-title i {
+  width: 28px !important;
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  font-size: 0.875rem !important;
+}
+
+.stats-summary {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 1rem !important;
+  margin-top: 1.5rem !important;
+}
+
+.stat-item {
+  text-align: center !important;
+  padding: 1rem !important;
+  background: #f9fafb !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.stat-item:hover {
+  background: white !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+.stat-value {
+  display: block !important;
+  font-size: 1.875rem !important;
+  font-weight: 800 !important;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.stat-label {
+  display: block !important;
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Quick Notes & Notifications */
+.quick-notes {
+  width: 100% !important;
+  padding: 1rem !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  font-family: inherit !important;
+  font-size: 0.875rem !important;
+  resize: vertical !important;
+  transition: all 0.2s ease !important;
+  background: #f9fafb !important;
+}
+
+.quick-notes:focus {
+  outline: none !important;
+  border-color: #3b82f6 !important;
+  background: white !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.btn-save-notes {
+  width: 100% !important;
+  margin-top: 1rem !important;
+  padding: 1rem !important;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.75rem !important;
+}
+
+.btn-save-notes:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important;
+}
+
+.notification-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+}
+
+.notification-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  padding: 1rem !important;
+  background: linear-gradient(135deg, #fef3c7, #fef9c3) !important;
+  border-radius: 12px !important;
+  border-left: 4px solid #f59e0b !important;
+  font-size: 0.875rem !important;
+  color: #374151 !important;
+  transition: all 0.2s ease !important;
+}
+
+.notification-item:hover {
+  transform: translateX(4px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+.notification-item i {
+  color: #f59e0b !important;
+  font-size: 1.125rem !important;
+}
+
+/* Enhanced Quick Add Styles */
+.quick-add-task-enhanced {
+  margin-top: 1rem !important;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9) !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 1rem !important;
+  transition: all 0.3s ease !important;
+}
+
+.quick-add-task-enhanced:focus-within {
+  border-color: #6366f1 !important;
+  background: white !important;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15) !important;
+}
+
+.quick-add-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 0.75rem !important;
+  padding-bottom: 0.5rem !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.quick-add-label {
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.quick-add-label i {
+  color: #6366f1 !important;
+  font-size: 1rem !important;
+}
+
+.quick-actions-toolbar {
+  display: flex !important;
+  gap: 0.5rem !important;
+}
+
+.quick-action-btn {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  border: 1px solid #e5e7eb !important;
+  background: white !important;
+  color: #6b7280 !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.875rem !important;
+}
+
+.quick-action-btn:hover {
+  border-color: #6366f1 !important;
+  background: #f0f4ff !important;
+  color: #6366f1 !important;
+  transform: translateY(-1px) !important;
+}
+
+.quick-action-btn:active {
+  transform: translateY(0) !important;
+}
+
+/* Single Add Mode */
+.quick-add-single {
+  display: flex !important;
+  gap: 0.75rem !important;
+  align-items: flex-start !important;
+}
+
+.input-wrapper {
+  flex: 1 !important;
+  position: relative !important;
+}
+
+.quick-task-input-enhanced {
+  width: 100% !important;
+  padding: 0.75rem 1rem !important;
+  border: 2px solid #e5e7eb !important;
+  background: white !important;
+  border-radius: 8px !important;
+  font-size: 0.875rem !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+  font-family: inherit !important;
+}
+
+.quick-task-input-enhanced:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+}
+
+.quick-task-input-enhanced::placeholder {
+  color: #9ca3af !important;
+  font-style: italic !important;
+}
+
+.quick-options {
+  display: flex !important;
+  gap: 0.5rem !important;
+  flex-shrink: 0 !important;
+}
+
+.priority-select-quick {
+  padding: 0.75rem !important;
+  border: 2px solid #e5e7eb !important;
+  background: white !important;
+  border-radius: 8px !important;
+  font-size: 0.875rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+}
+
+.priority-select-quick:hover {
+  border-color: #6366f1 !important;
+}
+
+.priority-select-quick:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+}
+
+.quick-add-btn-enhanced {
+  width: 44px !important;
+  height: 44px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1rem !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
+}
+
+.quick-add-btn-enhanced:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
+}
+
+.quick-add-btn-enhanced:active {
+  transform: translateY(0) !important;
+}
+
+/* Suggestions Dropdown */
+.suggestions-dropdown {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin-top: 0.5rem !important;
+  background: white !important;
+  border: 2px solid #6366f1 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  z-index: 100 !important;
+  max-height: 250px !important;
+  overflow-y: auto !important;
+}
+
+.suggestions-header {
+  padding: 0.5rem 0.75rem !important;
+  background: #f8faff !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: #6b7280 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.suggestions-list {
+  padding: 0.25rem !important;
+}
+
+.suggestion-item {
+  padding: 0.625rem 0.75rem !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  font-size: 0.875rem !important;
+  color: #374151 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.suggestion-item:hover {
+  background: #f0f4ff !important;
+  color: #6366f1 !important;
+}
+
+.suggestion-item i {
+  color: #9ca3af !important;
+  font-size: 0.75rem !important;
+}
+
+.suggestion-item:hover i {
+  color: #6366f1 !important;
+}
+
+/* Batch Add Mode */
+.quick-add-batch {
+  animation: slideDown 0.3s ease-out !important;
+}
+
+.batch-input {
+  width: 100% !important;
+  padding: 0.75rem !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  font-size: 0.875rem !important;
+  font-family: inherit !important;
+  resize: vertical !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+  line-height: 1.6 !important;
+}
+
+.batch-input:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+}
+
+.batch-actions {
+  display: flex !important;
+  gap: 0.5rem !important;
+  margin-top: 0.75rem !important;
+}
+
+.btn-batch-add {
+  flex: 1 !important;
+  padding: 0.75rem 1rem !important;
+  border: none !important;
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+}
+
+.btn-batch-add:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+}
+
+.btn-batch-cancel {
+  flex: 1 !important;
+  padding: 0.75rem 1rem !important;
+  border: 2px solid #e5e7eb !important;
+  background: white !important;
+  color: #6b7280 !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+}
+
+.btn-batch-cancel:hover {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
+}
+
+/* Template Selector */
+.template-selector {
+  animation: slideDown 0.3s ease-out !important;
+  margin-top: 0.75rem !important;
+  padding: 1rem !important;
+  background: white !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+}
+
+.template-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 0.75rem !important;
+  padding-bottom: 0.5rem !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.template-header span {
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+.template-header button {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: #9ca3af !important;
+  cursor: pointer !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.template-header button:hover {
+  background: #fee2e2 !important;
+  color: #ef4444 !important;
+}
+
+.template-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 0.5rem !important;
+}
+
+.template-item {
+  padding: 0.75rem 1rem !important;
+  background: linear-gradient(135deg, #f8faff, #f0f4ff) !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+}
+
+.template-item:hover {
+  border-color: #6366f1 !important;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+}
+
+.template-item i {
+  font-size: 1.25rem !important;
+  color: #6366f1 !important;
+}
+
+.template-item span {
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+/* Animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Inline Task Management Styles */
+.tasks-section {
+  position: relative !important;
+}
+
+.task-list-interactive {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 0 0.75rem 0 !important;
+  min-height: 20px !important;
+}
+
+.task-item-inline {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  padding: 0.625rem 0.75rem 0.625rem 1rem !important;
+  margin-bottom: 0.5rem !important;
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+}
+
+.task-item-inline:hover {
+  border-color: #c7d2fe !important;
+  background: #f8faff !important;
+  transform: translateX(2px) !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1) !important;
+}
+
+.task-item-inline.completed {
+  opacity: 0.6 !important;
+  background: #f9fafb !important;
+}
+
+.task-priority-badge {
+  width: 4px !important;
+  height: 100% !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  border-radius: 8px 0 0 8px !important;
+}
+
+.task-priority-badge.priority-high {
+  background: #ef4444 !important;
+}
+
+.task-priority-badge.priority-medium {
+  background: #f59e0b !important;
+}
+
+.task-priority-badge.priority-low {
+  background: #10b981 !important;
+}
+
+.task-checkbox-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+.task-checkbox {
+  width: 18px !important;
+  height: 18px !important;
+  cursor: pointer !important;
+  accent-color: #6366f1 !important;
+  border-radius: 4px !important;
+}
+
+.task-text-inline {
+  flex: 1 !important;
+  font-size: 0.875rem !important;
+  color: #374151 !important;
+  line-height: 1.5 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.task-text-inline:hover {
+  color: #6366f1 !important;
+}
+
+.task-item-inline.completed .task-text-inline {
+  text-decoration: line-through !important;
+  color: #9ca3af !important;
+}
+
+.task-priority-label {
+  font-size: 0.6875rem !important;
+  padding: 0.125rem 0.5rem !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.task-item-inline:hover .task-priority-label {
+  opacity: 1 !important;
+}
+
+.task-priority-label.priority-high {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+}
+
+.task-priority-label.priority-medium {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+.task-priority-label.priority-low {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+}
+
+.task-delete-inline {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: #9ca3af !important;
+  cursor: pointer !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  opacity: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.75rem !important;
+}
+
+.task-item-inline:hover .task-delete-inline {
+  opacity: 1 !important;
+}
+
+.task-delete-inline:hover {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+/* Quick Add Task Input */
+.quick-add-task {
+  display: flex !important;
+  gap: 0.5rem !important;
+  margin-top: 0.75rem !important;
+  padding: 0.5rem !important;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9) !important;
+  border-radius: 8px !important;
+  border: 2px dashed #cbd5e1 !important;
+  transition: all 0.2s ease !important;
+}
+
+.quick-add-task:focus-within {
+  border-color: #6366f1 !important;
+  background: white !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+}
+
+.quick-task-input {
+  flex: 1 !important;
+  padding: 0.5rem 0.75rem !important;
+  border: 1px solid transparent !important;
+  background: white !important;
+  border-radius: 6px !important;
+  font-size: 0.875rem !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+}
+
+.quick-task-input:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+}
+
+.quick-task-input::placeholder {
+  color: #9ca3af !important;
+  font-style: italic !important;
+}
+
+.quick-add-btn {
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  color: white !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.875rem !important;
+}
+
+.quick-add-btn:hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
+}
+
+.quick-add-btn:active {
+  transform: scale(0.95) !important;
+}
+
+/* Empty State Enhancement */
+.task-list-interactive:empty::after {
+  content: '💡 Nhấn Enter để thêm công việc nhanh' !important;
+  display: block !important;
+  padding: 1.5rem !important;
+  text-align: center !important;
+  color: #9ca3af !important;
+  font-size: 0.875rem !important;
+  font-style: italic !important;
+  background: #f9fafb !important;
+  border-radius: 8px !important;
+  border: 2px dashed #e5e7eb !important;
+}
+
+/* Animation for new tasks */
+@keyframes slideInTask {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-item-inline.new-task {
+  animation: slideInTask 0.3s ease-out !important;
+}
+
+/* Enhanced Modal Styles */
+.enhanced-modal {
+  z-index: 2000 !important;
+}
+
+.modal-lg {
+  max-width: 900px !important;
+}
+
+.gradient-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border-radius: 16px 16px 0 0 !important;
+  padding: 1.5rem 2rem !important;
+}
+
+.modal-title-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+}
+
+.modal-icon {
+  width: 48px !important;
+  height: 48px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.25rem !important;
+}
+
+.modal-title-info h3 {
+  margin: 0 !important;
+  font-size: 1.375rem !important;
+  font-weight: 700 !important;
+}
+
+.modal-subtitle {
+  font-size: 0.875rem !important;
+  opacity: 0.9 !important;
+  font-weight: 500 !important;
+}
+
+.modal-actions {
+  display: flex !important;
+  gap: 0.5rem !important;
+}
+
+.btn-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border: none !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.btn-icon:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: scale(1.1) !important;
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: flex !important;
+  gap: 1rem !important;
+  margin-bottom: 2rem !important;
+  padding: 1rem !important;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0) !important;
+  border-radius: 12px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.quick-btn {
+  flex: 1 !important;
+  padding: 0.75rem !important;
+  background: white !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-align: center !important;
+  min-height: 70px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.quick-btn:hover {
+  border-color: #6366f1 !important;
+  background: #f0f4ff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+}
+
+.quick-btn i {
+  font-size: 1.25rem !important;
+  color: #6366f1 !important;
+}
+
+.quick-btn span {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+/* Form Sections */
+.form-section {
+  margin-bottom: 2rem !important;
+  padding: 1.5rem !important;
+  background: #fafbfc !important;
+  border-radius: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  transition: all 0.2s ease !important;
+}
+
+.form-section:hover {
+  border-color: #c7d2fe !important;
+  background: #f8faff !important;
+}
+
+.section-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 1rem !important;
+}
+
+.section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  margin: 0 !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+}
+
+.gradient-icon {
+  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.section-badge {
+  padding: 0.25rem 0.75rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+}
+
+.priority-high {
+  background: linear-gradient(135deg, #fecaca, #fca5a5) !important;
+  color: #991b1b !important;
+}
+
+/* Enhanced Inputs */
+.input-group.enhanced {
+  position: relative !important;
+}
+
+.modern-input, .modern-textarea {
+  width: 100% !important;
+  padding: 1rem !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  font-size: 0.875rem !important;
+  background: white !important;
+  transition: all 0.2s ease !important;
+  font-family: inherit !important;
+}
+
+.modern-input:focus, .modern-textarea:focus {
+  outline: none !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+  background: #fefeff !important;
+}
+
+.input-feedback {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-top: 0.5rem !important;
+}
+
+.char-counter {
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
+}
+
+/* Task Stats */
+.task-stats {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  font-size: 0.875rem !important;
+  color: #6b7280 !important;
+}
+
+.task-count, .completion-rate {
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+.separator {
+  color: #d1d5db !important;
+}
+
+/* Enhanced Tasks Container */
+.tasks-container.enhanced {
+  min-height: 100px !important;
+  border: 2px dashed #d1d5db !important;
+  border-radius: 12px !important;
+  padding: 1rem !important;
+  margin-bottom: 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.tasks-container.enhanced:hover {
+  border-color: #6366f1 !important;
+  background: #f8faff !important;
+}
+
+.task-item-enhanced {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  padding: 1rem !important;
+  padding-left: 1.25rem !important;
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  margin-bottom: 0.75rem !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  position: relative !important;
+}
+
+.task-item-enhanced:hover {
+  border-color: #c7d2fe !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.task-item-enhanced.completed {
+  opacity: 0.6 !important;
+  background: #f9fafb !important;
+}
+
+.task-item-enhanced.completed .task-text {
+  text-decoration: line-through !important;
+}
+
+.task-priority-indicator {
+  width: 4px !important;
+  height: calc(100% - 1rem) !important;
+  border-radius: 2px !important;
+  position: absolute !important;
+  left: 0.5rem !important;
+  top: 0.5rem !important;
+}
+
+.priority-low { background: #10b981 !important; }
+.priority-medium { background: #f59e0b !important; }
+.priority-high { background: #ef4444 !important; }
+
+.task-checkbox input[type="checkbox"] {
+  width: 20px !important;
+  height: 20px !important;
+  cursor: pointer !important;
+  accent-color: #6366f1 !important;
+}
+
+.task-content {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.25rem !important;
+}
+
+.task-text {
+  font-size: 0.9375rem !important;
+  font-weight: 500 !important;
+  color: #1f2937 !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+}
+
+.task-meta {
+  display: flex !important;
+  gap: 0.75rem !important;
+  align-items: center !important;
+}
+
+.task-priority {
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
+  padding: 0.125rem 0.5rem !important;
+  background: #f3f4f6 !important;
+  border-radius: 8px !important;
+}
+
+.task-actions {
+  display: flex !important;
+  gap: 0.5rem !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.task-item-enhanced:hover .task-actions {
+  opacity: 1 !important;
+}
+
+.task-action-btn {
+  width: 32px !important;
+  height: 32px !important;
+  border: 1px solid #e5e7eb !important;
+  background: white !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #6b7280 !important;
+}
+
+.task-action-btn:hover {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+.task-action-btn.delete:hover {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+.add-task-input-group {
+  display: flex !important;
+  gap: 0.75rem !important;
+  align-items: center !important;
+}
+
+.task-priority-selector select {
+  padding: 0.5rem !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  font-size: 0.875rem !important;
+  background: white !important;
+}
+
+.btn-add-task {
+  width: 40px !important;
+  height: 40px !important;
+  border: none !important;
+  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  color: white !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.btn-add-task:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+}
+
+/* Notes Section */
+.notes-tools {
+  display: flex !important;
+  gap: 0.5rem !important;
+}
+
+.tool-btn {
+  width: 32px !important;
+  height: 32px !important;
+  border: 1px solid #e5e7eb !important;
+  background: white !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.875rem !important;
+  color: #6b7280 !important;
+}
+
+.tool-btn:hover {
+  border-color: #6366f1 !important;
+  background: #f0f4ff !important;
+  color: #6366f1 !important;
+}
+
+.notes-input-group {
+  position: relative !important;
+}
+
+.notes-feedback {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-top: 0.5rem !important;
+}
+
+.notes-counter {
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
+}
+
+.voice-note-btn {
+  padding: 0.5rem !important;
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.voice-note-btn:hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3) !important;
+}
+
+/* Two-Column Grid Layout */
+.modal-body-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 2rem !important;
+  margin-top: 1.5rem !important;
+}
+
+.modal-column {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+}
+
+.modal-column.primary {
+  border-right: 2px solid #f3f4f6 !important;
+  padding-right: 2rem !important;
+}
+
+.modal-column.secondary {
+  padding-left: 0.5rem !important;
+}
+
+/* Progress Section */
+.progress-badge {
+  padding: 0.5rem 1rem !important;
+  border-radius: 20px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  background: linear-gradient(135deg, #e0f2fe, #bae6fd) !important;
+  color: #0369a1 !important;
+  border: 1px solid #7dd3fc !important;
+}
+
+.progress-control-group {
+  display: flex !important;
+  gap: 2rem !important;
+  align-items: center !important;
+}
+
+.progress-visual {
+  flex-shrink: 0 !important;
+}
+
+.progress-circle {
+  position: relative !important;
+}
+
+.progress-stroke {
+  transition: stroke-dashoffset 0.5s ease !important;
+}
+
+.progress-slider-group {
+  flex: 1 !important;
+}
+
+.modern-slider {
+  width: 100% !important;
+  height: 8px !important;
+  background: #e5e7eb !important;
+  border-radius: 10px !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+.modern-slider::-webkit-slider-thumb {
+  appearance: none !important;
+  width: 24px !important;
+  height: 24px !important;
+  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+
+.modern-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2) !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5) !important;
+}
+
+.progress-markers {
+  display: flex !important;
+  justify-content: space-between !important;
+  margin-top: 0.5rem !important;
+}
+
+.marker {
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.marker:hover {
+  color: #6366f1 !important;
+  font-weight: 600 !important;
+}
+
+/* Time Tracking */
+.time-display {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  font-family: 'Courier New', monospace !important;
+  color: #374151 !important;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 12px !important;
+  border: 2px solid #d1d5db !important;
+}
+
+.time-controls {
+  display: flex !important;
+  gap: 1rem !important;
+  margin-top: 1rem !important;
+}
+
+.time-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.75rem 1.5rem !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  background: white !important;
+  color: #374151 !important;
+  cursor: pointer !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.time-btn.start:hover {
+  border-color: #10b981 !important;
+  background: #d1fae5 !important;
+  color: #047857 !important;
+}
+
+.time-btn.pause:hover {
+  border-color: #f59e0b !important;
+  background: #fef3c7 !important;
+  color: #d97706 !important;
+}
+
+.time-btn.reset:hover {
+  border-color: #ef4444 !important;
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+/* Enhanced Footer */
+.enhanced-footer {
+  background: #f9fafb !important;
+  border-radius: 0 0 16px 16px !important;
+  padding: 1.5rem 2rem !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.footer-info {
+  flex: 1 !important;
+}
+
+.last-updated {
+  font-size: 0.875rem !important;
+  color: #6b7280 !important;
+}
+
+.footer-actions {
+  display: flex !important;
+  gap: 1rem !important;
+}
+
+.btn.enhanced {
+  padding: 0.875rem 2rem !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  border: none !important;
+  color: white !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+}
+
+.btn.enhanced:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4) !important;
+}
+
+.btn-outline {
+  background: white !important;
+  border: 2px solid #e5e7eb !important;
+  color: #374151 !important;
+}
+
+.btn-outline:hover {
+  border-color: #6366f1 !important;
+  background: #f0f4ff !important;
+  color: #6366f1 !important;
+}
+
+/* Animation Classes */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.enhanced-modal .modal-content {
+  animation: modalSlideIn 0.3s ease-out !important;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .workbook-main {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .workbook-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .days-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+  }
+  
+  .modal-lg {
+    max-width: 95% !important;
+  }
+  
+  .progress-control-group {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+  
+  .quick-actions {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .quick-actions {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .modal-body-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  
+  .modal-column.primary {
+    border-right: none !important;
+    padding-right: 0 !important;
+    border-bottom: 2px solid #f3f4f6 !important;
+    padding-bottom: 1.5rem !important;
+  }
+  
+  .modal-column.secondary {
+    padding-left: 0 !important;
+  }
+  
+  .progress-control-group {
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+  }
+  
+  .footer-actions {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+  
+  .enhanced-footer {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+}
+</style>
+
+<%
+  const parseISODate = (value) => {
+    if (value instanceof Date) {
+      return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    }
+
+    if (value && typeof value.toISOString === 'function') {
+      try {
+        return parseISODate(value.toISOString());
+      } catch (error) {
+        // fall through to other handlers
+      }
+    }
+
+    if (typeof value === 'number') {
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return new Date();
+      }
+
+      const normalized = trimmed.includes('T') ? trimmed.split('T')[0] : trimmed;
+      const parts = normalized.split('-').map(Number);
+      if (parts.length === 3 && parts.every((part) => !Number.isNaN(part))) {
+        const [year, month, day] = parts;
+        return new Date(year, month - 1, day);
+      }
+
+      const fallback = new Date(trimmed);
+      return Number.isNaN(fallback.getTime()) ? new Date() : fallback;
+    }
+
+    if (!value && value !== 0) {
+      return new Date();
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  };
+
+  const addDays = (date, days) => {
+    const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    result.setDate(result.getDate() + days);
+    return result;
+  };
+
+  const toISODate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatRange = (start, end) => {
+    const startLabel = start.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    const endLabel = end.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return `${startLabel} - ${endLabel}`;
+  };
+
+  const isoWeekNumber = (date) => {
+    const temp = new Date(date.getTime());
+    temp.setHours(0, 0, 0, 0);
+    temp.setDate(temp.getDate() + 3 - ((temp.getDay() + 6) % 7));
+    const firstThursday = new Date(temp.getFullYear(), 0, 4);
+    const diff = temp - firstThursday;
+    return 1 + Math.round(diff / (7 * 24 * 60 * 60 * 1000));
+  };
+
+  // Helper to normalize tasks from database
+  const normalizeTasks = (value) => {
+    if (!value) return [];
+    
+    let parsed = value;
+    if (typeof value === 'string') {
+      try {
+        parsed = JSON.parse(value);
+      } catch (error) {
+        // Fallback: split by newlines
+        parsed = value.split(/\r?\n/).map(str => str.trim()).filter(Boolean);
+      }
+    }
+    
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    
+    return parsed.map((task) => {
+      if (typeof task === 'string') {
+        return { text: task.trim(), priority: 'medium', completed: false };
+      }
+      if (typeof task === 'object' && task.text) {
+        return {
+          text: task.text.trim(),
+          priority: task.priority || 'medium',
+          completed: !!task.completed
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  };
+
+  // Helper to get priority label
+  const priorityLabel = (priority) => {
+    switch (priority) {
+      case 'high': return 'Cao';
+      case 'low': return 'Thấp';
+      default: return 'Trung bình';
+    }
+  };
+
+  const baseWeekStart = parseISODate(weekStart);
+  const baseWeekEnd = addDays(baseWeekStart, 6);
+  const currentWeekLabel = `Tuần ${isoWeekNumber(baseWeekStart)} · ${baseWeekStart.getFullYear()}`;
+  const currentWeekRange = formatRange(baseWeekStart, baseWeekEnd);
+  const weekChipOffsets = [-2, -1, 0, 1, 2];
+  const weekChips = weekChipOffsets.map((offset) => {
+    const start = addDays(baseWeekStart, offset * 7);
+    const end = addDays(start, 6);
+    return {
+      offset,
+      startISO: toISODate(start),
+      endISO: toISODate(end),
+      displayRange: formatRange(start, end),
+      label: `Tuần ${isoWeekNumber(start)}`,
+      year: start.getFullYear()
+    };
+  });
+%>
+
+<div class="workbook-layout" 
+     data-workbook-id="<%= workbook.id %>" 
+     data-week-start="<%= weekStart %>"
+     data-week-end="<%= weekEnd %>">
+  <!-- Left Sidebar -->
+  <aside class="workbook-sidebar">
+    <!-- Week Selector -->
+    <div class="sidebar-card">
+      <h3 class="sidebar-card-title">
+        <i class="fas fa-calendar-week"></i>
+        Chọn tuần
+      </h3>
+      <div class="week-selector">
+        <div class="week-selector-header">
+          <button class="week-nav-btn" data-action="prev-week" title="Tuần trước">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="week-current">
+            <span class="week-tag">
+              <i class="fas fa-circle" style="font-size: 0.45rem;"></i>
+              <%= currentWeekLabel %>
+            </span>
+            <div class="week-dates"><%= currentWeekRange %></div>
+          </div>
+          <button class="week-nav-btn" data-action="next-week" title="Tuần sau">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <div class="week-chip-rail">
+          <% weekChips.forEach((chip) => { %>
+            <button
+              class="week-chip <%= chip.offset === 0 ? 'active' : '' %>"
+              data-action="select-week"
+              data-week-start="<%= chip.startISO %>"
+              data-week-end="<%= chip.endISO %>"
+              data-display-label="<%= chip.label %>"
+              aria-pressed="<%= chip.offset === 0 %>">
+              <span class="week-chip-label"><%= chip.label %> · <%= chip.year %></span>
+              <span class="week-chip-range"><%= chip.displayRange %></span>
+            </button>
+          <% }) %>
+        </div>
+
+        <div class="week-picker">
+          <div class="week-picker-body">
+            <i class="fas fa-calendar-alt"></i>
+            <input
+              type="date"
+              value="<%= weekStart %>"
+              data-action="week-date-input"
+              aria-label="Chọn ngày trong tuần" />
+            <button data-action="week-date-apply" type="button">Xem tuần</button>
+          </div>
+          <p class="week-picker-hint">Chọn bất kỳ ngày nào trong tuần bạn muốn theo dõi, hệ thống sẽ tự động điều chỉnh về Thứ 2.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Personal Info -->
+    <div class="sidebar-card">
+      <h3 class="sidebar-card-title">
+        <i class="fas fa-user"></i>
+        Thông tin
+      </h3>
+      <div class="info-list">
+        <div class="info-item">
+          <span class="info-label">Cá nhân:</span>
+          <span class="info-value"><%= user.full_name || user.username %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Trạng thái:</span>
+          <span class="status-badge status-draft">Bản nháp</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="sidebar-card">
+      <h3 class="sidebar-card-title">
+        <i class="fas fa-bolt"></i>
+        Thao tác
+      </h3>
+      <div class="action-buttons">
+        <button class="action-btn btn-add" data-action="add-week">
+          <i class="fas fa-plus-circle"></i>
+          <span>Thêm tuần</span>
+        </button>
+        <button class="action-btn btn-submit" data-action="submit-workbook">
+          <i class="fas fa-paper-plane"></i>
+          <span>Gửi duyệt</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="workbook-main">
+    <!-- Weekly Plan Section -->
+    <div class="workbook-content">
+      <div class="main-header">
+        <h2 class="page-title">
+          <i class="fas fa-book-open"></i>
+          Kế hoạch công tác tuần
+        </h2>
+        <div class="view-toggle">
+          <button class="toggle-btn active" data-view="grid">
+            <i class="fas fa-th-large"></i>
+          </button>
+          <button class="toggle-btn" data-view="list">
+            <i class="fas fa-list"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Days Grid -->
+      <div class="days-grid">
+        <%
+          const daysOfWeek = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+          const entryMap = {};
+          entries.forEach(entry => {
+            entryMap[entry.day_of_week] = entry;
+          });
+
+          for(let day = 1; day <= 7; day++) {
+            const entry = entryMap[day] || {};
+            const currentDate = new Date(weekStart);
+            currentDate.setDate(currentDate.getDate() + (day - 1));
+            const progressValue = entry.progress || 0;
+            const dateStr = currentDate.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'});
+        %>
+        <div class="day-card" data-day="<%= day %>" data-workbook-id="<%= workbook.id %>">
+          <div class="day-card-header">
+            <div class="day-info">
+              <h3 class="day-title"><%= daysOfWeek[day - 1] %></h3>
+              <span class="day-date"><%= dateStr %></span>
+            </div>
+            <button class="card-edit-btn" data-day="<%= day %>" data-workbook="<%= workbook.id %>">
+              <i class="fas fa-edit"></i>
+            </button>
+          </div>
+
+          <div class="progress-bar-container">
+            <div class="progress-bar">
+              <div class="progress-fill" data-progress="<%= progressValue %>"></div>
+            </div>
+            <span class="progress-text"><%= progressValue %>%</span>
+          </div>
+
+          <div class="day-card-body">
+            <div class="card-section">
+              <h4 class="section-title">
+                <i class="fas fa-bullseye"></i>
+                Main Focus
+              </h4>
+              <p class="section-content <%= entry.main_focus ? '' : 'empty' %>">
+                <%= entry.main_focus || 'Chưa có mục tiêu' %>
+              </p>
+            </div>
+
+            <div class="card-section tasks-section">
+              <h4 class="section-title">
+                <i class="fas fa-tasks"></i>
+                Công việc
+              </h4>
+              
+              <!-- Task List with Priority Badges -->
+              <ul class="task-list-interactive" data-day="<%= day %>" data-workbook="<%= workbook.id %>">
+                <% if(entry.tasks) {
+                  const tasks = normalizeTasks(entry.tasks);
+                  if(tasks.length > 0) {
+                    tasks.forEach((task, index) => { 
+                %>
+                  <li class="task-item-inline <%= task.completed ? 'completed' : '' %>"
+                      data-task-index="<%= index %>"
+                      data-day="<%= day %>"
+                      data-workbook="<%= workbook.id %>">
+                    <div class="task-priority-badge priority-<%= task.priority %>"></div>
+                    <div class="task-checkbox-wrapper">
+                      <input 
+                        type="checkbox" 
+                        class="task-checkbox" 
+                        data-day="<%= day %>"
+                        data-workbook="<%= workbook.id %>"
+                        data-task-index="<%= index %>"
+                        <%= task.completed ? 'checked' : '' %>>
+                    </div>
+                    <span class="task-text-inline"
+                          data-action="edit-task"
+                          data-day="<%= day %>"
+                          data-workbook="<%= workbook.id %>"
+                          data-task-index="<%= index %>">
+                      <%= task.text %>
+                    </span>
+                    <span class="task-priority-label priority-<%= task.priority %>">
+                      <%= priorityLabel(task.priority) %>
+                    </span>
+                    <button class="task-delete-inline"
+                            data-action="delete-task"
+                            data-day="<%= day %>"
+                            data-workbook="<%= workbook.id %>"
+                            data-task-index="<%= index %>"
+                            title="Xóa">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </li>
+                <% }); 
+                  }
+                } %>
+              </ul>
+              
+              <!-- Quick Add Task Input - Enhanced Version -->
+              <div class="quick-add-task-enhanced">
+                <div class="quick-add-header">
+                  <span class="quick-add-label">
+                    <i class="fas fa-plus-circle"></i>
+                    Thêm nhanh
+                  </span>
+                  <div class="quick-actions-toolbar">
+        <button class="quick-action-btn"
+          data-action="toggle-batch"
+          data-day="<%= day %>"
+          data-workbook="<%= workbook.id %>"
+          title="Thêm nhiều công việc">
+                      <i class="fas fa-list-ul"></i>
+                    </button>
+        <button class="quick-action-btn"
+          data-action="show-templates"
+          data-day="<%= day %>"
+          data-workbook="<%= workbook.id %>"
+          title="Mẫu công việc">
+                      <i class="fas fa-layer-group"></i>
+                    </button>
+        <button class="quick-action-btn"
+          data-action="paste-clipboard"
+          data-day="<%= day %>"
+          data-workbook="<%= workbook.id %>"
+          title="Dán từ clipboard">
+                      <i class="fas fa-paste"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Single Add Mode -->
+                <div class="quick-add-single" data-mode="single" data-day="<%= day %>">
+                  <div class="input-wrapper">
+                    <input 
+                      type="text" 
+                      class="quick-task-input-enhanced" 
+                      placeholder="Nhập công việc... (Enter để thêm, Tab để options)"
+                      data-day="<%= day %>"
+                      data-workbook="<%= workbook.id %>"
+                      autocomplete="off">
+                    
+                    <!-- Auto-suggestions dropdown -->
+                    <div class="suggestions-dropdown" data-day="<%= day %>" style="display: none;">
+                      <div class="suggestions-header">Gợi ý</div>
+                      <div class="suggestions-list"></div>
+                    </div>
+                  </div>
+                  
+                  <div class="quick-options">
+                    <select class="priority-select-quick" title="Độ ưu tiên">
+                      <option value="low">⚪ Thấp</option>
+                      <option value="medium" selected>🟡 TB</option>
+                      <option value="high">🔴 Cao</option>
+                    </select>
+        <button class="quick-add-btn-enhanced"
+          data-action="add-task"
+          data-day="<%= day %>"
+          data-workbook="<%= workbook.id %>"
+          title="Thêm (Enter)">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Batch Add Mode -->
+                <div class="quick-add-batch" data-day="<%= day %>" style="display: none;">
+                  <textarea 
+                    class="batch-input"
+                    placeholder="Nhập nhiều công việc (mỗi dòng 1 việc)&#10;Ví dụ:&#10;- Chuẩn bị tài liệu&#10;- Họp ban lãnh đạo&#10;- Viết báo cáo"
+                    rows="4"></textarea>
+                  <div class="batch-actions">
+                    <button class="btn-batch-add"
+                            data-action="batch-add"
+                            data-day="<%= day %>"
+                            data-workbook="<%= workbook.id %>">
+                      <i class="fas fa-check"></i> Thêm tất cả
+                    </button>
+                    <button class="btn-batch-cancel"
+                            data-action="batch-cancel"
+                            data-day="<%= day %>"
+                            data-workbook="<%= workbook.id %>">
+                      <i class="fas fa-times"></i> Hủy
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Template Selector -->
+                <div class="template-selector" data-day="<%= day %>" style="display: none;">
+                  <div class="template-header">
+                    <span>Chọn mẫu công việc</span>
+                    <button data-action="close-templates" data-day="<%= day %>">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                  <div class="template-list">
+                    <div class="template-item" data-action="apply-template" data-template="meeting" data-day="<%= day %>" data-workbook="<%= workbook.id %>">
+                      <i class="fas fa-users"></i>
+                      <span>Họp & Thảo luận</span>
+                    </div>
+                    <div class="template-item" data-action="apply-template" data-template="teaching" data-day="<%= day %>" data-workbook="<%= workbook.id %>">
+                      <i class="fas fa-chalkboard-teacher"></i>
+                      <span>Giảng dạy</span>
+                    </div>
+                    <div class="template-item" data-action="apply-template" data-template="research" data-day="<%= day %>" data-workbook="<%= workbook.id %>">
+                      <i class="fas fa-microscope"></i>
+                      <span>Nghiên cứu</span>
+                    </div>
+                    <div class="template-item" data-action="apply-template" data-template="admin" data-day="<%= day %>" data-workbook="<%= workbook.id %>">
+                      <i class="fas fa-clipboard-list"></i>
+                      <span>Hành chính</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <% if(entry.notes) { %>
+            <div class="card-section">
+              <h4 class="section-title">
+                <i class="fas fa-sticky-note"></i>
+                Ghi chú
+              </h4>
+              <p class="section-content"><%= entry.notes %></p>
+            </div>
+            <% } %>
+          </div>
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Stats Panel -->
+    <aside class="workbook-stats">
+      <div class="stats-card">
+        <h3 class="stats-card-title">
+          <i class="fas fa-chart-line"></i>
+          Tiến độ tuần
+        </h3>
+        <div class="progress-circle-large">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="50" stroke="#e5e7eb" stroke-width="8" fill="none"/>
+            <circle cx="60" cy="60" r="50"
+                    stroke="#3b82f6"
+                    stroke-width="8"
+                    fill="none"
+                    stroke-dasharray="314.16"
+                    data-offset="<%= 314.16 - (progress.average * 314.16 / 100) %>"
+                    transform="rotate(-90 60 60)"
+                    stroke-linecap="round"/>
+            <text x="60" y="70" text-anchor="middle" font-size="24" font-weight="bold" fill="#1f2937">
+              <%= Math.round(progress.average) %>%
+            </text>
+          </svg>
+        </div>
+        <div class="stats-summary">
+          <div class="stat-item">
+            <span class="stat-value"><%= progress.completed %></span>
+            <span class="stat-label">Hoàn thành</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value"><%= progress.inProgress %></span>
+            <span class="stat-label">Đang làm</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value"><%= progress.total %></span>
+          <span class="stat-label">Tổng số</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-card">
+      <h3 class="stats-card-title">
+        <i class="fas fa-lightbulb"></i>
+        Ghi chú nhanh
+      </h3>
+      <textarea 
+        class="quick-notes" 
+        placeholder="Ghi chú nhanh cho tuần này..."
+        rows="6"></textarea>
+      <button class="btn-save-notes" data-action="save-notes">
+        <i class="fas fa-save"></i>
+        Lưu ghi chú
+      </button>
+    </div>
+
+    <div class="stats-card">
+      <h3 class="stats-card-title">
+        <i class="fas fa-bell"></i>
+        Thông báo
+      </h3>
+      <div class="notification-list">
+        <div class="notification-item">
+          <i class="fas fa-info-circle"></i>
+          <span>Hạn nộp: Thứ 6 tuần này</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div id="editDayModal" class="modal enhanced-modal" style="display: none;">
+  <div class="modal-backdrop"></div>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <!-- Enhanced Header with Day Info -->
+      <div class="modal-header gradient-header">
+        <div class="modal-title-group">
+          <div class="modal-icon">
+            <i class="fas fa-calendar-plus"></i>
+          </div>
+          <div class="modal-title-info">
+            <h3 class="modal-title">Chi tiết công việc</h3>
+            <span class="modal-subtitle">
+              <span id="modalDayName"></span> • <span id="modalDateInfo"></span>
+            </span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-icon" data-action="minimize-modal" title="Thu gọn">
+            <i class="fas fa-window-minimize"></i>
+          </button>
+          <button type="button" class="btn-icon modal-close" data-action="close-modal" title="Đóng">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+      
+      <form id="dayEntryForm" class="enhanced-form">
+        <div class="modal-body">
+          <input type="hidden" id="modalWorkbookId" name="workbook_id">
+          <input type="hidden" id="modalDayOfWeek" name="day_of_week">
+          
+          <!-- Quick Action Bar -->
+          <div class="quick-actions" role="tablist" aria-label="Chọn mẫu công việc">
+            <button type="button" class="quick-btn" data-action="quick-template" data-template="meeting" aria-pressed="false">
+              <i class="fas fa-users"></i>
+              <span>Họp</span>
+            </button>
+            <button type="button" class="quick-btn" data-action="quick-template" data-template="teaching" aria-pressed="false">
+              <i class="fas fa-chalkboard-teacher"></i>
+              <span>Giảng dạy</span>
+            </button>
+            <button type="button" class="quick-btn" data-action="quick-template" data-template="research" aria-pressed="false">
+              <i class="fas fa-microscope"></i>
+              <span>Nghiên cứu</span>
+            </button>
+            <button type="button" class="quick-btn" data-action="quick-template" data-template="admin" aria-pressed="false">
+              <i class="fas fa-clipboard-list"></i>
+              <span>Hành chính</span>
+            </button>
+          </div>
+
+          <!-- Two-Column Grid Layout -->
+          <div class="modal-body-grid">
+            <!-- Left Column: Primary Content -->
+            <div class="modal-column primary">
+              <!-- Enhanced Main Focus Section -->
+              <div class="form-section">
+                <div class="section-header">
+                  <h4 class="section-title">
+                    <i class="fas fa-bullseye gradient-icon"></i>
+                    Mục tiêu chính
+                  </h4>
+                  <div class="section-badge priority-high">Ưu tiên cao</div>
+                </div>
+                <div class="input-group enhanced">
+                  <input 
+                    type="text" 
+                    id="mainFocus" 
+                    name="main_focus"
+                    class="form-control modern-input"
+                    placeholder="Nhập mục tiêu chính trong ngày..."
+                    maxlength="200">
+                  <div class="input-feedback">
+                    <span class="char-counter">0/200</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Enhanced Tasks Section -->
+              <div class="form-section">
+                <div class="section-header">
+                  <h4 class="section-title">
+                    <i class="fas fa-tasks gradient-icon"></i>
+                    Công việc cần làm
+                  </h4>
+                  <div class="task-stats">
+                    <span class="task-count">0 việc</span>
+                    <span class="separator">•</span>
+                    <span class="completion-rate">0% hoàn thành</span>
+                  </div>
+                </div>
+                
+                <div id="tasksList" class="tasks-container enhanced" aria-live="polite">
+                  <!-- Dynamic tasks will be inserted here -->
+                </div>
+                
+                <div class="add-task-section">
+                  <div class="add-task-input-group">
+                    <input 
+                      type="text" 
+                      id="newTaskInput"
+                      class="form-control modern-input"
+                      placeholder="Nhập công việc mới..."
+                      maxlength="100">
+                    <div class="task-priority-selector">
+                      <select id="taskPriority" class="priority-select">
+                        <option value="low">Thấp</option>
+                        <option value="medium" selected>Trung bình</option>
+                        <option value="high">Cao</option>
+                      </select>
+                    </div>
+                    <button type="button" class="btn-add-task" data-action="add-task">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Secondary Content -->
+            <div class="modal-column secondary">
+              <!-- Enhanced Notes Section -->
+              <div class="form-section">
+                <div class="section-header">
+                  <h4 class="section-title">
+                    <i class="fas fa-sticky-note gradient-icon"></i>
+                    Ghi chú & Ý tưởng
+                  </h4>
+                  <div class="notes-tools">
+                    <button type="button" class="tool-btn" data-action="format-bold" title="Đậm">
+                      <i class="fas fa-bold"></i>
+                    </button>
+                    <button type="button" class="tool-btn" data-action="format-italic" title="Nghiêng">
+                      <i class="fas fa-italic"></i>
+                    </button>
+                    <button type="button" class="tool-btn" data-action="add-emoji" title="Emoji">
+                      <i class="fas fa-smile"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="notes-input-group">
+                  <textarea 
+                    id="notes" 
+                    name="notes"
+                    class="form-control modern-textarea"
+                    rows="4"
+                    placeholder="Ghi lại những ý tưởng, lưu ý quan trọng..."></textarea>
+                  <div class="notes-feedback">
+                    <span class="notes-counter">0 ký tự</span>
+                    <button type="button" class="voice-note-btn" data-action="voice-note" title="Ghi âm">
+                      <i class="fas fa-microphone"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Enhanced Progress Section -->
+              <div class="form-section">
+                <div class="section-header">
+                  <h4 class="section-title">
+                    <i class="fas fa-chart-line gradient-icon"></i>
+                    Tiến độ thực hiện
+                  </h4>
+                  <div class="progress-badge" id="progressBadge">
+                    <span class="progress-status">Chưa bắt đầu</span>
+                  </div>
+                </div>
+                <div class="progress-control-group">
+                  <div class="progress-visual">
+                    <div class="progress-circle" data-progress="0">
+                      <svg width="80" height="80" viewBox="0 0 80 80">
+                        <circle cx="40" cy="40" r="32" stroke="#e5e7eb" stroke-width="6" fill="none"/>
+                        <circle cx="40" cy="40" r="32"
+                                stroke="url(#progressGradient)"
+                                stroke-width="6"
+                                fill="none"
+                                stroke-dasharray="201.06"
+                                stroke-dashoffset="201.06"
+                                transform="rotate(-90 40 40)"
+                                stroke-linecap="round"
+                                class="progress-stroke"/>
+                        <text x="40" y="46" text-anchor="middle" font-size="16" font-weight="bold" fill="#1f2937" class="progress-text">
+                          0%
+                        </text>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="progress-slider-group">
+                    <input 
+                      type="range" 
+                      id="progress" 
+                      name="progress"
+                      class="progress-slider modern-slider"
+                      min="0" 
+                      max="100" 
+                      value="0">
+                    <div class="progress-markers">
+                      <span class="marker" data-value="0">0%</span>
+                      <span class="marker" data-value="25">25%</span>
+                      <span class="marker" data-value="50">50%</span>
+                      <span class="marker" data-value="75">75%</span>
+                      <span class="marker" data-value="100">100%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Time Tracking Section -->
+              <div class="form-section">
+                <div class="section-header">
+                  <h4 class="section-title">
+                    <i class="fas fa-clock gradient-icon"></i>
+                    Theo dõi thời gian
+                  </h4>
+                  <div class="time-display" id="timeDisplay">00:00:00</div>
+                </div>
+                <div class="time-controls">
+                  <button type="button" class="time-btn start" data-action="start-timer">
+                    <i class="fas fa-play"></i>
+                    <span>Bắt đầu</span>
+                  </button>
+                  <button type="button" class="time-btn pause" data-action="pause-timer" style="display: none;">
+                    <i class="fas fa-pause"></i>
+                    <span>Tạm dừng</span>
+                  </button>
+                  <button type="button" class="time-btn reset" data-action="reset-timer">
+                    <i class="fas fa-redo"></i>
+                    <span>Đặt lại</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer enhanced-footer">
+          <div class="footer-info">
+            <span class="last-updated">Cập nhật lần cuối: <span id="lastUpdateTime">Chưa có</span></span>
+          </div>
+          <div class="footer-actions">
+            <button type="button" class="btn btn-outline" data-action="save-draft">
+              <i class="fas fa-save"></i>
+              Lưu nháp
+            </button>
+            <button type="button" class="btn btn-secondary" data-action="close-modal">
+              <i class="fas fa-times"></i>
+              Hủy
+            </button>
+            <button type="submit" class="btn btn-primary enhanced">
+              <i class="fas fa-check"></i>
+              <span>Lưu & Hoàn thành</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- SVG Gradients for Enhanced UI -->
+<svg width="0" height="0" style="position: absolute;">
+  <defs>
+    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- Enhanced Modal JavaScript -->
+<script>
+// Enhanced Modal Manager v2024100307
+class EnhancedModalManager {
+  constructor() {
+    try {
+      this.modal = document.getElementById('editDayModal');
+      this.isMinimized = false;
+      this.fallbackMode = false;
+      this.timer = { startTime: 0, elapsed: 0, isRunning: false, interval: null };
+      
+      // Check if we're in fallback mode (old modal structure)
+      if (!this.modal || !this.modal.querySelector('.enhanced-modal')) {
+        this.fallbackMode = true;
+        console.log('⚠️ Running in fallback mode - old modal structure detected');
+      }
+      
+      this.templates = {
+      meeting: {
+        mainFocus: 'Tham dự các cuộc họp và thảo luận công việc',
+        tasks: ['Chuẩn bị tài liệu họp', 'Tham dự họp ban lãnh đạo', 'Ghi nhận các quyết định quan trọng', 'Báo cáo tiến độ công việc']
+      },
+      teaching: {
+        mainFocus: 'Giảng dạy và hướng dẫn sinh viên',
+        tasks: ['Chuẩn bị bài giảng', 'Giảng dạy trên lớp', 'Chấm bài tập/kiểm tra', 'Tư vấn học tập cho sinh viên']
+      },
+      research: {
+        mainFocus: 'Nghiên cứu khoa học và phát triển',
+        tasks: ['Đọc tài liệu nghiên cứu', 'Thu thập và phân tích dữ liệu', 'Viết báo cáo nghiên cứu', 'Thảo luận với đồng nghiệp']
+      },
+      admin: {
+        mainFocus: 'Xử lý công việc hành chính và quản lý',
+        tasks: ['Xử lý văn bản hành chính', 'Cập nhật báo cáo định kỳ', 'Phối hợp với các phòng ban', 'Kiểm tra và phê duyệt tài liệu']
+      }
+    };
+    
+    this.bindEvents();
+    this.updateDateTime();
+    
+    } catch (error) {
+      console.error('❌ EnhancedModalManager initialization failed:', error);
+      this.fallbackMode = true;
+    }
+  }
+
+  bindEvents() {
+    // Quick template buttons
+    document.querySelectorAll('[data-action="quick-template"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const template = e.currentTarget.dataset.template;
+        this.applyTemplate(template);
+      });
+    });
+
+    // Enhanced input handlers
+    const mainFocusInput = document.getElementById('mainFocus');
+    if (mainFocusInput) {
+      mainFocusInput.addEventListener('input', this.updateCharCounter.bind(this));
+    }
+
+    const notesTextarea = document.getElementById('notes');
+    if (notesTextarea) {
+      notesTextarea.addEventListener('input', this.updateNotesCounter.bind(this));
+    }
+
+    // Enhanced progress slider
+    const progressSlider = document.getElementById('progress');
+    if (progressSlider) {
+      progressSlider.addEventListener('input', this.updateProgressVisual.bind(this));
+      progressSlider.addEventListener('change', this.updateProgressBadge.bind(this));
+    }
+
+    // Progress markers
+    document.querySelectorAll('.marker').forEach(marker => {
+      marker.addEventListener('click', (e) => {
+        const value = e.currentTarget.dataset.value;
+        progressSlider.value = value;
+        this.updateProgressVisual();
+        this.updateProgressBadge();
+      });
+    });
+
+    // Enhanced task management
+    const addTaskBtn = document.querySelector('[data-action="add-task"]');
+    if (addTaskBtn) {
+      addTaskBtn.addEventListener('click', this.addNewTask.bind(this));
+    }
+
+    const newTaskInput = document.getElementById('newTaskInput');
+    if (newTaskInput) {
+      newTaskInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          this.addNewTask();
+        }
+      });
+    }
+
+    // Timer controls
+    document.querySelector('[data-action="start-timer"]')?.addEventListener('click', this.startTimer.bind(this));
+    document.querySelector('[data-action="pause-timer"]')?.addEventListener('click', this.pauseTimer.bind(this));
+    document.querySelector('[data-action="reset-timer"]')?.addEventListener('click', this.resetTimer.bind(this));
+
+    // Modal controls
+    document.querySelector('[data-action="minimize-modal"]')?.addEventListener('click', this.toggleMinimize.bind(this));
+    document.querySelector('[data-action="save-draft"]')?.addEventListener('click', this.saveDraft.bind(this));
+
+    // Text formatting
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = e.currentTarget.dataset.action;
+        this.handleTextFormatting(action);
+      });
+    });
+  }
+
+  applyTemplate(templateName) {
+    const template = this.templates[templateName];
+    if (!template) return;
+
+    // Apply main focus
+    const mainFocusInput = document.getElementById('mainFocus');
+    if (mainFocusInput) {
+      mainFocusInput.value = template.mainFocus;
+      this.updateCharCounter();
+    }
+
+    // Clear existing tasks and add template tasks
+    const tasksContainer = document.getElementById('tasksList');
+    if (tasksContainer) {
+      tasksContainer.innerHTML = '';
+      template.tasks.forEach((task, index) => {
+        this.addTaskToContainer(task, 'medium');
+      });
+      this.updateTaskStats();
+    }
+
+    // Show success feedback
+    this.showFeedback('Template đã được áp dụng!', 'success');
+  }
+
+  addNewTask() {
+    const input = document.getElementById('newTaskInput');
+    const prioritySelect = document.getElementById('taskPriority');
+    
+    if (!input || !input.value.trim()) return;
+    
+    const taskText = input.value.trim();
+    const priority = prioritySelect ? prioritySelect.value : 'medium';
+    
+    this.addTaskToContainer(taskText, priority);
+    
+    // Clear input
+    input.value = '';
+    
+    // Update statistics
+    this.updateTaskStats();
+    
+    // Show feedback
+    this.showFeedback('Công việc đã được thêm!', 'success');
+  }
+
+  addTaskToContainer(taskText, priority = 'medium') {
+    const tasksContainer = document.getElementById('tasksList');
+    if (!tasksContainer) return;
+
+    const taskId = 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    const taskElement = document.createElement('div');
+    taskElement.className = 'task-item-enhanced';
+    taskElement.dataset.taskId = taskId;
+    taskElement.innerHTML = `
+      <div class="task-priority-indicator priority-${priority}"></div>
+      <div class="task-checkbox">
+        <input type="checkbox" id="${taskId}" onchange="enhancedModal.toggleTaskComplete(this)">
+      </div>
+      <div class="task-content">
+        <label for="${taskId}" class="task-text">${taskText}</label>
+        <div class="task-meta">
+          <span class="task-priority">Độ ưu tiên: ${this.getPriorityText(priority)}</span>
+        </div>
+      </div>
+      <div class="task-actions">
+        <button type="button" class="task-action-btn" onclick="enhancedModal.editTask('${taskId}')" title="Chỉnh sửa">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button type="button" class="task-action-btn delete" onclick="enhancedModal.deleteTask('${taskId}')" title="Xóa">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    `;
+    
+    tasksContainer.appendChild(taskElement);
+  }
+
+  getPriorityText(priority) {
+    const priorities = {
+      'low': 'Thấp',
+      'medium': 'Trung bình', 
+      'high': 'Cao'
+    };
+    return priorities[priority] || 'Trung bình';
+  }
+
+  toggleTaskComplete(checkbox) {
+    const taskItem = checkbox.closest('.task-item-enhanced');
+    if (checkbox.checked) {
+      taskItem.classList.add('completed');
+    } else {
+      taskItem.classList.remove('completed');
+    }
+    this.updateTaskStats();
+  }
+
+  deleteTask(taskId) {
+    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+    if (taskElement) {
+      taskElement.remove();
+      this.updateTaskStats();
+      this.showFeedback('Công việc đã được xóa!', 'info');
+    }
+  }
+
+  editTask(taskId) {
+    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+    const taskText = taskElement.querySelector('.task-text');
+    const currentText = taskText.textContent;
+    
+    const newText = prompt('Chỉnh sửa công việc:', currentText);
+    if (newText && newText.trim()) {
+      taskText.textContent = newText.trim();
+      this.showFeedback('Công việc đã được cập nhật!', 'success');
+    }
+  }
+
+  updateTaskStats() {
+    const tasks = document.querySelectorAll('.task-item-enhanced');
+    const completed = document.querySelectorAll('.task-item-enhanced.completed');
+    const total = tasks.length;
+    const completedCount = completed.length;
+    const completionRate = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+    // Update task count
+    const taskCount = document.querySelector('.task-count');
+    if (taskCount) {
+      taskCount.textContent = `${total} việc`;
+    }
+
+    // Update completion rate
+    const completionRateEl = document.querySelector('.completion-rate');
+    if (completionRateEl) {
+      completionRateEl.textContent = `${completionRate}% hoàn thành`;
+    }
+  }
+
+  updateCharCounter() {
+    const input = document.getElementById('mainFocus');
+    const counter = document.querySelector('.char-counter');
+    if (input && counter) {
+      const length = input.value.length;
+      const maxLength = input.maxLength || 200;
+      counter.textContent = `${length}/${maxLength}`;
+      
+      // Change color when approaching limit
+      if (length > maxLength * 0.8) {
+        counter.style.color = '#ef4444';
+      } else if (length > maxLength * 0.6) {
+        counter.style.color = '#f59e0b';
+      } else {
+        counter.style.color = '#6b7280';
+      }
+    }
+  }
+
+  updateNotesCounter() {
+    const textarea = document.getElementById('notes');
+    const counter = document.querySelector('.notes-counter');
+    if (textarea && counter) {
+      const length = textarea.value.length;
+      counter.textContent = `${length} ký tự`;
+    }
+  }
+
+  updateProgressVisual() {
+    const slider = document.getElementById('progress');
+    
+    if (!slider) return;
+    
+    const value = parseInt(slider.value) || 0;
+    
+    // Update enhanced progress circle if exists
+    const progressStroke = document.querySelector('.progress-stroke');
+    const progressText = document.querySelector('.progress-text');
+    
+    if (progressStroke) {
+      const circumference = 201.06; // 2 * π * 32
+      const offset = circumference - (value * circumference / 100);
+      progressStroke.style.strokeDashoffset = offset;
+    }
+    
+    if (progressText) {
+      progressText.textContent = `${value}%`;
+    }
+    
+    // Fallback: update legacy progress display
+    const legacyDisplay = document.getElementById('progressDisplay');
+    if (legacyDisplay) {
+      legacyDisplay.textContent = `${value}%`;
+    }
+  }
+
+  updateProgressBadge() {
+    const slider = document.getElementById('progress');
+    const badge = document.getElementById('progressBadge');
+    
+    if (!slider || !badge) return;
+    
+    const value = parseInt(slider.value);
+    const statusEl = badge.querySelector('.progress-status');
+    
+    if (statusEl) {
+      if (value === 0) {
+        statusEl.textContent = 'Chưa bắt đầu';
+        badge.className = 'progress-badge status-not-started';
+      } else if (value < 100) {
+        statusEl.textContent = 'Đang thực hiện';
+        badge.className = 'progress-badge status-in-progress';
+      } else {
+        statusEl.textContent = 'Hoàn thành';
+        badge.className = 'progress-badge status-completed';
+      }
+    }
+  }
+
+  // Timer functions
+  startTimer() {
+    if (!this.timer.isRunning) {
+      this.timer.startTime = Date.now() - this.timer.elapsed;
+      this.timer.isRunning = true;
+      this.timer.interval = setInterval(this.updateTimerDisplay.bind(this), 1000);
+      
+      document.querySelector('[data-action="start-timer"]').style.display = 'none';
+      document.querySelector('[data-action="pause-timer"]').style.display = 'flex';
+    }
+  }
+
+  pauseTimer() {
+    if (this.timer.isRunning) {
+      this.timer.isRunning = false;
+      clearInterval(this.timer.interval);
+      
+      document.querySelector('[data-action="start-timer"]').style.display = 'flex';
+      document.querySelector('[data-action="pause-timer"]').style.display = 'none';
+    }
+  }
+
+  resetTimer() {
+    this.timer.elapsed = 0;
+    this.timer.isRunning = false;
+    clearInterval(this.timer.interval);
+    
+    document.querySelector('[data-action="start-timer"]').style.display = 'flex';
+    document.querySelector('[data-action="pause-timer"]').style.display = 'none';
+    
+    this.updateTimerDisplay();
+  }
+
+  updateTimerDisplay() {
+    if (this.timer.isRunning) {
+      this.timer.elapsed = Date.now() - this.timer.startTime;
+    }
+    
+    const display = document.getElementById('timeDisplay');
+    if (display) {
+      const seconds = Math.floor(this.timer.elapsed / 1000);
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      
+      display.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+  }
+
+  toggleMinimize() {
+    const modalDialog = this.modal.querySelector('.modal-dialog');
+    const modalBody = this.modal.querySelector('.modal-body');
+    
+    if (this.isMinimized) {
+      modalDialog.style.transform = 'scale(1)';
+      modalBody.style.display = 'block';
+      this.isMinimized = false;
+    } else {
+      modalDialog.style.transform = 'scale(0.8)';
+      modalBody.style.display = 'none';
+      this.isMinimized = true;
+    }
+  }
+
+  updateDateTime() {
+    const dateInfo = document.getElementById('modalDateInfo');
+    if (dateInfo) {
+      const now = new Date();
+      const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        weekday: 'long'
+      };
+      dateInfo.textContent = now.toLocaleDateString('vi-VN', options);
+    }
+  }
+
+  saveDraft() {
+    // Implement draft saving logic
+    this.showFeedback('Nháp đã được lưu!', 'info');
+  }
+
+  handleTextFormatting(action) {
+    const textarea = document.getElementById('notes');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+
+    let replacement = selectedText;
+    
+    switch(action) {
+      case 'format-bold':
+        replacement = `**${selectedText}**`;
+        break;
+      case 'format-italic':
+        replacement = `*${selectedText}*`;
+        break;
+      case 'add-emoji':
+        replacement = selectedText + ' 😊';
+        break;
+    }
+
+    textarea.value = text.substring(0, start) + replacement + text.substring(end);
+    textarea.focus();
+    textarea.setSelectionRange(start, start + replacement.length);
+    
+    this.updateNotesCounter();
+  }
+
+  showFeedback(message, type = 'success') {
+    // Create and show feedback notification
+    const notification = document.createElement('div');
+    notification.className = `feedback-notification ${type}`;
+    notification.textContent = message;
+    
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      z-index: 3000;
+      animation: slideIn 0.3s ease-out;
+      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#6366f1'};
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.animation = 'slideOut 0.3s ease-in';
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  }
+}
+
+// Initialize enhanced modal
+let enhancedModal;
+try {
+  enhancedModal = new EnhancedModalManager();
+  // Make it globally available for compatibility
+  window.enhancedModal = enhancedModal;
+  console.log('✅ Enhanced Modal initialized successfully');
+} catch (error) {
+  console.error('❌ Enhanced Modal initialization failed:', error);
+}
+
+// Add CSS animations for notifications
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+  .task-item-enhanced.completed {
+    opacity: 0.6;
+    background: #f3f4f6 !important;
+  }
+  .task-item-enhanced.completed .task-text {
+    text-decoration: line-through;
+    color: #6b7280;
+  }
+  .task-action-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #f3f4f6;
+    color: #6b7280;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.5rem;
+  }
+  .task-action-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
+  }
+  .task-action-btn.delete:hover {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+  .progress-badge.status-not-started {
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
+    color: #6b7280 !important;
+  }
+  .progress-badge.status-in-progress {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+    color: #1d4ed8 !important;
+  }
+  .progress-badge.status-completed {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important;
+    color: #166534 !important;
+  }
+`;
+document.head.appendChild(style);
+</script>
+
+<!-- Quick Task Manager -->
+<script>
+class QuickTaskManager {
+  constructor() {
+    this.savingTasks = new Set();
+    console.log('🚀 Quick Task Manager initialized');
+  }
+
+  /**
+   * Add task from Enter key
+   */
+  async addTask(input, day, workbookId) {
+    const taskText = input.value.trim();
+    if (!taskText) return;
+
+    console.log('➕ Adding task:', taskText, 'for day:', day);
+
+    // Add to UI immediately (optimistic update)
+    this.addTaskToUI(day, taskText, false, -1);
+
+    // Clear input
+    input.value = '';
+
+    // Save to server
+    await this.saveTasksForDay(day, workbookId);
+  }
+
+  /**
+   * Add task from button click
+   */
+  async addTaskFromInput(day, workbookId) {
+    const input = document.querySelector(`.quick-task-input[data-day="${day}"]`);
+    if (input) {
+      await this.addTask(input, day, workbookId);
+    }
+  }
+
+  /**
+   * Add task to UI
+   */
+  addTaskToUI(day, taskText, isCompleted, index) {
+    const taskList = document.querySelector(`.task-list-interactive[data-day="${day}"]`);
+    if (!taskList) return;
+
+    const li = document.createElement('li');
+    li.className = `task-item-inline new-task ${isCompleted ? 'completed' : ''}`;
+    li.dataset.taskIndex = index >= 0 ? index : taskList.children.length;
+    
+    li.innerHTML = `
+      <div class="task-checkbox-wrapper">
+        <input 
+          type="checkbox" 
+          class="task-checkbox" 
+          ${isCompleted ? 'checked' : ''}
+          onchange="quickTaskManager.toggleTask(this, ${day}, ${taskList.dataset.workbook}, ${li.dataset.taskIndex})">
+      </div>
+      <span class="task-text-inline" 
+            ondblclick="quickTaskManager.editTask(this, ${day}, ${taskList.dataset.workbook}, ${li.dataset.taskIndex})">
+        ${this.escapeHtml(taskText)}
+      </span>
+      <button class="task-delete-inline" 
+              onclick="quickTaskManager.deleteTask(${day}, ${taskList.dataset.workbook}, ${li.dataset.taskIndex})"
+              title="Xóa">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    
+    taskList.appendChild(li);
+    
+    // Remove animation class after animation
+    setTimeout(() => li.classList.remove('new-task'), 300);
+    
+    console.log('✅ Task added to UI');
+  }
+
+  /**
+   * Add task to UI (enhanced version with better animation)
+   */
+  addTaskToUIEnhanced(day, taskText, isCompleted, index) {
+    const taskList = document.querySelector(`.task-list-interactive[data-day="${day}"]`);
+    if (!taskList) {
+      console.error('❌ Task list not found for day:', day);
+      return;
+    }
+
+    const workbookId = taskList.dataset.workbook;
+    const li = document.createElement('li');
+    li.className = `task-item-inline new-task ${isCompleted ? 'completed' : ''}`;
+    li.dataset.taskIndex = index >= 0 ? index : taskList.children.length;
+    
+    li.innerHTML = `
+      <div class="task-checkbox-wrapper">
+        <input 
+          type="checkbox" 
+          class="task-checkbox" 
+          ${isCompleted ? 'checked' : ''}
+          onchange="quickTaskManager.toggleTaskEnhanced(this, ${day}, ${workbookId}, ${li.dataset.taskIndex})">
+      </div>
+      <span class="task-text-inline" 
+            ondblclick="quickTaskManager.editTask(this, ${day}, ${workbookId}, ${li.dataset.taskIndex})">
+        ${this.escapeHtml(taskText)}
+      </span>
+      <button class="task-delete-inline" 
+              onclick="quickTaskManager.deleteTask(${day}, ${workbookId}, ${li.dataset.taskIndex})"
+              title="Xóa">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    
+    taskList.appendChild(li);
+    
+    // Remove animation class after animation
+    setTimeout(() => li.classList.remove('new-task'), 300);
+    
+    console.log('✅ Enhanced task added to UI:', taskText);
+  }
+
+  /**
+   * Toggle task completion
+   */
+  async toggleTask(checkbox, day, workbookId, index) {
+    const li = checkbox.closest('.task-item-inline');
+    if (!li) return;
+
+    const isCompleted = checkbox.checked;
+    
+    // Update UI
+    if (isCompleted) {
+      li.classList.add('completed');
+    } else {
+      li.classList.remove('completed');
+    }
+
+    console.log('✓ Task toggled:', index, 'completed:', isCompleted);
+
+    // Save to server
+    await this.saveTasksForDay(day, workbookId);
+    
+    // Update progress
+    this.updateProgressForDay(day);
+  }
+
+  /**
+   * Toggle task completion (enhanced version)
+   */
+  async toggleTaskEnhanced(checkbox, day, workbookId, index) {
+    const li = checkbox.closest('.task-item-inline');
+    if (!li) return;
+
+    const isCompleted = checkbox.checked;
+    
+    // Update UI with animation
+    if (isCompleted) {
+      li.classList.add('completed');
+      // Add celebration animation
+      li.style.transform = 'scale(1.05)';
+      setTimeout(() => li.style.transform = '', 200);
+    } else {
+      li.classList.remove('completed');
+    }
+
+    console.log('✓ Enhanced task toggled:', index, 'completed:', isCompleted);
+
+    // Save to server
+    await this.saveTasksForDay(day, workbookId);
+    
+    // Update progress
+    this.updateProgressForDay(day);
+  }
+
+  /**
+   * Edit task on double-click
+   */
+  async editTask(span, day, workbookId, index) {
+    const currentText = span.textContent.trim();
+    const newText = prompt('Chỉnh sửa công việc:', currentText);
+    
+    if (newText && newText.trim() && newText.trim() !== currentText) {
+      span.textContent = newText.trim();
+      
+      console.log('✏️ Task edited:', index, 'new text:', newText);
+      
+      // Save to server
+      await this.saveTasksForDay(day, workbookId);
+    }
+  }
+
+  /**
+   * Delete task
+   */
+  async deleteTask(day, workbookId, index) {
+    if (!confirm('Xóa công việc này?')) return;
+
+    const taskList = document.querySelector(`.task-list-interactive[data-day="${day}"]`);
+    if (!taskList) return;
+
+    const taskItem = taskList.querySelector(`[data-task-index="${index}"]`);
+    if (taskItem) {
+      // Fade out animation
+      taskItem.style.opacity = '0';
+      taskItem.style.transform = 'translateX(-10px)';
+      
+      setTimeout(() => {
+        taskItem.remove();
+        
+        console.log('🗑️ Task deleted:', index);
+        
+        // Re-index remaining tasks
+        this.reindexTasks(taskList);
+        
+        // Save to server
+        this.saveTasksForDay(day, workbookId);
+        
+        // Update progress
+        this.updateProgressForDay(day);
+      }, 200);
+    }
+  }
+
+  /**
+   * Re-index tasks after deletion
+   */
+  reindexTasks(taskList) {
+    const tasks = taskList.querySelectorAll('.task-item-inline');
+    tasks.forEach((task, newIndex) => {
+      task.dataset.taskIndex = newIndex;
+    });
+  }
+
+  /**
+   * Get all tasks for a day
+   */
+  getTasksForDay(day) {
+    const taskList = document.querySelector(`.task-list-interactive[data-day="${day}"]`);
+    if (!taskList) return [];
+
+    const tasks = [];
+    const taskItems = taskList.querySelectorAll('.task-item-inline');
+    
+    taskItems.forEach(item => {
+      const text = item.querySelector('.task-text-inline').textContent.trim();
+      const completed = item.querySelector('.task-checkbox').checked;
+      tasks.push({ text, completed });
+    });
+
+    return tasks;
+  }
+
+  /**
+   * Save tasks for a day to server
+   */
+  async saveTasksForDay(day, workbookId) {
+    // Prevent duplicate saves
+    const saveKey = `${day}-${workbookId}`;
+    if (this.savingTasks.has(saveKey)) {
+      console.log('⏳ Already saving tasks for day:', day);
+      return;
+    }
+
+    this.savingTasks.add(saveKey);
+
+    try {
+      const tasks = this.getTasksForDay(day);
+      
+      console.log('💾 Saving tasks for day:', day, 'workbookId:', workbookId, 'tasks:', tasks);
+
+      const response = await fetch('/workbook/entry', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          workbook_id: workbookId,
+          day_of_week: day,
+          tasks: JSON.stringify(tasks),
+          progress: this.calculateProgress(day)
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          console.log('✅ Tasks saved successfully');
+          this.showFeedback('✅ Đã lưu', 'success');
+        } else {
+          console.error('❌ Save failed:', data.message);
+          this.showFeedback('❌ ' + data.message, 'error');
+        }
+      } else {
+        console.error('❌ Server error:', response.status);
+        this.showFeedback('❌ Lỗi server', 'error');
+      }
+    } catch (error) {
+      console.error('❌ Error saving tasks:', error);
+      this.showFeedback('❌ Lỗi kết nối', 'error');
+    } finally {
+      this.savingTasks.delete(saveKey);
+    }
+  }
+
+  /**
+   * Calculate progress for a day
+   */
+  calculateProgress(day) {
+    const tasks = this.getTasksForDay(day);
+    if (tasks.length === 0) return 0;
+
+    const completedTasks = tasks.filter(t => t.completed).length;
+    return Math.round((completedTasks / tasks.length) * 100);
+  }
+
+  /**
+   * Update progress bar for a day
+   */
+  updateProgressForDay(day) {
+    const progress = this.calculateProgress(day);
+    const dayCard = document.querySelector(`[data-day="${day}"]`);
+    
+    if (dayCard) {
+      const progressFill = dayCard.querySelector('.progress-fill');
+      const progressText = dayCard.querySelector('.progress-text');
+      
+      if (progressFill) {
+        progressFill.style.width = progress + '%';
+        progressFill.setAttribute('data-progress', progress);
+      }
+      
+      if (progressText) {
+        progressText.textContent = progress + '%';
+      }
+      
+      console.log('📊 Progress updated for day:', day, '-', progress + '%');
+    }
+  }
+
+  /**
+   * Escape HTML to prevent XSS
+   */
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  /**
+   * Show feedback notification
+   */
+  showFeedback(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `quick-feedback ${type}`;
+    notification.textContent = message;
+    
+    notification.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      font-size: 0.875rem;
+      z-index: 3000;
+      animation: slideInUp 0.3s ease-out;
+      background: ${type === 'success' ? '#10b981' : '#ef4444'};
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.animation = 'slideOutDown 0.3s ease-in';
+      setTimeout(() => notification.remove(), 300);
+    }, 2000);
+  }
+
+  // ==================== ADVANCED QUICK ADD FEATURES ====================
+  
+  /**
+   * Handle keyboard shortcuts in quick add input
+   */
+  handleKeyDown(event, day, workbookId) {
+    const input = event.target;
+    
+    // Tab: Show suggestions
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      this.showSuggestions(input, day);
+    }
+    
+    // Enter: Add task quickly
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.addTaskEnhanced(day, workbookId);
+    }
+    
+    // Escape: Close suggestions
+    if (event.key === 'Escape') {
+      const dropdown = input.parentElement.querySelector('.suggestions-dropdown');
+      if (dropdown) dropdown.style.display = 'none';
+    }
+  }
+
+  /**
+   * Show auto-suggestions based on history and context
+   */
+  showSuggestions(input, day) {
+    const dayCard = document.querySelector(`.day-card[data-day="${day}"]`);
+    const dropdown = dayCard.querySelector('.suggestions-dropdown');
+    if (!dropdown) return;
+
+    // Get task history from localStorage
+    const taskHistory = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+    
+    // Common suggestions based on context
+    const commonTasks = [
+      '📝 Soạn giáo án',
+      '📊 Báo cáo tuần',
+      '👥 Họp phụ huynh', 
+      '📚 Chuẩn bị tài liệu',
+      '✍️ Chấm bài kiểm tra',
+      '🎯 Kế hoạch tuần sau',
+      '📞 Liên hệ phụ huynh',
+      '🔬 Thí nghiệm thực hành'
+    ];
+
+    // Combine and filter suggestions
+    const allSuggestions = [...new Set([...commonTasks, ...taskHistory])];
+    const inputValue = input.value.toLowerCase();
+    const filtered = inputValue 
+      ? allSuggestions.filter(task => task.toLowerCase().includes(inputValue))
+      : allSuggestions.slice(0, 6);
+
+    // Populate suggestions
+    const list = dropdown.querySelector('.suggestions-list');
+    list.innerHTML = filtered.map(task => `
+      <div class="suggestion-item" onclick="quickTaskManager.applySuggestion('${day}', \`${task}\`)">
+        <i class="fas fa-clock"></i>
+        ${this.escapeHtml(task)}
+      </div>
+    `).join('');
+
+    dropdown.style.display = filtered.length > 0 ? 'block' : 'none';
+  }
+
+  /**
+   * Apply suggestion to input field
+   */
+  applySuggestion(day, task) {
+    const dayCard = document.querySelector(`.day-card[data-day="${day}"]`);
+    const input = dayCard.querySelector('.quick-task-input-enhanced');
+    const dropdown = dayCard.querySelector('.suggestions-dropdown');
+    
+    input.value = task;
+    input.focus();
+    dropdown.style.display = 'none';
+  }
+
+  /**
+   * Toggle between single and batch add mode
+   */
+  toggleBatchMode(day, workbookId) {
+    const dayCard = document.querySelector(`.day-card[data-day="${day}"]`);
+    const singleMode = dayCard.querySelector('.quick-add-single');
+    const batchMode = dayCard.querySelector('.quick-add-batch');
+    const batchBtn = dayCard.querySelector('[onclick*="toggleBatchMode"]');
+    
+    if (batchMode.style.display === 'none') {
+      // Switch to batch mode
+      singleMode.style.display = 'none';
+      batchMode.style.display = 'block';
+      batchBtn.style.background = '#e0e7ff';
+      batchBtn.style.color = '#6366f1';
+      batchMode.querySelector('.batch-input').focus();
+    } else {
+      // Switch to single mode
+      batchMode.style.display = 'none';
+      singleMode.style.display = 'flex';
+      batchBtn.style.background = 'white';
+      batchBtn.style.color = '#6b7280';
+      singleMode.querySelector('.quick-task-input-enhanced').focus();
+    }
+  }
+
+  /**
+   * Show template selector
+   */
+  showTemplates(day, workbookId) {
+    const dayCard = document.querySelector(`.day-card[data-day="${day}"]`);
+    const selector = dayCard.querySelector('.template-selector');
+    selector.style.display = selector.style.display === 'none' ? 'block' : 'none';
+  }
+
+  /**
+   * Close template selector
+   */
+  closeTemplates(day) {
+    const dayCard = document.querySelector(`.day-card[data-day="${day}"]`);
+    const selector = dayCard.querySelector('.template-selector');
+    selector.style.display = 'none';
+  }
+
+  /**
+   * Paste tasks from clipboard
+   */
+  async pasteFromClipboard(day, workbookId) {
+    try {
+      const text = await navigator.clipboard.readText();
+      const dayCard = document.querySelector(`.day-card[data-day="${day}"]`);
+      const batchInput = dayCard.querySelector('.batch-input');
+      
+      // Parse clipboard content (handle various formats)
+      const lines = text.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .map(line => {
+          // Remove bullet points, numbers, checkboxes
+          return line.replace(/^[-*•]\s*/, '')
+                    .replace(/^\d+\.\s*/, '')
+                    .replace(/^\[[ x]\]\s*/, '');
+        });
+      
+      batchInput.value = lines.join('\n');
+      
+      // Switch to batch mode
+      this.toggleBatchMode(day, workbookId);
+      
+      this.showToast('📋 Đã dán ' + lines.length + ' công việc từ clipboard', 'success');
+    } catch (err) {
+      this.showToast('❌ Không thể đọc clipboard', 'error');
+    }
+  }
+
+  /**
+   * Add task with enhanced features (priority, history)
+   */
+  async addTaskEnhanced(day, workbookId) {
+    const dayCard = document.querySelector(`.day-card[data-day="${day}"]`);
+    const input = dayCard.querySelector('.quick-task-input-enhanced');
+    const prioritySelect = dayCard.querySelector('.priority-select-quick');
+    const taskText = input.value.trim();
+    
+    if (!taskText) {
+      this.showToast('⚠️ Vui lòng nhập nội dung công việc', 'warning');
+      return;
+    }
+    
+    const priority = prioritySelect.value;
+    const formattedTask = this.formatTaskWithPriority(taskText, priority);
+    
+    // Save to history
+    this.saveToHistory(taskText);
+    
+    console.log('➕ Adding enhanced task:', formattedTask, 'for day:', day);
+    
+    // Add to UI immediately (optimistic update)
+    this.addTaskToUIEnhanced(day, formattedTask, false, -1);
+    
+    // Clear input
+    input.value = '';
+    prioritySelect.value = 'medium'; // Reset to default
+    input.focus();
+    
+    // Save to server
+    await this.saveTasksForDay(day, workbookId);
+    
+    this.showToast('✅ Đã thêm công việc', 'success');
+  }
+
+  /**
+   * Format task with priority icon
+   */
+  formatTaskWithPriority(task, priority) {
+    const icons = {
+      'high': '🔴',
+      'medium': '🟡',
+      'low': '🟢'
+    };
+    return icons[priority] ? `${icons[priority]} ${task}` : task;
+  }
+
+  /**
+   * Save task to localStorage history
+   */
+  saveToHistory(task) {
+    let history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+    history = [task, ...history.filter(t => t !== task)].slice(0, 20); // Keep last 20
+    localStorage.setItem('taskHistory', JSON.stringify(history));
+  }
+
+  /**
+   * Add multiple tasks from batch input
+   */
+  async addBatchTasks(day, workbookId) {
+    const dayCard = document.querySelector(`.day-card[data-day="${day}"]`);
+    const batchInput = dayCard.querySelector('.batch-input');
+    const lines = batchInput.value.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    if (lines.length === 0) {
+      this.showToast('⚠️ Vui lòng nhập công việc', 'warning');
+      return;
+    }
+    
+    // Add each task to UI
+    for (const task of lines) {
+      this.addTaskToUIEnhanced(day, task, false, -1);
+      await new Promise(resolve => setTimeout(resolve, 50)); // Small delay for animation
+    }
+    
+    // Save all tasks to server
+    await this.saveTasksForDay(day, workbookId);
+    
+    // Clear and close
+    batchInput.value = '';
+    this.toggleBatchMode(day, workbookId);
+    
+    this.showToast(`✅ Đã thêm ${lines.length} công việc`, 'success');
+  }
+
+  /**
+   * Apply predefined template
+   */
+  applyQuickTemplate(day, workbookId, templateName) {
+    const templates = {
+      'teaching': [
+        '📝 Soạn giáo án',
+        '📚 Chuẩn bị tài liệu',
+        '👥 Lên lớp giảng dạy',
+        '✍️ Chấm bài tập'
+      ],
+      'admin': [
+        '📊 Báo cáo công việc',
+        '📝 Hoàn thành biên bản',
+        '📁 Cập nhật hồ sơ',
+        '📧 Trả lời email'
+      ],
+      'meeting': [
+        '📋 Chuẩn bị tài liệu họp',
+        '👥 Tham gia họp',
+        '📝 Ghi chú nội dung',
+        '✅ Triển khai kết luận'
+      ],
+      'evaluation': [
+        '📊 Thu thập dữ liệu',
+        '📈 Phân tích kết quả',
+        '📝 Viết báo cáo đánh giá',
+        '📤 Gửi báo cáo'
+      ]
+    };
+    
+    const tasks = templates[templateName];
+    if (!tasks) return;
+    
+    const dayCard = document.querySelector(`.day-card[data-day="${day}"]`);
+    const batchInput = dayCard.querySelector('.batch-input');
+    
+    batchInput.value = tasks.join('\n');
+    this.toggleBatchMode(day, workbookId);
+    this.closeTemplates(day);
+    
+    this.showToast(`📋 Đã áp dụng mẫu: ${this.getTemplateName(templateName)}`, 'success');
+  }
+
+  /**
+   * Get template display name
+   */
+  getTemplateName(key) {
+    const names = {
+      'teaching': 'Giảng dạy',
+      'admin': 'Hành chính',
+      'meeting': 'Họp',
+      'evaluation': 'Đánh giá'
+    };
+    return names[key] || key;
+  }
+
+  /**
+   * Show toast notification
+   */
+  showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = 'quick-toast';
+    toast.textContent = message;
+    
+    const colors = {
+      'success': '#10b981',
+      'error': '#ef4444',
+      'warning': '#f59e0b',
+      'info': '#3b82f6'
+    };
+    
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      font-size: 0.875rem;
+      z-index: 9999;
+      animation: slideInUp 0.3s ease-out;
+      background: ${colors[type] || colors.success};
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = 'slideOutDown 0.3s ease-in';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+}
+
+// Initialize Quick Task Manager
+const quickTaskManager = new QuickTaskManager();
+window.quickTaskManager = quickTaskManager;
+
+// Add CSS animations
+const quickStyle = document.createElement('style');
+quickStyle.textContent = `
+  @keyframes slideInUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes slideOutDown {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(100%); opacity: 0; }
+  }
+`;
+document.head.appendChild(quickStyle);
+
+console.log('✅ Quick Task Manager ready');
+</script>
+
+<!-- Load JavaScript -->
+<script src="/js/workbook-enhanced.js?v=2024100501"></script>

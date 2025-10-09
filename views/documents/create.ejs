@@ -1,0 +1,194 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/documents.css">
+
+<%- contentFor('content') %>
+<div class="documents-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Thêm văn bản mới</h1>
+      <p class="page-subtitle">Tạo văn bản đến hoặc văn bản đi trong hệ thống</p>
+    </div>
+    <div class="page-actions">
+      <a href="/documents" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    </div>
+  </div>
+
+  <% if (typeof error !== 'undefined' && error.length > 0) { %>
+    <div class="alert alert-danger">
+      <%= error %>
+    </div>
+  <% } %>
+
+  <form method="post" action="/documents" class="document-form" enctype="multipart/form-data">
+    <div class="form-grid">
+      <div class="form-section">
+        <h3>Thông tin cơ bản</h3>
+        
+        <div class="form-group">
+          <label for="direction" class="required">Loại văn bản</label>
+          <select name="direction" id="direction" required>
+            <option value="">-- Chọn loại --</option>
+            <option value="incoming" <%= (formData?.direction === 'incoming') ? 'selected' : '' %>>Văn bản đến</option>
+            <option value="outgoing" <%= (formData?.direction === 'outgoing') ? 'selected' : '' %>>Văn bản đi</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="document_number" class="required">Số hiệu văn bản</label>
+          <input type="text" name="document_number" id="document_number" 
+                 value="<%= formData?.document_number || '' %>" 
+                 placeholder="VD: 123/QD-ĐHBK" required>
+          <small>Số hiệu phải duy nhất trong hệ thống</small>
+        </div>
+
+        <div class="form-group">
+          <label for="title" class="required">Tiêu đề</label>
+          <input type="text" name="title" id="title" 
+                 value="<%= formData?.title || '' %>" 
+                 placeholder="Nhập tiêu đề văn bản" required>
+        </div>
+
+        <div class="form-group">
+          <label for="type_id">Loại văn bản</label>
+          <select name="type_id" id="type_id">
+            <option value="">-- Chọn loại --</option>
+            <% (types || []).forEach(function(type) { %>
+              <option value="<%= type.id %>" <%= (formData?.type_id == type.id) ? 'selected' : '' %>>
+                <%= type.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="content_summary">Trích yếu nội dung</label>
+          <textarea name="content_summary" id="content_summary" rows="3" 
+                    placeholder="Tóm tắt nội dung văn bản"><%= formData?.content_summary || '' %></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="chi_dao">Chỉ đạo / Đề xuất tham mưu</label>
+          <textarea name="chi_dao" id="chi_dao" rows="3" placeholder="Nhập ý kiến đề xuất hoặc chỉ đạo ban đầu"><%= formData?.chi_dao || '' %></textarea>
+          <small>Phần này dùng để ghi chú chỉ đạo sơ bộ hoặc đề xuất tham mưu gửi lãnh đạo.</small>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Thông tin xử lý</h3>
+
+        <div class="form-group">
+          <label for="issue_date">Ngày ban hành</label>
+          <input type="date" name="issue_date" id="issue_date" 
+                 value="<%= formData?.issue_date || '' %>">
+        </div>
+
+        <div class="form-group">
+          <label for="received_date">Ngày nhận</label>
+          <input type="date" name="received_date" id="received_date" 
+                 value="<%= formData?.received_date || '' %>">
+        </div>
+
+        <div class="form-group">
+          <label for="processing_deadline">Hạn xử lý</label>
+          <input type="date" name="processing_deadline" id="processing_deadline" 
+                 value="<%= formData?.processing_deadline || '' %>">
+        </div>
+
+        <div class="form-group">
+          <label for="priority">Độ ưu tiên</label>
+          <select name="priority" id="priority">
+            <option value="low" <%= (formData?.priority === 'low') ? 'selected' : '' %>>Thấp</option>
+            <option value="medium" <%= (formData?.priority === 'medium') ? 'selected' : '' %>>Bình thường</option>
+            <option value="high" <%= (formData?.priority === 'high') ? 'selected' : '' %>>Cao</option>
+            <option value="urgent" <%= (formData?.priority === 'urgent') ? 'selected' : '' %>>Khẩn cấp</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="assigned_to">Người xử lý</label>
+          <select name="assigned_to" id="assigned_to">
+            <option value="">-- Chọn người xử lý --</option>
+            <% (users || []).forEach(function(user) { %>
+              <option value="<%= user.id %>" <%= (formData?.assigned_to == user.id) ? 'selected' : '' %>>
+                <%= user.full_name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Cơ quan liên quan</h3>
+
+        <div class="form-group" id="from_org_group">
+          <label for="from_org_id">Cơ quan gửi</label>
+          <select name="from_org_id" id="from_org_id">
+            <option value="">-- Chọn cơ quan --</option>
+            <% (organizations || []).forEach(function(org) { %>
+              <option value="<%= org.id %>" <%= (formData?.from_org_id == org.id) ? 'selected' : '' %>>
+                <%= org.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="form-group" id="to_org_group">
+          <label for="to_org_id">Cơ quan nhận</label>
+          <select name="to_org_id" id="to_org_id">
+            <option value="">-- Chọn cơ quan --</option>
+            <% (organizations || []).forEach(function(org) { %>
+              <option value="<%= org.id %>" <%= (formData?.to_org_id == org.id) ? 'selected' : '' %>>
+                <%= org.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="attachments">File đính kèm</label>
+          <input type="file" name="attachments" id="attachments" multiple 
+                 accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.png">
+          <small>Chấp nhận: PDF, Word, Excel, ảnh. Tối đa 10MB mỗi file.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save"></i> Lưu văn bản
+      </button>
+      <a href="/documents" class="btn btn-secondary">
+        <i class="fas fa-times"></i> Hủy bỏ
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+// Dynamic form behavior based on direction
+document.getElementById('direction').addEventListener('change', function() {
+  const direction = this.value;
+  const fromOrgGroup = document.getElementById('from_org_group');
+  const toOrgGroup = document.getElementById('to_org_group');
+  
+  if (direction === 'incoming') {
+    fromOrgGroup.style.display = 'block';
+    toOrgGroup.style.display = 'none';
+    document.getElementById('from_org_id').required = true;
+    document.getElementById('to_org_id').required = false;
+  } else if (direction === 'outgoing') {
+    fromOrgGroup.style.display = 'none';
+    toOrgGroup.style.display = 'block';
+    document.getElementById('from_org_id').required = false;
+    document.getElementById('to_org_id').required = true;
+  } else {
+    fromOrgGroup.style.display = 'block';
+    toOrgGroup.style.display = 'block';
+    document.getElementById('from_org_id').required = false;
+    document.getElementById('to_org_id').required = false;
+  }
+});
+
+// Trigger initial state
+document.getElementById('direction').dispatchEvent(new Event('change'));
+</script>

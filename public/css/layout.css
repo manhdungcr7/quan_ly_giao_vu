@@ -1,0 +1,441 @@
+:root {
+    --sidebar-width: 248px;
+    --sidebar-primary: #102b6a;
+    --sidebar-secondary: #17214a;
+    --sidebar-accent: #3b82f6;
+    --sidebar-text: rgba(226, 232, 240, 0.9);
+    --sidebar-muted: rgba(148, 163, 184, 0.7);
+    --sidebar-active: rgba(59, 130, 246, 0.18);
+    --layout-bg: #ecf1ff;
+    --panel-bg: #ffffff;
+    --border-subtle: rgba(148, 163, 184, 0.15);
+    --topbar-height: 72px;
+}
+
+body.app-auth {
+    background: var(--layout-bg);
+    min-height: 100vh;
+    color: #0f172a;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+.app-layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    min-height: 100vh;
+    background: var(--layout-bg);
+}
+
+.app-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: linear-gradient(180deg, var(--sidebar-primary), var(--sidebar-secondary));
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 22px;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.32);
+    z-index: 1020;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 36px;
+}
+
+.sidebar-brand__logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.sidebar-brand__text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-brand__title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.sidebar-brand__subtitle {
+    font-size: 11px;
+    color: var(--sidebar-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.sidebar-section {
+    margin-bottom: 28px;
+}
+
+.sidebar-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(226, 232, 240, 0.5);
+    margin-bottom: 12px;
+    margin-top: 24px;
+}
+
+.sidebar-section:first-child .section-label {
+    margin-top: 0;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: inherit;
+    text-decoration: none;
+    border-radius: 12px;
+    transition: background 0.2s ease, color 0.2s ease;
+    font-weight: 500;
+    margin-bottom: 6px;
+    position: relative;
+}
+
+.sidebar-link i {
+    width: 18px;
+    text-align: center;
+    font-size: 16px;
+    color: rgba(226, 232, 240, 0.7);
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.sidebar-link .link-meta {
+    margin-left: auto;
+    font-size: 12px;
+    color: rgba(209, 213, 219, 0.7);
+}
+
+.sidebar-link:hover,
+.sidebar-link.active {
+    background: var(--sidebar-active);
+    color: #f8fafc;
+}
+
+.sidebar-link:hover i,
+.sidebar-link.active i {
+    color: #60a5fa;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid rgba(148, 163, 184, 0.24);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(209, 213, 219, 0.54);
+}
+
+.sidebar-footer .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(59, 130, 246, 0.16);
+    color: #c7d2fe;
+    border-radius: 999px;
+    padding: 6px 12px;
+    margin-top: 8px;
+}
+
+.app-main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.app-topbar {
+    height: var(--topbar-height);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 32px;
+    padding: 0 36px;
+    background: var(--layout-bg);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.topbar-brand__logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #f8fafc;
+}
+
+.topbar-brand__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.topbar-brand__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.topbar-brand__subtitle {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #64748b;
+}
+
+.topbar-page h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #111c44;
+}
+
+.topbar-page p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.topbar-date {
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(148, 163, 184, 0.18);
+    font-size: 13px;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    padding: 8px 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.topbar-user__meta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.topbar-user__name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.topbar-user__role {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.topbar-user__avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f8fafc;
+    font-weight: 700;
+}
+
+.app-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 36px 40px 48px;
+    background: var(--layout-bg);
+    width: 100%;
+    max-width: none;
+}
+
+.app-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.app-content::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 999px;
+}
+
+/* New Topbar Design */
+.topbar-start {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.btn-sidebar-toggle {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #64748b;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.btn-sidebar-toggle:hover {
+    background: rgba(148, 163, 184, 0.1);
+}
+
+.topbar-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.breadcrumb-item {
+    color: #64748b;
+}
+
+.breadcrumb-item.active {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.breadcrumb-separator {
+    color: #cbd5e1;
+}
+
+.topbar-end {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.topbar-date {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: white;
+    font-weight: 600;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.user-role {
+    font-size: 12px;
+    color: #64748b;
+}
+
+@media (max-width: 992px) {
+    :root {
+        --sidebar-width: 220px;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .app-sidebar {
+        position: fixed;
+        inset: 0;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1050;
+    }
+
+    .app-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .app-topbar {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        padding: 16px 20px;
+        height: auto;
+    }
+
+    .topbar-end {
+        gap: 16px;
+    }
+
+    .topbar-date {
+        display: none;
+    }
+
+    .app-content {
+        padding: 22px;
+    }
+}

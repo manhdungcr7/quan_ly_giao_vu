@@ -1,0 +1,374 @@
+<%- contentFor('content') %>
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-users me-2 text-primary"></i>
+                Quản lý người dùng
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/dashboard">Trang chủ</a></li>
+                    <li class="breadcrumb-item active">Người dùng</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="fas fa-plus me-2"></i>
+                Thêm người dùng
+            </button>
+        </div>
+    </div>
+    
+    <!-- Search and Filter -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form class="row g-3" method="GET">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Tìm kiếm</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="<%= search || '' %>" placeholder="Tên, email, username...">
+                </div>
+                <div class="col-md-3">
+                    <label for="role" class="form-label">Vai trò</label>
+                    <select class="form-select" id="role" name="role">
+                        <option value="">Tất cả vai trò</option>
+                        <option value="admin" <%= role === 'admin' ? 'selected' : '' %>>Quản trị viên</option>
+                        <option value="staff" <%= role === 'staff' ? 'selected' : '' %>>Cán bộ</option>
+                        <option value="user" <%= role === 'user' ? 'selected' : '' %>>Người dùng</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Trạng thái</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="active" <%= status === 'active' ? 'selected' : '' %>>Hoạt động</option>
+                        <option value="inactive" <%= status === 'inactive' ? 'selected' : '' %>>Không hoạt động</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search me-1"></i>
+                            Tìm kiếm
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Users Table -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-table me-2"></i>
+                Danh sách người dùng
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Avatar</th>
+                            <th>Thông tin</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (users && users.length > 0) { %>
+                            <% users.forEach(function(user, index) { %>
+                                <tr>
+                                    <td><%= (page - 1) * limit + index + 1 %></td>
+                                    <td>
+                                        <img src="<%= user.avatar || '/assets/img/default-avatar.png' %>" 
+                                             alt="Avatar" class="rounded-circle" width="40" height="40">
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong><%= user.full_name %></strong>
+                                        </div>
+                                        <div class="small text-muted">
+                                            <i class="fas fa-user me-1"></i><%= user.username %>
+                                        </div>
+                                        <div class="small text-muted">
+                                            <i class="fas fa-envelope me-1"></i><%= user.email %>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-<%= user.role === 'admin' ? 'danger' : user.role === 'staff' ? 'primary' : 'secondary' %>">
+                                            <%= user.role === 'admin' ? 'Quản trị viên' : user.role === 'staff' ? 'Cán bộ' : 'Người dùng' %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-<%= user.status === 'active' ? 'success' : 'warning' %>">
+                                            <i class="fas fa-circle me-1"></i>
+                                            <%= user.status === 'active' ? 'Hoạt động' : 'Không hoạt động' %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small><%= new Date(user.created_at).toLocaleDateString('vi-VN') %></small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary view-user-btn" 
+                                                    data-user-id="<%= user.id %>" title="Xem chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-warning edit-user-btn" 
+                                                    data-user-id="<%= user.id %>" title="Chỉnh sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <% if (user.status === 'active') { %>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary toggle-status-btn" 
+                                                        data-user-id="<%= user.id %>" data-status="inactive" title="Vô hiệu hóa">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                            <% } else { %>
+                                                <button type="button" class="btn btn-sm btn-outline-success toggle-status-btn" 
+                                                        data-user-id="<%= user.id %>" data-status="active" title="Kích hoạt">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            <% } %>
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-user-btn" 
+                                                    data-user-id="<%= user.id %>" title="Xóa">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Không tìm thấy người dùng nào</p>
+                                </td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <% if (totalPages > 1) { %>
+                <nav aria-label="Phân trang">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item <%= page <= 1 ? 'disabled' : '' %>">
+                            <a class="page-link" href="?page=<%= page - 1 %>&search=<%= search || '' %>&role=<%= role || '' %>&status=<%= status || '' %>">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        
+                        <% for (let i = 1; i <= totalPages; i++) { %>
+                            <li class="page-item <%= i === page ? 'active' : '' %>">
+                                <a class="page-link" href="?page=<%= i %>&search=<%= search || '' %>&role=<%= role || '' %>&status=<%= status || '' %>">
+                                    <%= i %>
+                                </a>
+                            </li>
+                        <% } %>
+                        
+                        <li class="page-item <%= page >= totalPages ? 'disabled' : '' %>">
+                            <a class="page-link" href="?page=<%= page + 1 %>&search=<%= search || '' %>&role=<%= role || '' %>&status=<%= status || '' %>">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Thêm người dùng mới
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addUserForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password_confirm" class="form-label">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="password_confirm" name="password_confirm" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="full_name" class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Số điện thoại</label>
+                                <input type="tel" class="form-control" id="phone" name="phone">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Vai trò <span class="text-danger">*</span></label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="">Chọn vai trò</option>
+                                    <option value="admin">Quản trị viên</option>
+                                    <option value="staff">Cán bộ</option>
+                                    <option value="user">Người dùng</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="status" class="form-label">Trạng thái</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="active">Hoạt động</option>
+                                    <option value="inactive">Không hoạt động</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        Hủy
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        Lưu người dùng
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- contentFor('js') %>
+<script>
+    // Add User Form Submit
+    document.getElementById('addUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+        
+        // Validate password confirmation
+        if (data.password !== data.password_confirm) {
+            alert('Mật khẩu xác nhận không khớp!');
+            return;
+        }
+        
+        fetch('/api/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                location.reload();
+            } else {
+                alert(result.message || 'Có lỗi xảy ra khi thêm người dùng');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Có lỗi xảy ra khi thêm người dùng');
+        });
+    });
+    
+    // Event delegation for action buttons
+    document.addEventListener('click', function(e) {
+        const viewBtn = e.target.closest('.view-user-btn');
+        const editBtn = e.target.closest('.edit-user-btn');
+        const statusBtn = e.target.closest('.toggle-status-btn');
+        const deleteBtn = e.target.closest('.delete-user-btn');
+
+        if (viewBtn) {
+            const id = viewBtn.getAttribute('data-user-id');
+            window.location.href = `/users/${id}`;
+            return;
+        }
+        if (editBtn) {
+            const id = editBtn.getAttribute('data-user-id');
+            window.location.href = `/users/${id}/edit`;
+            return;
+        }
+        if (statusBtn) {
+            const id = statusBtn.getAttribute('data-user-id');
+            const status = statusBtn.getAttribute('data-status');
+            if (confirm(`Bạn có chắc chắn muốn ${status === 'active' ? 'kích hoạt' : 'vô hiệu hóa'} người dùng này?`)) {
+                fetch(`/api/users/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert(result.message || 'Có lỗi xảy ra khi cập nhật trạng thái');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Có lỗi xảy ra khi cập nhật trạng thái');
+                });
+            }
+            return;
+        }
+        if (deleteBtn) {
+            const id = deleteBtn.getAttribute('data-user-id');
+            if (confirm('Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác.')) {
+                fetch(`/api/users/${id}`, { method: 'DELETE' })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert(result.message || 'Có lỗi xảy ra khi xóa người dùng');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Có lỗi xảy ra khi xóa người dùng');
+                });
+            }
+        }
+    });
+</script>

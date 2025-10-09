@@ -1,0 +1,287 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/documents.css">
+
+<%- contentFor('content') %>
+<div class="documents-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">📜 Văn bản pháp lý</h1>
+      <p style="color: #64748b; margin-top: 0.5rem;">Quản lý văn bản pháp lý, quy định và nghị định</p>
+    </div>
+    <div class="page-actions">
+      <a href="/legal-documents/create" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Thêm văn bản mới
+      </a>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-cards">
+    <div class="stat-card stat-card--completed">
+      <div class="stat-value"><%= stats.total %></div>
+      <div class="stat-label">Tổng số</div>
+    </div>
+    <div class="stat-card stat-card--processing">
+      <div class="stat-value"><%= stats.valid %></div>
+      <div class="stat-label">Còn hiệu lực</div>
+    </div>
+    <div class="stat-card stat-card--pending">
+      <div class="stat-value"><%= stats.expired %></div>
+      <div class="stat-label">Hết hiệu lực</div>
+    </div>
+    <div class="stat-card stat-card--overdue">
+      <div class="stat-value"><%= stats.replaced %></div>
+      <div class="stat-label">Bị thay thế</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group">
+      <label for="search">Tìm kiếm</label>
+      <input type="text" id="search" name="search" placeholder="Số hiệu, tiêu đề, cơ quan..." value="<%= filters.search %>">
+    </div>
+    <div class="filter-group">
+      <label for="type">Loại văn bản</label>
+      <select id="type" name="type">
+        <option value="">-- Tất cả --</option>
+        <option value="Luật" <%= filters.type === 'Luật' ? 'selected' : '' %>>Luật</option>
+        <option value="Nghị định" <%= filters.type === 'Nghị định' ? 'selected' : '' %>>Nghị định</option>
+        <option value="Thông tư" <%= filters.type === 'Thông tư' ? 'selected' : '' %>>Thông tư</option>
+        <option value="Quyết định" <%= filters.type === 'Quyết định' ? 'selected' : '' %>>Quyết định</option>
+        <option value="Quy định" <%= filters.type === 'Quy định' ? 'selected' : '' %>>Quy định</option>
+        <option value="Nghị quyết" <%= filters.type === 'Nghị quyết' ? 'selected' : '' %>>Nghị quyết</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="status">Trạng thái</label>
+      <select id="status" name="status">
+        <option value="">-- Tất cả --</option>
+        <option value="Còn hiệu lực" <%= filters.status === 'Còn hiệu lực' ? 'selected' : '' %>>Còn hiệu lực</option>
+        <option value="Hết hiệu lực" <%= filters.status === 'Hết hiệu lực' ? 'selected' : '' %>>Hết hiệu lực</option>
+        <option value="Bị thay thế" <%= filters.status === 'Bị thay thế' ? 'selected' : '' %>>Bị thay thế</option>
+        <option value="Dự thảo" <%= filters.status === 'Dự thảo' ? 'selected' : '' %>>Dự thảo</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="dateFrom">Từ ngày</label>
+      <input type="date" id="dateFrom" name="dateFrom" value="<%= filters.dateFrom %>">
+    </div>
+    <div class="filter-group">
+      <label for="dateTo">Đến ngày</label>
+      <input type="date" id="dateTo" name="dateTo" value="<%= filters.dateTo %>">
+    </div>
+    <div class="filter-actions">
+      <button type="button" class="btn btn-sm btn-primary" id="applyFiltersBtn">
+        <i class="fas fa-search"></i> Lọc
+      </button>
+      <button type="button" class="btn btn-sm btn-outline" id="clearFiltersBtn">
+        <i class="fas fa-times"></i> Xóa
+      </button>
+    </div>
+  </div>
+
+  <!-- Documents Table -->
+  <div class="table-wrapper">
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th style="width: 140px;">Số hiệu</th>
+          <th>Tiêu đề</th>
+          <th style="width: 110px;">Loại</th>
+          <th style="width: 150px;">Cơ quan</th>
+          <th style="width: 130px;">Người ký</th>
+          <th style="width: 100px;">Ngày ban hành</th>
+          <th style="width: 45px;">File</th>
+          <th style="width: 120px;">Trạng thái</th>
+          <th style="width: 130px;">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (documents.length === 0) { %>
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 2rem; color: #6c757d;">
+              Không có văn bản nào
+            </td>
+          </tr>
+        <% } else { %>
+          <% documents.forEach(function(doc) { %>
+            <tr>
+              <td><span class="mono"><%= doc.document_number %></span></td>
+              <td class="title-cell">
+                <div class="doc-title" title="<%= doc.summary || doc.title %>">
+                  <%= doc.title %>
+                </div>
+                <% if (doc.keywords) { %>
+                  <div style="font-size: 0.75rem; color: #6c757d; margin-top: 0.25rem;">
+                    🏷️ <%= doc.keywords %>
+                  </div>
+                <% } %>
+              </td>
+              <td><%= doc.document_type %></td>
+              <td><%= doc.issuing_authority %></td>
+              <td>
+                <% if (doc.signer_name) { %>
+                  <div style="font-weight: 500; font-size: 0.875rem;"><%= doc.signer_name %></div>
+                  <% if (doc.signer_position) { %>
+                    <small style="color: #6c757d;"><%= doc.signer_position %></small>
+                  <% } %>
+                <% } else { %>
+                  <span style="color: #adb5bd;">-</span>
+                <% } %>
+              </td>
+              <td><%= doc.issue_date ? new Date(doc.issue_date).toLocaleDateString('vi-VN') : '-' %></td>
+              <td style="text-align: center;">
+                <span class="file-badge" title="File đính kèm">
+                  <i class="fas fa-paperclip" style="color: #6c757d;"></i>
+                </span>
+              </td>
+              <td>
+                <% if (doc.status === 'Còn hiệu lực') { %>
+                  <span class="status-badge status-completed">✅ Còn hiệu lực</span>
+                <% } else if (doc.status === 'Hết hiệu lực') { %>
+                  <span class="status-badge status-pending">⏳ Hết hiệu lực</span>
+                <% } else if (doc.status === 'Bị thay thế') { %>
+                  <span class="status-badge status-processing">🔄 Bị thay thế</span>
+                <% } else if (doc.status === 'Dự thảo') { %>
+                  <span class="status-badge" style="background: #fff3cd; color: #856404;">📝 Dự thảo</span>
+                <% } else if (doc.status === 'Đã hủy') { %>
+                  <span class="status-badge status-overdue">❌ Đã hủy</span>
+                <% } else { %>
+                  <span class="status-badge"><%= doc.status %></span>
+                <% } %>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <a href="/legal-documents/<%= doc.id %>" class="icon-btn view-doc" title="Xem chi tiết">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="/legal-documents/<%= doc.id %>/edit" class="icon-btn edit-doc" title="Sửa">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button class="icon-btn delete-doc" data-id="<%= doc.id %>" title="Xóa">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <% if (pagination.totalPages > 1) { %>
+    <div class="pagination">
+      <div class="pagination-info">
+        Trang <%= pagination.page %> / <%= pagination.totalPages %> (Tổng: <%= pagination.total %> văn bản)
+      </div>
+      <div class="pagination-controls">
+        <% if (pagination.page > 1) { %>
+          <a href="?page=<%= pagination.page - 1 %>&<%= new URLSearchParams(filters).toString() %>" class="pg-btn">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        <% } else { %>
+          <span class="pg-btn disabled"><i class="fas fa-chevron-left"></i></span>
+        <% } %>
+        
+        <% for (let i = Math.max(1, pagination.page - 2); i <= Math.min(pagination.totalPages, pagination.page + 2); i++) { %>
+          <a href="?page=<%= i %>&<%= new URLSearchParams(filters).toString() %>" 
+             class="pg-btn <%= i === pagination.page ? 'active' : '' %>">
+            <%= i %>
+          </a>
+        <% } %>
+        
+        <% if (pagination.page < pagination.totalPages) { %>
+          <a href="?page=<%= pagination.page + 1 %>&<%= new URLSearchParams(filters).toString() %>" class="pg-btn">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        <% } else { %>
+          <span class="pg-btn disabled"><i class="fas fa-chevron-right"></i></span>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<script>
+function applyFilters() {
+  const search = document.getElementById('search').value;
+  const type = document.getElementById('type').value;
+  const status = document.getElementById('status').value;
+  const dateFrom = document.getElementById('dateFrom').value;
+  const dateTo = document.getElementById('dateTo').value;
+  
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+  if (type) params.append('type', type);
+  if (status) params.append('status', status);
+  if (dateFrom) params.append('dateFrom', dateFrom);
+  if (dateTo) params.append('dateTo', dateTo);
+  
+  window.location.href = '/legal-documents?' + params.toString();
+}
+
+function clearFilters() {
+  window.location.href = '/legal-documents';
+}
+
+function deleteDocument(id) {
+  if (!confirm('Bạn có chắc chắn muốn xóa văn bản này?')) return;
+  
+  fetch(`/legal-documents/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Đã xóa văn bản thành công');
+      window.location.reload();
+    } else {
+      alert('Lỗi: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Có lỗi xảy ra khi xóa văn bản');
+  });
+}
+
+// Event delegation cho nút xóa
+document.addEventListener('DOMContentLoaded', function() {
+  // Xử lý click cho tất cả nút delete
+  document.querySelectorAll('.delete-doc').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const id = this.getAttribute('data-id');
+      deleteDocument(id);
+    });
+  });
+  
+  // Nút lọc
+  const applyBtn = document.getElementById('applyFiltersBtn');
+  if (applyBtn) {
+    applyBtn.addEventListener('click', applyFilters);
+  }
+  
+  // Nút xóa filter
+  const clearBtn = document.getElementById('clearFiltersBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearFilters);
+  }
+  
+  // Enter key to search
+  const searchInput = document.getElementById('search');
+  if (searchInput) {
+    searchInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        applyFilters();
+      }
+    });
+  }
+});
+</script>

@@ -1,0 +1,557 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/staff.css?v=2024100601">
+
+<%
+const statusOrderList = Array.isArray(statusOrder) && statusOrder.length
+  ? statusOrder
+  : ['all', 'active', 'on_leave', 'inactive', 'terminated'];
+const summary = summaryCounts || {};
+const statsData = stats || {};
+const currentPagination = pagination || {};
+const totalPages = currentPagination.totalPages && currentPagination.totalPages > 0 ? currentPagination.totalPages : 1;
+const currentPage = currentPagination.page && currentPagination.page > 0 ? currentPagination.page : 1;
+const pageLimit = currentPagination.limit && currentPagination.limit > 0 ? currentPagination.limit : 24;
+const totalItems = typeof currentPagination.total === 'number' ? currentPagination.total : (Array.isArray(staffList) ? staffList.length : 0);
+const startIndex = totalItems ? ((currentPage - 1) * pageLimit) + 1 : 0;
+const endIndex = totalItems ? Math.min(currentPage * pageLimit, totalItems) : 0;
+const statusLabels = {
+  all: 'Tất cả cán bộ',
+  active: (statusMeta.active && statusMeta.active.label) || 'Đang công tác',
+  on_leave: (statusMeta.on_leave && statusMeta.on_leave.label) || 'Nghỉ phép',
+  inactive: (statusMeta.inactive && statusMeta.inactive.label) || 'Tạm dừng',
+  terminated: (statusMeta.terminated && statusMeta.terminated.label) || 'Đã nghỉ việc'
+};
+const employmentLabels = {
+  full_time: 'Toàn thời gian',
+  part_time: 'Bán thời gian',
+  contract: 'Hợp đồng',
+  probation: 'Thử việc',
+  visiting: 'Thỉnh giảng'
+};
+const summaryIcons = {
+  total: 'fa-people-group',
+  active: 'fa-user-check',
+  on_leave: 'fa-plane-departure',
+  contract: 'fa-file-signature'
+};
+const resolvedBaseQuery = baseQueryString || '';
+const buildPageLink = (pageNumber) => {
+  if (pageNumber < 1 || pageNumber > totalPages) {
+    return '#';
+  }
+  const params = new URLSearchParams(resolvedBaseQuery);
+  params.set('page', pageNumber);
+  const query = params.toString();
+  return query ? `?${query}` : `?page=${pageNumber}`;
+};
+const formatDate = (value) => {
+  if (!value) return null;
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt.toLocaleDateString('vi-VN');
+};
+const avgExperience = (statsData && statsData.avg_experience !== null && statsData.avg_experience !== undefined)
+  ? Number(statsData.avg_experience).toFixed(1)
+  : null;
+const avgSalary = (statsData && statsData.avg_salary !== null && statsData.avg_salary !== undefined)
+  ? `${Math.round(Number(statsData.avg_salary)).toLocaleString('vi-VN')} ₫`
+  : null;
+const totalActive = summary.active || statsData.active_staff || 0;
+const totalAll = summary.all || statsData.total_staff || totalItems;
+const activeStatusLabel = statusLabels[activeStatus] || statusLabels.all;
+const hasStaff = Array.isArray(staffList) && staffList.length > 0;
+const departmentOptionMap = {};
+(Array.isArray(departmentOptions) ? departmentOptions : []).forEach((dept) => { departmentOptionMap[dept.id] = dept.name; });
+const positionOptionMap = {};
+(Array.isArray(positionOptions) ? positionOptions : []).forEach((pos) => { positionOptionMap[pos.id] = pos.name; });
+const employmentOptionMap = {};
+(Array.isArray(employmentOptions) ? employmentOptions : []).forEach((opt) => { employmentOptionMap[opt.value] = opt.label; });
+const appliedDepartmentName = filtersApplied && filtersApplied.department_id ? departmentOptionMap[filtersApplied.department_id] : '';
+const appliedPositionName = filtersApplied && filtersApplied.position_id ? positionOptionMap[filtersApplied.position_id] : '';
+const appliedEmploymentName = filtersApplied && filtersApplied.employment_type ? (employmentOptionMap[filtersApplied.employment_type] || employmentLabels[filtersApplied.employment_type]) : '';
+const searchResetParams = new URLSearchParams();
+if (activeStatus && activeStatus !== 'all') {
+  searchResetParams.set('status', activeStatus);
+}
+if (filtersApplied && filtersApplied.department_id) {
+  searchResetParams.set('department_id', filtersApplied.department_id);
+}
+if (filtersApplied && filtersApplied.position_id) {
+  searchResetParams.set('position_id', filtersApplied.position_id);
+}
+if (filtersApplied && filtersApplied.employment_type) {
+  searchResetParams.set('employment_type', filtersApplied.employment_type);
+}
+const searchResetLink = searchResetParams.toString() ? `/staff?${searchResetParams.toString()}` : '/staff';
+%>
+
+<section class="staff-page">
+  <header class="staff-hero">
+    <div class="staff-hero__info">
+      <span class="staff-hero__eyebrow">Quản trị nhân sự</span>
+      <h1>Quản lý cán bộ</h1>
+  <p>Giám sát lực lượng giảng viên, phân bổ giờ giảng và chủ động nắm tình trạng sẵn sàng của từng bộ môn theo thời gian thực.</p>
+      <div class="staff-hero__meta">
+        <span class="hero-badge hero-badge--primary">
+          <i class="fa-solid fa-users"></i>
+          <strong><%= totalAll || 0 %></strong> cán bộ được quản lý
+        </span>
+        <span class="hero-badge hero-badge--soft">
+          <i class="fa-solid fa-user-clock"></i>
+          <strong><%= totalActive || 0 %></strong> đang sẵn sàng công tác
+        </span>
+        <% if (avgExperience) { %>
+          <span class="hero-badge hero-badge--soft">
+            <i class="fa-solid fa-chart-line"></i>
+            Kinh nghiệm TB: <strong><%= avgExperience %> năm</strong>
+          </span>
+        <% } %>
+      </div>
+    </div>
+    <div class="staff-hero__actions">
+      <a href="/staff/create" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i>
+        Thêm cán bộ
+      </a>
+      <a href="#" class="btn btn-secondary" data-future-feature>
+        <i class="fa-solid fa-file-import"></i>
+        Nhập từ Excel
+      </a>
+      <a href="/staff/evaluation-criteria" class="btn btn-ghost">
+        <i class="fa-solid fa-gear"></i>
+        Thiết lập tiêu chí đánh giá
+      </a>
+    </div>
+  </header>
+
+  <% if (teachingSnapshot && teachingSnapshot.length) { %>
+    <section class="staff-teaching-insights" aria-label="Tổng quan giảng dạy">
+      <div class="teaching-insights__header">
+        <h2>Ảnh nhanh đội ngũ giảng dạy</h2>
+        <p>Kiểm soát cơ cấu giảng viên để kịp thời cân đối lịch giảng và nhu cầu tuyển bổ sung.</p>
+      </div>
+      <div class="teaching-insights__grid">
+        <% teachingSnapshot.forEach(function(item){ %>
+          <article class="teaching-card" data-key="<%= item.key %>">
+            <header>
+              <span class="teaching-card__label"><%= item.label %></span>
+              <i class="fa-solid fa-person-chalkboard"></i>
+            </header>
+            <strong class="teaching-card__value"><%= item.value %></strong>
+            <p><%= item.hint %></p>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <section class="staff-summary" aria-label="Tổng quan nhân sự">
+    <% if (summaryCards && summaryCards.length) { %>
+      <% summaryCards.forEach(function(card){ %>
+        <article class="summary-card" data-tone="<%= card.tone || 'muted' %>">
+          <div class="summary-card__icon">
+            <i class="fa-solid <%= summaryIcons[card.key] || 'fa-chart-pie' %>"></i>
+          </div>
+          <div class="summary-card__content">
+            <span class="summary-card__label"><%= card.label %></span>
+            <span class="summary-card__value"><%= card.value || 0 %></span>
+            <% if (card.description) { %>
+              <p class="summary-card__desc"><%= card.description %></p>
+            <% } %>
+          </div>
+        </article>
+      <% }) %>
+    <% } else { %>
+      <p class="summary-empty">Chưa có dữ liệu thống kê nhân sự.</p>
+    <% } %>
+  </section>
+
+  <section class="staff-filters" aria-label="Bộ lọc nhân sự">
+    <div class="status-filter" role="tablist">
+      <% statusOrderList.forEach(function(statusKey){
+        const isActive = (activeStatus || 'all') === statusKey;
+        const statusLink = (filterLinks && Object.prototype.hasOwnProperty.call(filterLinks, statusKey)) ? filterLinks[statusKey] : '';
+        const countValue = typeof summary[statusKey] !== 'undefined' ? summary[statusKey] : 0;
+        const label = statusLabels[statusKey] || statusKey;
+      %>
+        <a
+          href="<%= statusLink ? ('/staff' + statusLink) : '/staff' %>"
+          class="status-chip <%= isActive ? 'is-active' : '' %>"
+          data-status="<%= statusKey %>"
+        >
+          <span class="status-chip__label"><%= label %></span>
+          <span class="status-chip__count"><%= countValue || 0 %></span>
+        </a>
+      <% }) %>
+    </div>
+
+    <div class="staff-filters__controls">
+      <form class="staff-search" method="get" action="/staff" role="search">
+        <% if (activeStatus && activeStatus !== 'all') { %>
+          <input type="hidden" name="status" value="<%= activeStatus %>">
+        <% } %>
+        <div class="filter-select-group">
+          <label class="filter-select">
+            <span>Phòng/Bộ môn</span>
+            <select name="department_id" class="js-auto-submit">
+              <option value="">Tất cả</option>
+              <% (Array.isArray(departmentOptions) ? departmentOptions : []).forEach(function(dept){ %>
+                <option value="<%= dept.id %>" <%= String(departmentId) === String(dept.id) ? 'selected' : '' %>><%= dept.name %></option>
+              <% }) %>
+            </select>
+          </label>
+          <label class="filter-select">
+            <span>Chức vụ học thuật</span>
+            <select name="position_id" class="js-auto-submit">
+              <option value="">Tất cả</option>
+              <% (Array.isArray(positionOptions) ? positionOptions : []).forEach(function(pos){ %>
+                <option value="<%= pos.id %>" <%= String(positionId) === String(pos.id) ? 'selected' : '' %>><%= pos.name %></option>
+              <% }) %>
+            </select>
+          </label>
+          <label class="filter-select">
+            <span>Loại giảng viên</span>
+            <select name="employment_type" class="js-auto-submit">
+              <% (Array.isArray(employmentOptions) ? employmentOptions : []).forEach(function(opt){ %>
+                <option value="<%= opt.value %>" <%= employmentType === opt.value ? 'selected' : '' %>><%= opt.label %></option>
+              <% }) %>
+            </select>
+          </label>
+        </div>
+        <label class="search-field">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input
+            type="search"
+            name="q"
+            value="<%= searchQuery || '' %>"
+            placeholder="Tìm theo họ tên, mã cán bộ hoặc email"
+            autocomplete="off"
+          >
+        </label>
+        <button type="submit" class="btn btn-search">
+          <i class="fa-solid fa-search"></i>
+          Tìm kiếm
+        </button>
+        <% if (searchQuery) { %>
+          <a class="btn btn-reset" href="<%= searchResetLink %>">
+            <i class="fa-solid fa-rotate-left"></i>
+            Xóa tìm kiếm
+          </a>
+        <% } %>
+      </form>
+
+      <% if (hasFilters) { %>
+        <div class="active-filters" aria-label="Bộ lọc hiện tại">
+          <span class="active-filters__label">Đang áp dụng:</span>
+          <% if (activeStatus && activeStatus !== 'all') { %>
+            <span class="filter-chip">
+              <i class="fa-solid fa-layer-group"></i>
+              <%= statusLabels[activeStatus] || activeStatus %>
+            </span>
+          <% } %>
+          <% if (appliedDepartmentName) { %>
+            <span class="filter-chip">
+              <i class="fa-solid fa-building-columns"></i>
+              <%= appliedDepartmentName %>
+            </span>
+          <% } %>
+          <% if (appliedPositionName) { %>
+            <span class="filter-chip">
+              <i class="fa-solid fa-user-graduate"></i>
+              <%= appliedPositionName %>
+            </span>
+          <% } %>
+          <% if (appliedEmploymentName) { %>
+            <span class="filter-chip">
+              <i class="fa-solid fa-briefcase"></i>
+              <%= appliedEmploymentName %>
+            </span>
+          <% } %>
+          <% if (searchQuery) { %>
+            <span class="filter-chip">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              "<%= searchQuery %>"
+            </span>
+          <% } %>
+          <a class="filter-clear" href="/staff">
+            <i class="fa-solid fa-xmark"></i>
+            Bỏ tất cả
+          </a>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <% if (departmentStats && departmentStats.length) { %>
+    <section class="staff-departments" aria-label="Phân bổ giảng viên theo bộ môn">
+      <header class="staff-departments__header">
+        <div>
+          <h2>Phân bổ giảng viên theo bộ môn</h2>
+          <p>Nhanh chóng xác định nơi đang thiếu giảng viên để điều phối hoặc tuyển bổ sung.</p>
+        </div>
+        <a href="#" class="btn btn-ghost" data-future-feature>
+          <i class="fa-solid fa-file-export"></i>
+          Xuất báo cáo phân bổ
+        </a>
+      </header>
+      <div class="department-grid">
+        <% departmentStats.forEach(function(item){ %>
+          <article class="department-card">
+            <h3><i class="fa-solid fa-building-columns"></i> <%= item.department_name || 'Chưa xác định' %></h3>
+            <dl>
+              <div>
+                <dt>Tổng giảng viên</dt>
+                <dd><%= item.staff_count || 0 %></dd>
+              </div>
+              <div>
+                <dt>Đang giảng dạy</dt>
+                <dd><%= item.active_count || 0 %></dd>
+              </div>
+              <div>
+                <dt>Lương TB</dt>
+                <dd><%= item.avg_salary ? `${Math.round(item.avg_salary).toLocaleString('vi-VN')} ₫` : 'Chưa có dữ liệu' %></dd>
+              </div>
+            </dl>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <section class="staff-results" aria-label="Kết quả nhân sự">
+    <header class="staff-results__header">
+      <div>
+        <h2>Danh sách cán bộ</h2>
+        <p>
+          <%= hasStaff ? `Hiển thị ${startIndex}-${endIndex} trên tổng ${totalItems} ${activeStatusLabel.toLowerCase()}` : 'Theo dõi thông tin chi tiết từng cán bộ trong đơn vị.' %>
+        </p>
+      </div>
+      <div class="staff-results__metrics">
+        <% if (avgSalary) { %>
+          <span class="metric-pill">
+            <i class="fa-solid fa-coins"></i>
+            Lương bình quân: <strong><%= avgSalary %></strong>
+          </span>
+        <% } %>
+        <% if (statsData.full_time_staff) { %>
+          <span class="metric-pill">
+            <i class="fa-solid fa-user-tie"></i>
+            Toàn thời gian: <strong><%= statsData.full_time_staff %></strong>
+          </span>
+        <% } %>
+        <% if (statsData.part_time_staff) { %>
+          <span class="metric-pill">
+            <i class="fa-solid fa-user-clock"></i>
+            Bán thời gian: <strong><%= statsData.part_time_staff %></strong>
+          </span>
+        <% } %>
+      </div>
+    </header>
+
+    <% if (hasStaff) { %>
+      <div class="staff-grid">
+        <% staffList.forEach(function(staff){
+          const statusTone = staff.statusMeta && staff.statusMeta.tone ? staff.statusMeta.tone : 'muted';
+          const statusLabel = staff.statusMeta && staff.statusMeta.label ? staff.statusMeta.label : 'Không xác định';
+          const hireDate = formatDate(staff.hireDate) || 'Chưa cập nhật';
+        %>
+          <article class="staff-card" data-tone="<%= statusTone %>">
+            <header class="staff-card__header">
+              <div class="staff-avatar" aria-hidden="true"><%= staff.initials %></div>
+              <div class="staff-card__identity">
+                <h3><%= staff.name %></h3>
+                <div class="staff-card__subtitle">
+                  <span><i class="fa-solid fa-id-badge"></i> <%= staff.position %></span>
+                  <span><i class="fa-solid fa-building"></i> <%= staff.department %></span>
+                </div>
+              </div>
+              <span class="staff-status staff-status--<%= statusTone %>">
+                <i class="fa-solid fa-circle"></i>
+                <%= statusLabel %>
+              </span>
+            </header>
+
+            <div class="staff-card__body">
+              <dl class="staff-details">
+                <div>
+                  <dt>Mã cán bộ</dt>
+                  <dd><%= staff.staffCode %></dd>
+                </div>
+                <div>
+                  <dt>Loại hợp đồng</dt>
+                  <dd><%= employmentLabels[staff.employmentType] || 'Chưa xác định' %></dd>
+                </div>
+                <% if (staff.academicRank || staff.academicDegree) { %>
+                  <div>
+                    <dt>Học hàm/Học vị</dt>
+                    <dd>
+                      <%= [staff.academicRank, staff.academicDegree].filter(Boolean).join(' - ') || 'Chưa cập nhật' %>
+                    </dd>
+                  </div>
+                <% } %>
+                <div>
+                  <dt>Ngày vào làm</dt>
+                  <dd><%= hireDate %></dd>
+                </div>
+              </dl>
+
+              <div class="staff-contact">
+                <div class="contact-item">
+                  <i class="fa-solid fa-envelope"></i>
+                  <a href="mailto:<%= staff.email !== 'Chưa có email' ? staff.email : '' %>" class="contact-link" data-copy="<%= staff.email %>">
+                    <%= staff.email %>
+                  </a>
+                  <% if (staff.email && staff.email !== 'Chưa có email') { %>
+                    <button type="button" class="contact-copy" data-copy="<%= staff.email %>" title="Sao chép email">
+                      <i class="fa-regular fa-copy"></i>
+                    </button>
+                  <% } %>
+                </div>
+                <div class="contact-item">
+                  <i class="fa-solid fa-phone"></i>
+                  <a href="tel:<%= staff.phone !== 'Chưa cập nhật' ? staff.phone : '' %>" class="contact-link" data-copy="<%= staff.phone %>">
+                    <%= staff.phone %>
+                  </a>
+                  <% if (staff.phone && staff.phone !== 'Chưa cập nhật') { %>
+                    <button type="button" class="contact-copy" data-copy="<%= staff.phone %>" title="Sao chép số điện thoại">
+                      <i class="fa-regular fa-copy"></i>
+                    </button>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+
+            <footer class="staff-card__footer">
+              <div class="staff-tags">
+                <% if (staff.employmentType) { %>
+                  <span class="tag">
+                    <i class="fa-solid fa-briefcase"></i>
+                    <%= employmentLabels[staff.employmentType] || staff.employmentType %>
+                  </span>
+                <% } %>
+                <% if (staff.department && staff.department !== 'Chưa cập nhật') { %>
+                  <span class="tag">
+                    <i class="fa-solid fa-people-group"></i>
+                    Thuộc: <%= staff.department %>
+                  </span>
+                <% } %>
+                <% if (staff.academicRank) { %>
+                  <span class="tag">
+                    <i class="fa-solid fa-user-graduate"></i>
+                    <%= staff.academicRank %>
+                  </span>
+                <% } %>
+              </div>
+              <div class="staff-actions">
+                <button type="button" class="btn btn-ghost" data-future-feature>
+                  <i class="fa-solid fa-eye"></i>
+                  Xem hồ sơ
+                </button>
+                <button type="button" class="btn btn-ghost" data-future-feature>
+                  <i class="fa-solid fa-diagram-project"></i>
+                  Phân công
+                </button>
+              </div>
+            </footer>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="staff-empty">
+        <i class="fa-solid fa-user-group"></i>
+        <h3><%= searchQuery ? 'Không tìm thấy cán bộ phù hợp' : 'Danh sách cán bộ đang trống' %></h3>
+        <p>
+          <%= searchQuery
+            ? 'Hãy kiểm tra lại từ khóa hoặc thử tìm với tiêu chí khác.'
+            : 'Khi cập nhật dữ liệu nhân sự, thông tin cán bộ sẽ hiển thị tự động tại đây.'
+          %>
+        </p>
+        <div class="staff-empty__actions">
+          <a href="/staff/create" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i>
+            Thêm cán bộ đầu tiên
+          </a>
+          <a href="#" class="btn btn-secondary" data-future-feature>
+            <i class="fa-solid fa-file-arrow-up"></i>
+            Nhập danh sách từ Excel
+          </a>
+        </div>
+      </div>
+    <% } %>
+
+    <% if (hasStaff && totalPages > 1) { %>
+      <nav class="staff-pagination" aria-label="Phân trang danh sách cán bộ">
+        <a class="pagination-btn <%= currentPage === 1 ? 'is-disabled' : '' %>" href="<%= currentPage === 1 ? '#' : buildPageLink(currentPage - 1) %>">
+          <i class="fa-solid fa-chevron-left"></i>
+          Trước
+        </a>
+        <ul class="pagination-pages">
+          <% for (let i = 1; i <= totalPages; i++) { %>
+            <li>
+              <a class="pagination-page <%= i === currentPage ? 'is-active' : '' %>" href="<%= buildPageLink(i) %>">
+                <%= i %>
+              </a>
+            </li>
+          <% } %>
+        </ul>
+        <a class="pagination-btn <%= currentPage === totalPages ? 'is-disabled' : '' %>" href="<%= currentPage === totalPages ? '#' : buildPageLink(currentPage + 1) %>">
+          Sau
+          <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      </nav>
+    <% } %>
+  </section>
+</section>
+
+<%- contentFor('js') %>
+<script>
+(function(){
+  const searchForm = document.querySelector('.staff-search');
+  if (searchForm) {
+    searchForm.addEventListener('change', (event) => {
+      const select = event.target.closest('.js-auto-submit');
+      if (select && searchForm.contains(select)) {
+        searchForm.submit();
+      }
+    });
+  }
+
+  const handleCopy = async (trigger) => {
+    const value = trigger.getAttribute('data-copy');
+    if (!value || value === 'Chưa có email' || value === 'Chưa cập nhật') {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      trigger.classList.add('is-copied');
+      const icon = trigger.querySelector('i');
+      if (icon) {
+        const original = icon.className;
+        icon.className = 'fa-solid fa-check';
+        setTimeout(() => {
+          icon.className = original;
+          trigger.classList.remove('is-copied');
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Không thể sao chép', error);
+    }
+  };
+
+  document.addEventListener('click', (event) => {
+    const copyTarget = event.target.closest('[data-copy]');
+    if (copyTarget && copyTarget.classList.contains('contact-copy')) {
+      handleCopy(copyTarget);
+      return;
+    }
+
+    const futureButton = event.target.closest('[data-future-feature]');
+    if (futureButton) {
+      event.preventDefault();
+      futureButton.classList.add('is-pulse');
+      setTimeout(() => futureButton.classList.remove('is-pulse'), 900);
+      alert('Tính năng này đang được xây dựng. Vui lòng quay lại sau!');
+    }
+  });
+})();
+</script>

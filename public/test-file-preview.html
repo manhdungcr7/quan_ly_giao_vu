@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test File Upload Preview</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        input[type="file"]:hover {
+            border-color: #0d47a1;
+        }
+        .file-preview-list {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .file-preview-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .file-preview-item:hover {
+            background: #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .file-preview-item.file-error {
+            background: #fee;
+            border-color: #fcc;
+        }
+        .file-preview-item i {
+            font-size: 24px;
+            color: #6c757d;
+            min-width: 24px;
+        }
+        .file-preview-item .fa-file-pdf {
+            color: #dc2626;
+        }
+        .file-preview-item .fa-file-word {
+            color: #2563eb;
+        }
+        .file-preview-item .fa-file-archive {
+            color: #ca8a04;
+        }
+        .file-preview-item .file-name {
+            flex: 1;
+            font-weight: 500;
+            word-break: break-word;
+        }
+        .file-preview-item .file-size {
+            color: #6c757d;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test File Upload & Preview</h1>
+        
+        <div class="alert alert-info">
+            <strong>Hướng dẫn:</strong> Chọn các file (PDF, Word, RAR, ZIP) để xem preview. Kích thước tối đa: 10MB/file.
+        </div>
+
+        <div class="form-group">
+            <label for="attachments">
+                <i class="fas fa-file-upload"></i> Chọn file để test
+            </label>
+            <input type="file" name="attachments" id="attachments" multiple accept=".pdf,.doc,.docx,.rar,.zip,.7z">
+        </div>
+
+        <div id="file-preview" class="file-preview-list"></div>
+
+        <div id="status" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        console.log('Test script loaded');
+
+        // File preview when selected
+        document.getElementById('attachments').addEventListener('change', function(e) {
+            console.log('File input changed');
+            const preview = document.getElementById('file-preview');
+            const status = document.getElementById('status');
+            preview.innerHTML = '';
+            status.innerHTML = '';
+            
+            if (this.files.length === 0) {
+                console.log('No files selected');
+                return;
+            }
+
+            console.log('Files selected:', this.files.length);
+            
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            let hasError = false;
+            let totalSize = 0;
+            
+            Array.from(this.files).forEach((file, index) => {
+                console.log(`File ${index}:`, {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type
+                });
+
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                const fileIcon = getFileIcon(file.name);
+                totalSize += file.size;
+                
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-preview-item';
+                
+                // Check file size
+                if (file.size > maxSize) {
+                    hasError = true;
+                    fileItem.classList.add('file-error');
+                    fileItem.innerHTML = `
+                        <i class="${fileIcon}" style="color: #dc2626;"></i>
+                        <span class="file-name" style="color: #dc2626;">${file.name}</span>
+                        <span class="file-size" style="color: #dc2626;">${fileSize} MB - Quá lớn!</span>
+                    `;
+                    console.warn('File too large:', file.name);
+                } else {
+                    fileItem.innerHTML = `
+                        <i class="${fileIcon}"></i>
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">${fileSize} MB</span>
+                    `;
+                }
+                preview.appendChild(fileItem);
+            });
+            
+            // Show status
+            const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
+            if (hasError) {
+                status.innerHTML = `<div class="alert alert-danger">
+                    <strong>❌ Lỗi:</strong> Một số file vượt quá kích thước cho phép (10MB). Vui lòng chọn lại.
+                </div>`;
+                console.error('Files with errors detected');
+            } else {
+                status.innerHTML = `<div class="alert alert-success">
+                    <strong>✅ Thành công:</strong> Đã chọn ${this.files.length} file, tổng cung ${totalSizeMB} MB
+                </div>`;
+                console.log('All files valid, total size:', totalSizeMB, 'MB');
+            }
+        });
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': 'fas fa-file-pdf',
+                'doc': 'fas fa-file-word',
+                'docx': 'fas fa-file-word',
+                'xls': 'fas fa-file-excel',
+                'xlsx': 'fas fa-file-excel',
+                'rar': 'fas fa-file-archive',
+                'zip': 'fas fa-file-archive',
+                '7z': 'fas fa-file-archive'
+            };
+            return icons[ext] || 'fas fa-file';
+        }
+
+        // Log when script is ready
+        console.log('File preview script ready');
+        console.log('Max file size: 10MB');
+    </script>
+</body>
+</html>

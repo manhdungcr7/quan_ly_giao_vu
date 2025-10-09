@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Công tác khảo thí - Hệ thống quản lý</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+DQogIDxkZWZzPg0KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+DQogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjM2I4MmY2Ii8+DQogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM4YjVjZjYiLz4NCiAgICA8L2xpbmVhckdyYWRpZW50Pg0KICA8L2RlZnM+DQogIDxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE0IiBmaWxsPSJ1cmwoI2cpIi8+DQogIDxnIGZpbGw9IiNmZmYiIGZvbnQtZmFtaWx5PSInSW50ZXInLCAnU2Vnb2UgVUknLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCI+DQogICAgPHRleHQgeD0iMzIiIHk9IjM0Ij5LQTwvdGV4dD4NCiAgPC9nPg0KPC9zdmc+DQo=">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Header Section */
+    .page-header {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .status-badge {
+      background: linear-gradient(135deg, #ff9a56 0%, #ff6b6b 100%);
+      color: white;
+      padding: 10px 24px;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    }
+
+    .page-title {
+      font-size: 42px;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .page-subtitle {
+      font-size: 18px;
+      color: #718096;
+      line-height: 1.6;
+    }
+
+    /* Content Grid */
+    .content-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    /* Card Styles */
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 35px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .card-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #2d3748;
+    }
+
+    .card-badge {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-roadmap {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .badge-ready {
+      background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+      color: white;
+    }
+
+    .badge-interactive {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+
+    /* Feature List */
+    .feature-list {
+      list-style: none;
+    }
+
+    .feature-item {
+      padding: 15px 0;
+      border-bottom: 1px solid #e2e8f0;
+      color: #4a5568;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .feature-item:last-child {
+      border-bottom: none;
+    }
+
+    /* Roadmap Items */
+    .roadmap-item {
+      margin-bottom: 30px;
+      padding-bottom: 30px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .roadmap-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .roadmap-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .roadmap-icon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .roadmap-description {
+      color: #718096;
+      font-size: 14px;
+      line-height: 1.6;
+      padding-left: 18px;
+    }
+
+    /* Action Section */
+    .action-section {
+      margin-bottom: 25px;
+    }
+
+    .action-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #667eea;
+    }
+
+    .action-button {
+      width: 100%;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .note-box {
+      background: #f7fafc;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .note-title {
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+
+    .note-text {
+      color: #718096;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .page-title {
+        font-size: 32px;
+      }
+
+      .header-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+      }
+    }
+
+    /* Animation */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card {
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+    .card:nth-child(3) { animation-delay: 0.3s; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-top">
+        <div>
+          <span class="status-badge">ĐANG PHÁT TRIỂN</span>
+        </div>
+        <div style="display: flex; gap: 15px;">
+          <a href="/dashboard" style="text-decoration: none; color: #667eea; font-weight: 600;">
+            <i class="fas fa-arrow-left"></i> TRANG THÁI
+          </a>
+          <a href="#" style="text-decoration: none; color: #667eea; font-weight: 600;">
+            <i class="fas fa-link"></i> Dang phát triển
+          </a>
+        </div>
+      </div>
+      <h1 class="page-title">Công tác khảo thí</h1>
+      <p class="page-subtitle">
+        Chúng tôi đang xây dựng đầy đủ chức năng cho phần hệ này. Dưới đây là kế hoạch triển khai và các điểm nổi bật dự kiến.
+      </p>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+      <!-- Điểm nổi bật -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Điểm nổi bật</h2>
+        </div>
+        <ul class="feature-list">
+          <li class="feature-item">Lập kế hoạch thi theo học kỳ và môn học</li>
+          <li class="feature-item">Phân công coi thi và chấm thi tự động</li>
+          <li class="feature-item">Theo dõi kết quả và thống kê chất lượng</li>
+        </ul>
+      </div>
+
+      <!-- Kế hoạch triển khai -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Kế hoạch triển khai</h2>
+          <span class="card-badge badge-roadmap">ROADMAP</span>
+        </div>
+        <div class="roadmap-list">
+          <div class="roadmap-item">
+            <div class="roadmap-title">
+              <span class="roadmap-icon"></span>
+              Hoàn thiện mô hình dữ liệu
+            </div>
+            <p class="roadmap-description">
+              Thiết kế bảng và quan hệ phục vụ quản lý và nghiệp vụ quản lý.
+            </p>
+          </div>
+
+          <div class="roadmap-item">
+            <div class="roadmap-title">
+              <span class="roadmap-icon"></span>
+              Phát triển API và dịch vụ
+            </div>
+            <p class="roadmap-description">
+              Triển khai các endpoint chuẩn REST và tích hợp bảo mật.
+            </p>
+          </div>
+
+          <div class="roadmap-item">
+            <div class="roadmap-title">
+              <span class="roadmap-icon"></span>
+              Xây dựng giao diện chi tiết
+            </div>
+            <p class="roadmap-description">
+              Thiết kế màn hình làm việc theo dõng mockup.
+            </p>
+          </div>
+
+          <div class="roadmap-item">
+            <div class="roadmap-title">
+              <span class="roadmap-icon"></span>
+              Kiểm thử & bàn giao
+            </div>
+            <p class="roadmap-description">
+              Hoàn thiện tài liệu hướng dẫn, chuyển giao cho người dùng cuối.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hành động tiếp theo -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Hành động tiếp theo</h2>
+          <span class="card-badge badge-interactive">TƯƠNG TÁC</span>
+        </div>
+
+        <div class="action-section">
+          <h3 class="action-title">Chức năng đang xây dựng</h3>
+          <button class="action-button btn-primary" onclick="showComingSoon()">
+            <span>VUI LÒNG QUAY LẠI SAU</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+
+        <div class="note-box">
+          <div class="note-title">Ghi chú</div>
+          <div class="note-text">
+            Đang nghiên cứu tích hợp với hệ thống quản lý sinh viên.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showComingSoon() {
+      alert('🚀 Chức năng đang được phát triển!\n\nChúng tôi đang nỗ lực hoàn thiện module này. Vui lòng quay lại sau để trải nghiệm đầy đủ các tính năng.');
+    }
+  </script>
+</body>
+</html>

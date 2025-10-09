@@ -1,0 +1,162 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/reports.css?v=20241008">
+
+<%
+  const frequencyLabel = frequencyOptions.find((opt) => opt.value === schedule.frequency)?.label || 'Không xác định';
+  const statusLabel = statusOptions.find((opt) => opt.value === schedule.status)?.label || 'Không xác định';
+  const weekdayLabels = {
+    1: 'Thứ hai',
+    2: 'Thứ ba',
+    3: 'Thứ tư',
+    4: 'Thứ năm',
+    5: 'Thứ sáu',
+    6: 'Thứ bảy',
+    7: 'Chủ nhật'
+  };
+%>
+
+<section class="reports-detail">
+  <header class="reports-detail__header">
+    <div>
+      <span class="reports-hero__eyebrow">Chi tiết lịch báo cáo</span>
+      <h1><%= schedule.title %></h1>
+      <p class="reports-detail__intro">
+        <strong>Tần suất:</strong> <%= frequencyLabel %> ·
+        <strong>Trạng thái:</strong> <%= statusLabel %>
+      </p>
+    </div>
+    <div class="reports-detail__header-actions">
+      <a href="/reports" class="btn-ghost">
+        <i class="fa-solid fa-arrow-left"></i>
+        Quay lại bảng điều hành
+      </a>
+      <a href="/reports/schedules/<%= schedule.id %>/edit" class="btn-primary">
+        <i class="fa-solid fa-pen"></i>
+        Chỉnh sửa lịch báo cáo
+      </a>
+    </div>
+  </header>
+
+  <div class="reports-detail__layout">
+    <section class="reports-detail__main">
+      <article class="reports-detail__card">
+        <h2>Thông tin tổng quan</h2>
+        <dl class="reports-detail__grid">
+          <div>
+            <dt>Đơn vị phụ trách</dt>
+            <dd><i class="fa-solid fa-user-tie"></i> <%= schedule.owner %></dd>
+          </div>
+          <div>
+            <dt>Kênh chia sẻ</dt>
+            <dd><i class="fa-solid fa-share-nodes"></i> <%= schedule.channel %></dd>
+          </div>
+          <div>
+            <dt>Tiến độ triển khai</dt>
+            <dd><strong><%= schedule.progress %>%</strong></dd>
+          </div>
+          <div>
+            <dt>Tỷ lệ hoàn thành đúng hạn</dt>
+            <dd><strong><%= schedule.completionRate %>%</strong></dd>
+          </div>
+          <div>
+            <dt>Hạn kế tiếp</dt>
+            <dd><%= schedule.dueLabel %></dd>
+          </div>
+          <div>
+            <dt>Nhắc trước</dt>
+            <dd><%= schedule.remindBeforeHours %> giờ</dd>
+          </div>
+          <div>
+            <dt>Ngày đến hạn kế tiếp</dt>
+            <dd><%= schedule.nextDueDate ? new Date(schedule.nextDueDate).toLocaleDateString('vi-VN') : 'Chưa thiết lập' %></dd>
+          </div>
+          <div>
+            <dt>Lần nộp gần nhất</dt>
+            <dd><%= schedule.lastSubmittedAt ? new Date(schedule.lastSubmittedAt).toLocaleDateString('vi-VN') : 'Chưa có dữ liệu' %></dd>
+          </div>
+        </dl>
+      </article>
+
+      <article class="reports-detail__card">
+        <h2>Phạm vi & ghi chú điều hành</h2>
+        <p class="reports-detail__scope"><%= schedule.scope || 'Chưa có mô tả phạm vi cho lịch báo cáo này.' %></p>
+      </article>
+
+      <article class="reports-detail__card">
+        <h2>Cấu hình định kỳ</h2>
+        <div class="reports-detail__recurrence">
+          <% if (schedule.recurrencePattern) { %>
+            <% switch (schedule.recurrencePattern.type) { case 'weekly': %>
+              <p><i class="fa-solid fa-calendar-week"></i> Báo cáo vào <%= weekdayLabels[schedule.recurrencePattern.dayOfWeek] || 'một ngày trong tuần' %>.</p>
+            <% break; case 'monthly': %>
+              <p><i class="fa-solid fa-calendar-days"></i> Báo cáo vào ngày <%= schedule.recurrencePattern.dayOfMonth %> hàng tháng.</p>
+            <% break; case 'quarterly': %>
+              <p><i class="fa-solid fa-calendar"></i> Báo cáo vào ngày <%= schedule.recurrencePattern.day %>/<%= schedule.recurrencePattern.month %> hàng quý.</p>
+            <% break; case 'annual': %>
+              <p><i class="fa-solid fa-calendar-check"></i> Báo cáo vào ngày <%= schedule.recurrencePattern.day %>/<%= schedule.recurrencePattern.month %> hằng năm.</p>
+            <% break; case 'custom': %>
+              <p><i class="fa-solid fa-calendar-plus"></i> Chu kỳ tùy chỉnh: <%= schedule.recurrencePattern.note %></p>
+            <% break; default: %>
+              <p>Chu kỳ báo cáo định kỳ.</p>
+            <% } %>
+          <% } else { %>
+            <p>Chưa cấu hình chu kỳ định kỳ cho lịch báo cáo này.</p>
+          <% } %>
+        </div>
+      </article>
+    </section>
+
+    <aside class="reports-detail__side">
+      <article class="reports-detail__card">
+        <h3>Nhãn hạn hiển thị</h3>
+        <p class="reports-detail__due"><%= schedule.dueLabel || 'Chưa xác định' %></p>
+        <p class="reports-detail__due-sub">Sử dụng cho giao diện người dùng và thông báo nhắc hạn.</p>
+      </article>
+
+      <article class="reports-detail__card">
+        <h3>Tài liệu & thẻ</h3>
+        <p><strong>Dự kiến đính kèm:</strong> <%= schedule.attachments %> tài liệu</p>
+        <% if (schedule.tags && schedule.tags.length) { %>
+          <div class="reports-detail__tags">
+            <% schedule.tags.forEach(function(tag){ %>
+              <span class="report-tag"><%= tag %></span>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <p>Chưa gắn thẻ cho lịch báo cáo này.</p>
+        <% } %>
+      </article>
+
+      <article class="reports-detail__card reports-detail__meta">
+        <h3>Thông tin hệ thống</h3>
+        <ul>
+          <li><span>Tạo bởi:</span> <strong><%= schedule.createdBy || 'Không xác định' %></strong></li>
+          <li><span>Ngày tạo:</span> <strong><%= schedule.createdAt ? new Date(schedule.createdAt).toLocaleDateString('vi-VN') : 'Không rõ' %></strong></li>
+          <li><span>Ngày cập nhật:</span> <strong><%= schedule.updatedAt ? new Date(schedule.updatedAt).toLocaleDateString('vi-VN') : 'Không rõ' %></strong></li>
+          <li><span>Trạng thái kích hoạt:</span> <strong><%= schedule.isActive ? 'Đang sử dụng' : 'Đã ngừng' %></strong></li>
+        </ul>
+      </article>
+
+      <form method="post" action="/reports/schedules/<%= schedule.id %>/delete" class="reports-detail__delete" data-report-delete-form>
+        <button type="submit" class="btn-danger">
+          <i class="fa-solid fa-trash"></i>
+          Xoá lịch báo cáo này
+        </button>
+      </form>
+    </aside>
+  </div>
+</section>
+
+<%- contentFor('js') %>
+<script>
+(function(){
+  document.addEventListener('submit', function(event){
+    if (event.target && event.target.matches('[data-report-delete-form]')) {
+      const confirmed = confirm('Bạn có chắc chắn muốn xoá lịch báo cáo này?');
+      if (!confirmed) {
+        event.preventDefault();
+      }
+    }
+  });
+})();
+</script>

@@ -1,0 +1,305 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/research.css?v=20241008">
+
+<section class="research-page">
+  <header class="research-hero">
+    <div class="research-hero__intro">
+      <span class="hero-badge">Chiến lược phát triển</span>
+      <h1>Nghiên cứu khoa học</h1>
+      <p>
+        Theo dõi hệ sinh thái nghiên cứu của khoa: đề tài giảng viên, sáng kiến sinh viên,
+        tiến độ nghiệm thu và các kết quả khoa học nổi bật.
+      </p>
+      <% if (canManageResearch) { %>
+        <div class="hero-actions">
+          <a class="hero-action__button" href="<%= manageUrl %>">
+            <i class="fa-solid fa-pen-to-square"></i>
+            Quản lý dữ liệu nghiên cứu
+          </a>
+          <p class="hero-action__hint">Bổ sung đề tài mới hoặc cập nhật tiến độ để Dashboard luôn phản ánh dữ liệu mới nhất.</p>
+        </div>
+      <% } %>
+      <ul class="hero-meta">
+        <li>
+          <small>Đề tài đang triển khai</small>
+          <strong><%= (summaryCards && summaryCards[0] && summaryCards[0].value) || 0 %></strong>
+        </li>
+        <li>
+          <small>Giảng viên tham gia</small>
+          <strong><%= facultyLeaderboard.length %></strong>
+        </li>
+        <li>
+          <small>Đề tài sinh viên</small>
+          <strong><%= studentStats.totalProjects || 0 %></strong>
+        </li>
+      </ul>
+    </div>
+    <div class="research-hero__panels">
+      <article class="hero-panel">
+        <header>
+          <h2>Tổng quan nguồn lực</h2>
+          <span class="hero-panel__tag">Cập nhật</span>
+        </header>
+        <ul>
+          <li>
+            <i class="fa-solid fa-users"></i>
+            <div>
+              <strong><%= facultyLeaderboard.reduce((acc, item) => acc + (item.totalProjects > 0 ? 1 : 0), 0) %></strong>
+              <span>giảng viên chủ trì đề tài</span>
+            </div>
+          </li>
+          <li>
+            <i class="fa-solid fa-flask"></i>
+            <div>
+              <strong><%= statusDistribution.find(s => s.key === 'active')?.value || 0 %></strong>
+              <span>đề tài đang triển khai</span>
+            </div>
+          </li>
+          <li>
+            <i class="fa-solid fa-graduation-cap"></i>
+            <div>
+              <strong><%= studentStats.activeProjects || 0 %></strong>
+              <span>đề tài sinh viên đang hoạt động</span>
+            </div>
+          </li>
+        </ul>
+      </article>
+      <article class="hero-panel hero-panel--secondary">
+        <header>
+          <h2>Phân bổ lĩnh vực</h2>
+        </header>
+        <% if (fieldDistribution && fieldDistribution.length) { %>
+          <ul class="field-list">
+            <% fieldDistribution.slice(0, 5).forEach(function(field){ %>
+              <li>
+                <span><i class="fa-solid fa-circle"></i> <%= field.field %></span>
+                <strong><%= field.count %></strong>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="empty-message">Đang cập nhật phân bổ lĩnh vực nghiên cứu.</p>
+        <% } %>
+      </article>
+    </div>
+  </header>
+
+  <section class="research-metrics" aria-label="Chỉ số chính">
+    <% (summaryCards || []).forEach(function(card){ %>
+      <article class="metric-card" data-tone="<%= card.tone %>">
+        <header><span><%= card.label %></span></header>
+        <strong><%= card.value %></strong>
+        <p><%= card.hint %></p>
+      </article>
+    <% }) %>
+  </section>
+
+  <section class="research-status" aria-label="Trạng thái đề tài">
+    <% (statusDistribution || []).forEach(function(item){ %>
+      <article class="status-chip" data-tone="<%= item.tone %>">
+        <strong><%= item.value %></strong>
+        <span><%= item.label %></span>
+      </article>
+    <% }) %>
+  </section>
+
+  <% if (alerts && alerts.length) { %>
+    <section class="research-alerts" aria-label="Cảnh báo điều hành">
+      <% alerts.forEach(function(alert){ %>
+        <article class="alert-card" data-tone="<%= alert.tone %>">
+          <header>
+            <h2><%= alert.title %></h2>
+            <p><%= alert.description %></p>
+          </header>
+          <% if (alert.items && alert.items.length) { %>
+            <ul>
+              <% alert.items.forEach(function(item){ %>
+                <li><i class="fa-solid fa-circle-exclamation"></i><span><%= item %></span></li>
+              <% }) %>
+            </ul>
+          <% } %>
+        </article>
+      <% }) %>
+    </section>
+  <% } %>
+
+  <section class="research-grid" aria-label="Hoạt động nghiên cứu">
+    <article class="grid-panel">
+      <header class="grid-panel__header">
+        <div>
+          <h2>Đề tài nổi bật</h2>
+          <p>Những đề tài đang dẫn đầu tiến độ và hiệu quả triển khai.</p>
+        </div>
+      </header>
+      <div class="project-list">
+        <% if (projectShowcase && projectShowcase.length) { %>
+          <% projectShowcase.forEach(function(project){ %>
+            <article class="project-card">
+              <header>
+                <span class="project-badge project-badge--<%= project.status %>"><%= project.statusLabel %></span>
+                <strong><%= project.code %></strong>
+              </header>
+              <h3><%= project.title %></h3>
+              <p><i class="fa-solid fa-user"></i> <%= project.leader || 'Chưa cập nhật' %></p>
+              <p class="project-meta">
+                <span><i class="fa-solid fa-calendar"></i> Bắt đầu: <%= project.startDateLabel %></span>
+                <span><i class="fa-solid fa-calendar-check"></i> Kết thúc: <%= project.endDateLabel %></span>
+              </p>
+              <footer>
+                <% const projectProgressWidth = Math.min(project.progress, 100); %>
+                <div class="progress-bar">
+                  <div class="progress-bar__fill" <% if (!Number.isNaN(projectProgressWidth)) { %>style="width: <%= projectProgressWidth %>%"<% } %>></div>
+                </div>
+                <span class="progress-label"><%= project.progress %>%</span>
+              </footer>
+            </article>
+          <% }) %>
+        <% } else { %>
+          <div class="empty-state">
+            <i class="fa-solid fa-seedling"></i>
+            <p>Chưa có đề tài nào được ghi nhận.<% if (canManageResearch) { %> <a href="<%= manageUrl %>">Thêm đề tài đầu tiên</a> để kích hoạt bảng điều khiển.<% } %></p>
+          </div>
+        <% } %>
+      </div>
+    </article>
+
+    <article class="grid-panel">
+      <header class="grid-panel__header">
+        <div>
+          <h2>Dòng thời gian</h2>
+          <p>Theo dõi các mốc quan trọng và hạn nghiệm thu.</p>
+        </div>
+      </header>
+      <% if (timeline && timeline.length) { %>
+        <ol class="timeline">
+          <% timeline.forEach(function(item){ %>
+            <li class="timeline-item">
+              <div class="timeline-marker"></div>
+              <div class="timeline-content">
+                <header>
+                  <strong><%= item.title %></strong>
+                  <span><%= item.projectCode %></span>
+                </header>
+                <p><i class="fa-solid fa-user"></i> <%= item.leaderName || 'Chưa cập nhật' %></p>
+                <footer>
+                  <span><i class="fa-solid fa-calendar-check"></i> <%= item.dueDateLabel %></span>
+                  <span><i class="fa-solid fa-hourglass-half"></i> <%= item.relativeLabel || 'Đang cập nhật' %></span>
+                </footer>
+              </div>
+            </li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <div class="empty-state">
+          <i class="fa-solid fa-calendar-days"></i>
+          <p>Chưa có milestone nào được ghi nhận.<% if (canManageResearch) { %> <a href="<%= manageUrl %>">Cập nhật mốc thời gian</a> để theo dõi hạn nghiệm thu.<% } %></p>
+        </div>
+      <% } %>
+    </article>
+  </section>
+
+  <section class="research-grid" aria-label="Giảng viên và sinh viên" data-stretch>
+    <article class="grid-panel">
+      <header class="grid-panel__header">
+        <div>
+          <h2>Giảng viên chủ chốt</h2>
+          <p>Tổng hợp những giảng viên đang dẫn dắt hoạt động nghiên cứu.</p>
+        </div>
+      </header>
+      <% if (facultyLeaderboard && facultyLeaderboard.length) { %>
+        <ul class="leaderboard">
+          <% facultyLeaderboard.forEach(function(item){ %>
+            <li>
+              <div class="leaderboard__avatar"><%= (item.leaderName || '?').charAt(0).toUpperCase() %></div>
+              <div class="leaderboard__info">
+                <strong><%= item.leaderName %></strong>
+                <span><i class="fa-solid fa-building"></i> <%= item.departmentName %></span>
+              </div>
+              <div class="leaderboard__metrics">
+                <span><strong><%= item.totalProjects %></strong> đề tài</span>
+                <span><strong><%= item.completedProjects %></strong> hoàn thành</span>
+                <span><strong><%= item.avgProgress %></strong>% tiến độ</span>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <div class="empty-state">
+          <i class="fa-solid fa-person-chalkboard"></i>
+          <p>Chưa có dữ liệu giảng viên.<% if (canManageResearch) { %> Hãy cập nhật đề tài giảng viên tại <a href="<%= manageUrl %>">trang quản lý</a>.<% } %></p>
+        </div>
+      <% } %>
+    </article>
+
+    <article class="grid-panel">
+      <header class="grid-panel__header">
+        <div>
+          <h2>Đề tài sinh viên</h2>
+          <p>Sáng kiến và dự án tham gia nghiên cứu khoa học của sinh viên.</p>
+        </div>
+      </header>
+      <% if (studentProjects && studentProjects.length) { %>
+        <div class="student-grid">
+          <% studentProjects.forEach(function(project){ %>
+            <article class="student-card">
+              <header>
+                <span class="student-status student-status--<%= project.status %>"><%= project.statusLabel %></span>
+                <strong><%= project.leadStudent || 'Chưa cập nhật' %></strong>
+              </header>
+              <h3><%= project.title %></h3>
+              <p><i class="fa-solid fa-user-tie"></i> GVHD: <%= project.supervisorName || 'Chưa cập nhật' %></p>
+              <p><i class="fa-solid fa-layer-group"></i> Quy mô: <%= project.teamSize || 1 %> thành viên</p>
+              <p><i class="fa-solid fa-flag"></i> Lĩnh vực: <%= project.field || 'Đang cập nhật' %></p>
+              <footer>
+                <% const studentProgressWidth = Math.min(project.progress || 0, 100); %>
+                <div class="progress-bar">
+                  <div class="progress-bar__fill" <% if (!Number.isNaN(studentProgressWidth)) { %>style="width: <%= studentProgressWidth %>%"<% } %>></div>
+                </div>
+                <span class="progress-label"><%= project.progress || 0 %>%</span>
+              </footer>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <i class="fa-solid fa-graduation-cap"></i>
+          <p>Chưa có dữ liệu đề tài sinh viên.<% if (canManageResearch) { %> <a href="<%= manageUrl %>">Ghi nhận đề tài sinh viên</a> để làm đầy danh sách.<% } else { %> Hãy liên hệ quản trị viên để được cấp quyền cập nhật.<% } %></p>
+        </div>
+      <% } %>
+    </article>
+  </section>
+
+  <section class="research-outputs" aria-label="Kết quả khoa học">
+    <header>
+      <h2>Kết quả nổi bật</h2>
+      <p>Bài báo, hội nghị, giải thưởng mới nhất từ giảng viên và sinh viên.</p>
+    </header>
+    <% if (studentOutputs && studentOutputs.length) { %>
+      <ul class="output-list">
+        <% studentOutputs.forEach(function(output){ %>
+          <li>
+            <div class="output-icon">
+              <i class="fa-solid fa-medal"></i>
+            </div>
+            <div class="output-content">
+              <strong><%= output.title %></strong>
+              <span><i class="fa-solid fa-user"></i> <%= output.leadStudent || 'Nhóm nghiên cứu' %></span>
+              <span><i class="fa-solid fa-flask-vial"></i> <%= output.projectTitle || 'Đề tài khoa học' %></span>
+            </div>
+            <div class="output-meta">
+              <span><i class="fa-solid fa-calendar"></i> <%= output.publishDateLabel %></span>
+              <% if (output.link) { %>
+                <a href="<%= output.link %>" target="_blank" rel="noopener" class="output-link">Xem chi tiết</a>
+              <% } %>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <div class="empty-state">
+        <i class="fa-solid fa-trophy"></i>
+        <p>Chưa có kết quả khoa học được ghi nhận.<% if (canManageResearch) { %> <a href="<%= manageUrl %>">Bổ sung kết quả mới</a> để hiển thị tại đây.<% } %></p>
+      </div>
+    <% } %>
+  </section>
+</section>

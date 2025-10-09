@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= (title || 'Quản lý tài sản') + ' - ' + (appName || 'KA Management') %></title>
+  <!-- Base CSS -->
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <!-- Page CSS -->
+  <link rel="stylesheet" href="/css/assets-management.css?v=20241006_v2">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='kaGradient' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23003B8E'/%3E%3Cstop offset='100%25' stop-color='%23FF7A18'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='24' fill='url(%23kaGradient)'/%3E%3Ctext x='50%25' y='58%25' dominant-baseline='middle' text-anchor='middle' font-family='Segoe UI, Arial, sans-serif' font-size='56' font-weight='700' fill='white'%3EKA%3C/text%3E%3C/svg%3E">
+  <link rel="alternate icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAAAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAQAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wAAAAAAAAA=" />
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script>
+    (function(){
+      var protocol = window.location.protocol;
+      var host = window.location.hostname;
+      var port = window.location.port ? ':' + window.location.port : '';
+      if (protocol === 'https:' && (host === 'localhost' || host === '127.0.0.1')) {
+          var targetHost = host === 'localhost' ? '127.0.0.1' : host;
+          var target = 'http://' + targetHost + port + window.location.pathname + window.location.search + window.location.hash;
+          if (target !== window.location.href) {
+              window.location.replace(target);
+          }
+      }
+    })();
+  </script>
+</head>
+<body class="app-auth">
+  <div class="app-layout">
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-brand">
+        <span class="sidebar-brand__logo">KA</span>
+        <div class="sidebar-brand__text">
+          <span class="sidebar-brand__title"><%= appName || 'KA Management' %></span>
+          <small class="sidebar-brand__subtitle">Khoa An ninh điều tra</small>
+        </div>
+      </div>
+      <%- include('../partials/sidebar') %>
+    </aside>
+    <div class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-brand">
+          <span class="topbar-brand__logo">KA</span>
+          <div class="topbar-brand__text">
+            <span class="topbar-brand__title">Khoa An ninh điều tra</span>
+            <span class="topbar-brand__subtitle">Quản lý công việc nội bộ</span>
+          </div>
+        </div>
+        <div class="topbar-page">
+          <h1><%= title || 'Quản lý tài sản' %></h1>
+          <p>Xin chào, <%= (user && (user.fullName || user.full_name || user.username)) || 'Người dùng' %></p>
+        </div>
+        <div class="topbar-actions">
+          <div class="topbar-date"><%= new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) %></div>
+          <div class="topbar-user">
+            <div class="topbar-user__meta">
+              <span class="topbar-user__name"><%= (user && (user.fullName || user.full_name || user.username)) || 'Người dùng' %></span>
+              <span class="topbar-user__role"><%= (user && user.roleName) || 'Administrator' %></span>
+            </div>
+            <div class="topbar-user__avatar"><%= (user && (user.fullName || user.full_name || user.username) || '?').charAt(0).toUpperCase() %></div>
+          </div>
+        </div>
+      </header>
+      <main class="app-content">
+        <%- include('../partials/alerts') %>
+
+<%
+  const formatCurrency = (value) => {
+    if (value === null || value === undefined || value === '') return '—';
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) return value;
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(numericValue);
+  };
+
+  const formatNumber = (value) => {
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) {
+      return value || '0';
+    }
+    return new Intl.NumberFormat('vi-VN').format(numericValue);
+  };
+
+  const formatDate = (value) => {
+    if (!value) return 'Chưa cập nhật';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  const STATUS_ORDER = ['all', 'available', 'in_use', 'maintenance', 'retired'];
+  const assetList = Array.isArray(typeof assets !== 'undefined' ? assets : []) ? assets : [];
+  const toLower = (value) => (value || '').toString().toLowerCase();
+  const conditionLabels = {
+    excellent: 'Xuất sắc',
+    good: 'Tốt',
+    fair: 'Trung bình',
+    poor: 'Cần kiểm tra',
+    broken: 'Hỏng'
+  };
+  const normalizeCondition = (value) => conditionLabels[toLower(value)] || value || 'Chưa xác định';
+
+  const watchlistAssets = assetList
+    .filter((item) => {
+      const statusKey = toLower(item.status);
+      const conditionKey = toLower(item.conditionRating);
+      return ['maintenance', 'retired'].includes(statusKey) || ['poor', 'broken'].includes(conditionKey);
+    })
+    .slice(0, 4);
+
+  const categoryStatsMap = assetList.reduce((acc, item) => {
+    const key = item.category || 'Khác';
+    if (!acc[key]) {
+      acc[key] = { count: 0, total: 0 };
+    }
+    acc[key].count += 1;
+    const numericValue = Number(item.currentValue);
+    if (!Number.isNaN(numericValue)) {
+      acc[key].total += numericValue;
+    }
+    return acc;
+  }, {});
+
+  const categoryBreakdown = Object.entries(categoryStatsMap)
+    .map(([name, info]) => ({ name, count: info.count, total: info.total }))
+    .sort((a, b) => b.count - a.count || b.total - a.total)
+    .slice(0, 6);
+
+  const insightCards = [
+    {
+      key: 'available',
+      label: 'Sẵn sàng',
+      tone: 'success',
+      icon: 'fa-circle-check',
+      value: statusOverview?.available || 0,
+      hint: 'Có thể cấp phát ngay'
+    },
+    {
+      key: 'in_use',
+      label: 'Đang sử dụng',
+      tone: 'info',
+      icon: 'fa-briefcase',
+      value: statusOverview?.in_use || 0,
+      hint: 'Đang bàn giao cho đơn vị'
+    },
+    {
+      key: 'maintenance',
+      label: 'Bảo trì',
+      tone: 'warning',
+      icon: 'fa-screwdriver-wrench',
+      value: statusOverview?.maintenance || 0,
+      hint: 'Cần theo dõi tiến độ'
+    },
+    {
+      key: 'retired',
+      label: 'Thu hồi',
+      tone: 'muted',
+      icon: 'fa-box-archive',
+      value: statusOverview?.retired || 0,
+      hint: 'Chờ thanh lý'
+    }
+  ];
+
+  const totalStatusCount = insightCards.reduce((sum, card) => sum + (Number(card.value) || 0), 0);
+  const statusDistribution = insightCards.map((card) => ({
+    key: card.key,
+    label: card.label,
+    tone: card.tone,
+    value: card.value || 0,
+    percent: totalStatusCount > 0 ? Math.round((Number(card.value || 0) / totalStatusCount) * 100) : 0
+  }));
+
+  const searchActive = (activeStatus && activeStatus !== 'all') || (searchQuery && searchQuery.length > 0);
+
+  const totalAssets = Number(summary?.stats?.totalAssets ?? summary?.valueSummary?.totalCount ?? statusOverview?.total ?? assetList.length ?? 0);
+  const watchlistCount = watchlistAssets.length;
+  const availablePercent = totalStatusCount > 0 ? Math.round(((statusOverview?.available || 0) / totalStatusCount) * 100) : 0;
+
+  const heroMetrics = [
+    {
+      key: 'total',
+      label: 'Tổng tài sản',
+      tone: 'primary',
+      icon: 'fa-layer-group',
+      value: totalAssets,
+      format: 'number',
+      hint: 'Đang được quản lý'
+    },
+    {
+      key: 'average-value',
+      label: 'Giá trị trung bình',
+      tone: 'success',
+      icon: 'fa-sack-dollar',
+      value: summary?.valueSummary?.averageValue,
+      format: 'currency',
+      hint: 'Theo dữ liệu hiện tại'
+    },
+    {
+      key: 'watchlist',
+      label: 'Cần theo dõi',
+      tone: 'warning',
+      icon: 'fa-triangle-exclamation',
+      value: watchlistCount,
+      format: 'number',
+      hint: 'Tài sản ở trạng thái rủi ro'
+    },
+    {
+      key: 'available-percent',
+      label: 'Sẵn sàng cấp phát',
+      tone: 'info',
+      icon: 'fa-chart-pie',
+      value: availablePercent,
+      format: 'percent',
+      hint: 'Phần trăm tài sản sẵn sàng'
+    }
+  ];
+%>
+
+<div class="asset-page">
+  <header class="asset-hero">
+    <div class="asset-hero__heading">
+      <span class="asset-pill asset-pill--progress">Đang vận hành</span>
+      <h1>Quản lý tài sản</h1>
+      <p>
+        Theo dõi danh mục trang thiết bị, vật tư và tình trạng sử dụng theo thời gian thực.
+        Mỗi tài sản đều có lịch sử bàn giao, bảo trì và giá trị cập nhật.
+      </p>
+    </div>
+    <div class="asset-hero__meta">
+      <div class="asset-meta-card">
+        <span class="asset-meta-card__label">Trạng thái triển khai</span>
+        <span class="asset-meta-card__value asset-meta-card__value--ready">Đã triển khai</span>
+      </div>
+      <div class="asset-meta-card">
+        <span class="asset-meta-card__label">Liên hệ phụ trách</span>
+        <span class="asset-meta-card__value">Phòng Hành chính - Quản trị</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="asset-hero-metrics" aria-label="Chỉ số nhanh">
+    <% heroMetrics.forEach((metric) => { %>
+      <% const displayValue = metric.format === 'currency'
+        ? formatCurrency(metric.value)
+        : metric.format === 'percent'
+          ? `${Number(metric.value || 0)}%`
+          : formatNumber(metric.value);
+      %>
+      <article class="asset-hero-metric asset-hero-metric--<%= metric.tone %>">
+        <div class="asset-hero-metric__icon">
+          <i class="fa-solid <%= metric.icon %>"></i>
+        </div>
+        <div class="asset-hero-metric__content">
+          <span class="asset-hero-metric__label"><%= metric.label %></span>
+          <strong class="asset-hero-metric__value"><%= displayValue %></strong>
+          <span class="asset-hero-metric__hint"><%= metric.hint %></span>
+        </div>
+      </article>
+    <% }) %>
+  </section>
+
+  <section class="asset-summary">
+    <% if (summary?.cards?.length) { %>
+      <% summary.cards.forEach((card) => { %>
+        <div class="asset-summary-card asset-summary-card--<%= card.tone %>">
+          <div class="asset-summary-card__label"><%= card.label %></div>
+          <div class="asset-summary-card__value"><%= card.value %></div>
+          <p class="asset-summary-card__desc"><%= card.description %></p>
+        </div>
+      <% }) %>
+    <% } %>
+  </section>
+
+  <section class="asset-insights">
+    <% insightCards.forEach((card) => { %>
+      <article class="asset-insight asset-insight--<%= card.tone %>">
+        <div class="asset-insight__icon">
+          <i class="fa-solid <%= card.icon %>"></i>
+        </div>
+        <div class="asset-insight__content">
+          <span class="asset-insight__label"><%= card.label %></span>
+          <strong class="asset-insight__value"><%= card.value %></strong>
+          <p class="asset-insight__hint"><%= card.hint %></p>
+        </div>
+      </article>
+    <% }) %>
+  </section>
+
+  <section class="asset-main-layout">
+    <div class="asset-main-layout__primary">
+      <section class="asset-toolbar">
+        <nav class="asset-status-tabs">
+          <% STATUS_ORDER.forEach((key) => { %>
+            <% const meta = statusMeta[key]; %>
+            <a
+              href="<%= filterLinks[key] %>"
+              class="asset-status-tab asset-status-tab--<%= meta?.tone || 'neutral' %> <%= activeStatus === key ? 'is-active' : '' %>"
+            >
+              <span class="asset-status-tab__label"><%= meta?.label || key %></span>
+              <% if (key !== 'all') { %>
+                <span class="asset-status-tab__count"><%= statusOverview[key] || 0 %></span>
+              <% } %>
+            </a>
+          <% }) %>
+        </nav>
+
+        <form class="asset-search" method="get" action="/assets">
+          <% if (activeStatus && activeStatus !== 'all') { %>
+            <input type="hidden" name="status" value="<%= activeStatus %>">
+          <% } %>
+          <div class="asset-search__field">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input
+              type="search"
+              name="q"
+              placeholder="Tìm theo mã, tên tài sản hoặc serial..."
+              value="<%= searchQuery %>"
+              autocomplete="off"
+            >
+          </div>
+          <button type="submit" class="asset-search__submit">Tìm kiếm</button>
+          <% if (hasFilters) { %>
+            <a href="/assets" class="asset-search__reset">
+              <i class="fa-regular fa-circle-xmark"></i>
+              Xóa bộ lọc
+            </a>
+          <% } %>
+        </form>
+      </section>
+
+      <div class="asset-quick-actions">
+        <a href="#" class="asset-quick-action" data-action="asset-add">
+          <span class="asset-quick-action__icon asset-quick-action__icon--primary"><i class="fa-solid fa-plus"></i></span>
+          <div class="asset-quick-action__body">
+            <strong>Thêm tài sản mới</strong>
+            <span>Mở biểu mẫu để tạo hồ sơ và phân công quản lý</span>
+          </div>
+          <span class="asset-quick-action__tag">Mới</span>
+        </a>
+        <a href="#" class="asset-quick-action" aria-disabled="true">
+          <span class="asset-quick-action__icon asset-quick-action__icon--info"><i class="fa-solid fa-file-export"></i></span>
+          <div class="asset-quick-action__body">
+            <strong>Xuất báo cáo</strong>
+            <span>Tổng hợp dữ liệu Excel/PDF theo bộ lọc</span>
+          </div>
+          <span class="asset-quick-action__tag">Đang phát triển</span>
+        </a>
+        <a href="#" class="asset-quick-action" aria-disabled="true">
+          <span class="asset-quick-action__icon asset-quick-action__icon--warning"><i class="fa-solid fa-calendar-check"></i></span>
+          <div class="asset-quick-action__body">
+            <strong>Lịch bảo trì</strong>
+            <span>Lập kế hoạch định kỳ cho từng thiết bị</span>
+          </div>
+          <span class="asset-quick-action__tag">Sắp kích hoạt</span>
+        </a>
+      </div>
+
+      <% if (assets.length > 0) { %>
+        <div class="asset-primary-result">
+          <div class="asset-result-bar">
+            <span><strong><%= assets.length %></strong> tài sản được hiển thị</span>
+            <% if (searchActive) { %>
+              <span class="asset-result-bar__filters">Bộ lọc đang áp dụng</span>
+            <% } %>
+          </div>
+          <section class="asset-grid">
+            <% assets.forEach((asset) => { %>
+              <article class="asset-card" data-asset-id="<%= asset.id %>">
+                <header class="asset-card__header">
+                  <div class="asset-avatar"><span><%= asset.initials %></span></div>
+                  <div class="asset-card__heading">
+                    <h2><%= asset.name %></h2>
+                    <p>Mã tài sản: <strong><%= asset.assetCode %></strong></p>
+                  </div>
+                  <span class="asset-status-badge asset-status-badge--<%= asset.statusMeta.tone %>">
+                    <%= asset.statusMeta.label %>
+                  </span>
+                </header>
+                <dl class="asset-card__meta">
+                  <div>
+                    <dt>Phân loại</dt>
+                    <dd><%= asset.category %></dd>
+                  </div>
+                  <div>
+                    <dt>Vị trí</dt>
+                    <dd><%= asset.location %></dd>
+                  </div>
+                  <div>
+                    <dt>Đơn vị sử dụng</dt>
+                    <dd><%= asset.assignedTo %></dd>
+                  </div>
+                  <div>
+                    <dt>Giá trị hiện tại</dt>
+                    <dd><%= formatCurrency(asset.currentValue) %></dd>
+                  </div>
+                </dl>
+                <footer class="asset-card__footer">
+                  <span class="asset-card__tag asset-card__tag--condition">Tình trạng: <strong><%= normalizeCondition(asset.conditionRating) %></strong></span>
+                  <span class="asset-card__tag">Ngày mua: <strong><%= formatDate(asset.purchaseDate) %></strong></span>
+                </footer>
+              </article>
+            <% }) %>
+          </section>
+
+          <% if (pagination.totalPages > 1) { %>
+            <nav class="asset-pagination" aria-label="Phân trang tài sản">
+              <% if (pagination.hasPrev) { %>
+                <% const prevParams = new URLSearchParams(); %>
+                <% if (activeStatus && activeStatus !== 'all') { prevParams.set('status', activeStatus); } %>
+                <% if (searchQuery) { prevParams.set('q', searchQuery); } %>
+                <% prevParams.set('page', pagination.page - 1); %>
+                <a class="asset-pagination__link" href="?<%= prevParams.toString() %>">&laquo; Trước</a>
+              <% } else { %>
+                <span class="asset-pagination__link is-disabled">&laquo; Trước</span>
+              <% } %>
+
+              <span class="asset-pagination__status">Trang <strong><%= pagination.page %></strong> / <%= pagination.totalPages %></span>
+
+              <% if (pagination.hasNext) { %>
+                <% const nextParams = new URLSearchParams(); %>
+                <% if (activeStatus && activeStatus !== 'all') { nextParams.set('status', activeStatus); } %>
+                <% if (searchQuery) { nextParams.set('q', searchQuery); } %>
+                <% nextParams.set('page', pagination.page + 1); %>
+                <a class="asset-pagination__link" href="?<%= nextParams.toString() %>">Sau &raquo;</a>
+              <% } else { %>
+                <span class="asset-pagination__link is-disabled">Sau &raquo;</span>
+              <% } %>
+            </nav>
+          <% } %>
+        </div>
+      <% } else { %>
+        <section class="asset-empty">
+          <div class="asset-empty__icon">
+            <i class="fa-regular fa-folder-open"></i>
+          </div>
+          <h2>Chưa có tài sản nào phù hợp bộ lọc</h2>
+          <p>Hãy thử tìm kiếm với từ khóa khác hoặc chọn trạng thái khác để xem danh sách tài sản.</p>
+          <a href="/assets" class="asset-empty__action">Xem toàn bộ tài sản</a>
+        </section>
+      <% } %>
+    </div>
+
+    <aside class="asset-main-layout__secondary">
+      <section class="asset-value-overview" aria-label="Tổng quan giá trị tài sản">
+        <div class="value-overview__item">
+          <span class="value-overview__label">Tổng giá trị ước tính</span>
+          <strong class="value-overview__value"><%= formatCurrency(summary?.valueSummary?.totalValue) %></strong>
+        </div>
+        <div class="value-overview__item">
+          <span class="value-overview__label">Giá trị trung bình</span>
+          <strong class="value-overview__value"><%= formatCurrency(summary?.valueSummary?.averageValue) %></strong>
+        </div>
+        <div class="value-overview__item">
+          <span class="value-overview__label">Tài sản sẵn sàng</span>
+          <strong class="value-overview__value"><%= summary?.valueSummary?.availableCount || 0 %></strong>
+        </div>
+        <div class="value-overview__item">
+          <span class="value-overview__label">Đang chờ xử lý</span>
+          <strong class="value-overview__value"><%= summary?.valueSummary?.retiredCount || 0 %></strong>
+        </div>
+      </section>
+
+      <section class="asset-status-distribution" aria-label="Phân bổ trạng thái">
+        <header class="asset-distribution__header">
+          <h2>Phân bổ trạng thái</h2>
+          <span><%= totalStatusCount %> tài sản</span>
+        </header>
+        <ul class="asset-distribution__list">
+          <% statusDistribution.forEach((item) => { %>
+            <li class="asset-distribution__item asset-distribution__item--<%= item.tone %>">
+              <div class="asset-distribution__meta">
+                <span class="asset-distribution__label">
+                  <span class="asset-dot asset-dot--<%= item.tone %>"></span>
+                  <%= item.label %>
+                </span>
+                <span class="asset-distribution__value"><%= item.value %></span>
+              </div>
+              <div class="asset-distribution__progress">
+                <span class="asset-distribution__bar" style="--progress: <%= item.percent %>%;"></span>
+              </div>
+              <span class="asset-distribution__percent"><%= item.percent %>%</span>
+            </li>
+          <% }) %>
+        </ul>
+      </section>
+
+      <section class="asset-breakdown" aria-label="Phân bổ theo nhóm">
+        <header class="asset-breakdown__header">
+          <h2>Nhóm tài sản nổi bật</h2>
+          <span><%= categoryBreakdown.length %> nhóm</span>
+        </header>
+        <% if (categoryBreakdown.length) { %>
+          <ul class="asset-breakdown__list">
+            <% categoryBreakdown.forEach((item) => { %>
+              <li>
+                <div class="asset-breakdown__label"><%= item.name %></div>
+                <div class="asset-breakdown__meta">
+                  <span><strong><%= item.count %></strong> tài sản</span>
+                  <span><%= formatCurrency(item.total) %></span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="asset-breakdown__empty">Danh sách sẽ được cập nhật khi có dữ liệu.</p>
+        <% } %>
+      </section>
+
+      <section class="asset-watchlist" aria-label="Danh sách cần chú ý">
+        <header class="asset-watchlist__header">
+          <h2>Cần theo dõi</h2>
+          <span><%= watchlistAssets.length %> mục</span>
+        </header>
+        <% if (watchlistAssets.length) { %>
+          <ul class="asset-watchlist__list">
+            <% watchlistAssets.forEach((item) => { %>
+              <li>
+                <div class="asset-watchlist__title"><%= item.name %></div>
+                <div class="asset-watchlist__tags">
+                  <span class="asset-chip asset-chip--<%= item.statusMeta.tone %>"><i class="fa-solid fa-circle"></i> <%= item.statusMeta.label %></span>
+                  <span class="asset-chip asset-chip--outline"><i class="fa-solid fa-heart-pulse"></i> <%= normalizeCondition(item.conditionRating) %></span>
+                </div>
+                <small class="asset-watchlist__note">Mã: <%= item.assetCode %> • Giá trị: <%= formatCurrency(item.currentValue) %></small>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="asset-watchlist__empty">Không có tài sản nào đang ở trạng thái rủi ro.</p>
+        <% } %>
+      </section>
+    </aside>
+  </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Base Scripts -->
+  <script src="/js/app.js"></script>
+  <script src="/js/assets.js"></script>
+</body>
+</html>

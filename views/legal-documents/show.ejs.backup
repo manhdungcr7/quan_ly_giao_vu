@@ -1,0 +1,881 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/documents.css">
+
+<%- contentFor('content') %>
+<div class="documents-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Chi tiết văn bản</h1>
+      <p class="page-subtitle"><%= document.document_number %> - <%= document.title %></p>
+    </div>
+    <div class="page-actions">
+      <a href="/documents/<%= document.id %>/edit" class="btn btn-primary">
+        <i class="fas fa-edit"></i> Sửa văn bản
+      </a>
+      <a href="<%= document.direction === 'incoming' ? '/documents/incoming' : '/documents/outgoing' %>" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Quay lại danh sách
+      </a>
+    </div>
+  </div>
+
+  <% if (typeof success !== 'undefined' && success.length > 0) { %>
+    <div class="alert alert-success">
+      <%= success %>
+    </div>
+  <% } %>
+
+  <% if (typeof error !== 'undefined' && error.length > 0) { %>
+    <div class="alert alert-danger">
+      <%= error %>
+    </div>
+  <% } %>
+
+  <div class="document-detail">
+    <div class="detail-grid">
+      <!-- Thông tin cơ bản -->
+      <div class="detail-section">
+        <h3>Thông tin cơ bản</h3>
+        
+        <div class="detail-row">
+          <label>Loại văn bản:</label>
+          <span class="badge-<%= document.direction %>">
+            <%= document.direction === 'incoming' ? 'Văn bản đến' : 'Văn bản đi' %>
+          </span>
+        </div>
+
+        <div class="detail-row">
+          <label>Số hiệu văn bản:</label>
+          <span class="mono"><%= document.document_number %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Tiêu đề:</label>
+          <span><%= document.title %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Loại văn bản:</label>
+          <span><%= document.document_type_name || '(Không xác định)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Độ ưu tiên:</label>
+          <span class="priority-<%= document.priority %>">
+            <% if (document.priority === 'low') { %>Thấp<% } %>
+            <% if (document.priority === 'medium') { %>Bình thường<% } %>
+            <% if (document.priority === 'high') { %>Cao<% } %>
+            <% if (document.priority === 'urgent') { %>Khẩn cấp<% } %>
+          </span>
+        </div>
+
+        <div class="detail-row">
+          <label>Trạng thái:</label>
+          <span class="status-badge status-<%= document.status %>"><%= document.status %></span>
+        </div>
+      </div>
+
+      <!-- Thông tin xử lý -->
+      <div class="detail-section">
+        <h3>Thông tin xử lý</h3>
+
+        <div class="detail-row">
+          <label>Ngày ban hành:</label>
+          <span><%= document.issue_date ? new Date(document.issue_date).toLocaleDateString('vi-VN') : '(Chưa có)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Ngày nhận:</label>
+          <span><%= document.received_date ? new Date(document.received_date).toLocaleDateString('vi-VN') : '(Chưa có)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Hạn xử lý:</label>
+          <span><%= document.processing_deadline ? new Date(document.processing_deadline).toLocaleDateString('vi-VN') : '(Chưa có)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Người xử lý:</label>
+          <span><%= document.assigned_to_name || '(Chưa phân công)' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Người tạo:</label>
+          <span><%= document.created_by_name || 'Hệ thống' %></span>
+        </div>
+
+        <div class="detail-row">
+          <label>Ngày tạo:</label>
+          <span><%= new Date(document.created_at).toLocaleString('vi-VN') %></span>
+        </div>
+      </div>
+
+      <!-- Cơ quan liên quan -->
+      <div class="detail-section">
+        <h3>Cơ quan liên quan</h3>
+
+        <% if (document.direction === 'incoming') { %>
+          <div class="detail-row">
+            <label>Cơ quan gửi:</label>
+            <span><%= document.from_organization_name || '(Chưa xác định)' %></span>
+          </div>
+        <% } else { %>
+          <div class="detail-row">
+            <label>Nơi nhận:</label>
+            <span><%= document.to_organization_name || '(Chưa xác định)' %></span>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Nội dung -->
+    <div class="detail-section full-width">
+      <h3>Trích yếu nội dung</h3>
+      <div class="content-display">
+        <%= document.content_summary ? document.content_summary.replace(/\n/g, '<br>') : '(Chưa có trích yếu)' %>
+      </div>
+    </div>
+
+    <!-- Files đính kèm -->
+    <div class="detail-section full-width">
+      <h3>Files đính kèm</h3>
+      <% if (document.files && document.files.length > 0) { %>
+        <div class="attachment-list">
+          <% document.files.forEach(function(file) { 
+            // Determine file icon and class based on mime type
+            let iconClass = 'fa-file';
+            let fileTypeClass = '';
+            if (file.mime_type) {
+              if (file.mime_type === 'application/pdf') {
+                iconClass = 'fa-file-pdf';
+                fileTypeClass = 'pdf';
+              } else if (file.mime_type.includes('word')) {
+                iconClass = 'fa-file-word';
+                fileTypeClass = 'word';
+              } else if (file.mime_type.includes('excel') || file.mime_type.includes('spreadsheet')) {
+                iconClass = 'fa-file-excel';
+                fileTypeClass = 'excel';
+              } else if (file.mime_type.startsWith('image/')) {
+                iconClass = 'fa-file-image';
+                fileTypeClass = 'image';
+              } else if (file.mime_type.includes('zip') || file.mime_type.includes('rar') || file.mime_type.includes('7z')) {
+                iconClass = 'fa-file-archive';
+                fileTypeClass = 'archive';
+              } else if (file.mime_type === 'text/plain') {
+                iconClass = 'fa-file-alt';
+                fileTypeClass = 'text';
+              }
+            }
+          %>
+            <div class="attachment-item">
+              <div class="file-info">
+                <i class="file-icon <%= fileTypeClass %> fas <%= iconClass %>"></i>
+                <div class="file-details">
+                  <span class="file-name"><%= file.original_name %></span>
+                  <small class="file-size">(<%= file.size ? (file.size / 1024).toFixed(1) : '0.0' %> KB)</small>
+                </div>
+              </div>
+              <div class="file-actions">
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="previewFile('<%= file.id %>')">
+                  <i class="fas fa-eye"></i> Xem trước
+                </button>
+                <a href="/documents/files/<%= file.id %>/download" class="btn btn-sm btn-outline-success">
+                  <i class="fas fa-download"></i> Tải về
+                </a>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="no-attachments">
+          <i class="fas fa-paperclip"></i>
+          <span>Chưa có files đính kèm</span>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Nhật ký hoạt động (Audit Logs) -->
+    <% if (typeof auditLogs !== 'undefined' && auditLogs && auditLogs.length > 0) { %>
+      <div class="detail-section full-width">
+        <h3>📝 Nhật ký hoạt động</h3>
+        <div class="history-timeline">
+          <% auditLogs.forEach(function(log) { %>
+            <div class="timeline-item">
+              <div class="timeline-marker action-<%= log.action === 'Tạo mới' ? 'create' : log.action === 'Cập nhật' ? 'update' : 'view' %>">
+                <% if (log.action === 'Tạo mới') { %>
+                  <i class="fas fa-plus"></i>
+                <% } else if (log.action === 'Cập nhật') { %>
+                  <i class="fas fa-edit"></i>
+                <% } else if (log.action === 'Xem') { %>
+                  <i class="fas fa-eye"></i>
+                <% } else if (log.action === 'Tải xuống') { %>
+                  <i class="fas fa-download"></i>
+                <% } else { %>
+                  <i class="fas fa-history"></i>
+                <% } %>
+              </div>
+              <div class="timeline-content">
+                <div class="timeline-header">
+                  <strong><%= log.user_name || 'System' %></strong>
+                  <span class="timeline-action">
+                    <%= log.action %>
+                  </span>
+                  <span class="timeline-time"><%= new Date(log.created_at).toLocaleString('vi-VN') %></span>
+                </div>
+                <% if (log.details) { %>
+                  <div class="timeline-value"><%= log.details %></div>
+                <% } %>
+                <% if (log.ip_address) { %>
+                  <div class="timeline-note" style="font-size: 0.75rem; color: #6c757d;">
+                    <i class="fas fa-network-wired"></i> IP: <%= log.ip_address %>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+// File preview functionality
+function previewFile(fileId) {
+  console.log('Preview file:', fileId);
+  // TODO: Implement file preview
+  alert('Chức năng xem trước đang được phát triển');
+}
+
+function closePreview() {
+  document.getElementById('filePreviewModal').style.display = 'none';
+  document.getElementById('previewContent').innerHTML = '';
+}
+
+// Close modal when clicking outside
+if (document.getElementById('filePreviewModal')) {
+  document.getElementById('filePreviewModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closePreview();
+    }
+  });
+}
+</script>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Chỉ đạo / Tham mưu</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <form id="directiveForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="directiveContent">Nội dung chỉ đạo:</label>
+            <textarea id="directiveContent" name="chi_dao" rows="4" class="form-control" 
+                      placeholder="Nhập nội dung chỉ đạo hoặc ý kiến tham mưu..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="directiveNote">Ghi chú (tùy chọn):</label>
+            <input type="text" id="directiveNote" name="note" class="form-control" 
+                   placeholder="Ghi chú bổ sung...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu chỉ đạo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Xác nhận phê duyệt -->
+<div class="modal" id="approveModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Phê duyệt chỉ đạo</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <form id="approveForm">
+        <div class="modal-body">
+          <p>Bạn có chắc chắn muốn phê duyệt nội dung chỉ đạo này?</p>
+          <div class="current-directive">
+            <strong>Nội dung hiện tại:</strong>
+            <div id="currentDirectiveText" class="directive-preview"></div>
+          </div>
+          <div class="form-group mt-3">
+            <label for="approveNote">Ghi chú phê duyệt (tùy chọn):</label>
+            <input type="text" id="approveNote" name="note" class="form-control" 
+                   placeholder="Ghi chú khi phê duyệt...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-success">Phê duyệt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// Reuse the same modal functionality from list.ejs
+document.addEventListener('DOMContentLoaded', function() {
+    let currentDocId = '<%= document.id %>';
+    
+    // Utility functions
+    function showModal(modalId) {
+        document.getElementById(modalId).style.display = 'block';
+        document.body.classList.add('modal-open');
+    }
+    
+    function hideModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+        document.body.classList.remove('modal-open');
+    }
+    
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            padding: 12px 20px; border-radius: 4px; color: white;
+            background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#ffc107'};
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    // Event handlers for directive actions
+    document.querySelectorAll('.directive-edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const currentDirective = this.dataset.directive || '';
+            
+            document.getElementById('directiveContent').value = currentDirective;
+            document.getElementById('directiveNote').value = '';
+            showModal('directiveModal');
+        });
+    });
+    
+    document.querySelectorAll('.directive-approve').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const currentDirective = '<%= document.chi_dao || "" %>';
+            
+            document.getElementById('currentDirectiveText').textContent = currentDirective;
+            document.getElementById('approveNote').value = '';
+            showModal('approveModal');
+        });
+    });
+    
+    // Form submissions
+    document.getElementById('directiveForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = {
+            chi_dao: formData.get('chi_dao'),
+            note: formData.get('note')
+        };
+        
+        try {
+            const response = await fetch(`/documents/${currentDocId}/directive`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Đã cập nhật chỉ đạo thành công');
+                hideModal('directiveModal');
+                location.reload();
+            } else {
+                showToast(result.message || 'Có lỗi xảy ra', 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi kết nối', 'error');
+        }
+    });
+    
+    document.getElementById('approveForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = { note: formData.get('note') };
+        
+        try {
+            const response = await fetch(`/documents/${currentDocId}/directive/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Đã phê duyệt chỉ đạo thành công');
+                hideModal('approveModal');
+                location.reload();
+            } else {
+                showToast(result.message || 'Có lỗi xảy ra', 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi kết nối', 'error');
+        }
+    });
+    
+    // Close modal handlers
+    document.querySelectorAll('[data-dismiss="modal"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) {
+                hideModal(modal.id);
+            }
+        });
+    });
+    
+    // Close modal when clicking outside
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideModal(this.id);
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.detail-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  margin-bottom: 2rem;
+}
+
+.detail-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.detail-section.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.directive-actions-header {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.detail-row {
+  display: flex;
+  margin-bottom: 0.75rem;
+  align-items: flex-start;
+}
+
+.detail-row label {
+  min-width: 140px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-right: 1rem;
+}
+
+.content-display, .directive-display {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+  line-height: 1.6;
+  color: #374151;
+  white-space: pre-wrap;
+}
+
+.badge-incoming, .badge-outgoing {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-incoming {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-outgoing {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.priority-low { color: #6b7280; }
+.priority-medium { color: #059669; }
+.priority-high { color: #d97706; }
+.priority-urgent { color: #dc2626; font-weight: 600; }
+
+.history-timeline {
+  position: relative;
+}
+
+.timeline-item {
+  display: flex;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.timeline-item:not(:last-child):before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 36px;
+  bottom: -24px;
+  width: 2px;
+  background: #e5e7eb;
+}
+
+.timeline-marker {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.875rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.timeline-marker.action-update {
+  background: #0ea5e9;
+}
+
+.timeline-marker.action-approve {
+  background: #10b981;
+}
+
+.timeline-content {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.timeline-header {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.timeline-action {
+  color: #6b7280;
+}
+
+.timeline-time {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-left: auto;
+}
+
+.timeline-changes {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.change-old, .change-new {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 0.75rem;
+}
+
+.change-old label, .change-new label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.change-old {
+  border-left: 3px solid #ef4444;
+}
+
+.change-new {
+  border-left: 3px solid #10b981;
+}
+
+.timeline-value, .timeline-note {
+  line-height: 1.5;
+  color: #374151;
+}
+
+.timeline-note {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.9rem;
+  color: #92400e;
+}
+
+@media (max-width: 768px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .directive-actions-header {
+    width: 100%;
+  }
+  
+  .timeline-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .timeline-time {
+    margin-left: 0;
+  }
+}
+
+/* File Attachments */
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.attachment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.file-icon {
+  color: #6b7280;
+  width: 20px;
+}
+
+.file-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+.file-size {
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.file-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.no-attachments {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem;
+  font-style: italic;
+}
+
+.no-attachments i {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 2rem;
+  color: #d1d5db;
+}
+
+/* File Preview Modal */
+.file-preview-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.file-preview-content {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  height: 90%;
+  max-width: 1000px;
+  max-height: 800px;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.file-preview-body {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.file-preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.close-preview {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+</style>
+
+<!-- File Preview Modal -->
+<div id="filePreviewModal" class="file-preview-modal">
+  <div class="file-preview-content">
+    <div class="file-preview-header">
+      <h5 id="previewFileName">Xem trước file</h5>
+      <button class="close-preview" onclick="closePreview()">&times;</button>
+    </div>
+    <div class="file-preview-body">
+      <div id="previewContent"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// File Preview Functions
+function previewFile(fileId) {
+  fetch(`/documents/files/${fileId}/preview-info`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('previewFileName').textContent = data.filename;
+        const previewContent = document.getElementById('previewContent');
+        
+        if (data.type === 'pdf' && data.previewable) {
+          previewContent.innerHTML = `<iframe src="/documents/files/${fileId}/preview" class="file-preview-iframe"></iframe>`;
+        } else if (data.type === 'image') {
+          previewContent.innerHTML = `<img src="/documents/files/${fileId}/preview" style="max-width: 100%; height: auto;" alt="${data.filename}">`;
+        } else if (data.type === 'text') {
+          previewContent.innerHTML = `<pre style="white-space: pre-wrap; font-family: monospace;">${data.content}</pre>`;
+        } else if (data.type === 'word' && data.previewable) {
+          // Word: Hiển thị iframe (browser sẽ tải file) hoặc dùng Google Docs Viewer
+          previewContent.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+              <p><i class="fas fa-file-word" style="font-size: 48px; color: #2b579a;"></i></p>
+              <p><strong>File Word: ${data.filename}</strong></p>
+              <p>Chọn cách xem:</p>
+              <div style="margin-top: 15px;">
+                <a href="/documents/files/${fileId}/download" class="btn btn-primary" style="margin: 5px;">
+                  <i class="fas fa-download"></i> Tải xuống để xem
+                </a>
+                <button onclick="openGoogleDocsViewer('${fileId}')" class="btn btn-info" style="margin: 5px;">
+                  <i class="fas fa-external-link-alt"></i> Xem qua Google Docs
+                </button>
+              </div>
+            </div>`;
+        } else if (data.type === 'archive') {
+          // RAR/ZIP: không thể preview
+          previewContent.innerHTML = `
+            <div style="text-align: center; padding: 30px;">
+              <p><i class="fas fa-file-archive" style="font-size: 48px; color: #ffa500;"></i></p>
+              <p><strong>${data.filename}</strong></p>
+              <p style="color: #666; margin-top: 10px;">${data.message || 'File nén không hỗ trợ xem trước'}</p>
+              <a href="/documents/files/${fileId}/download" class="btn btn-success" style="margin-top: 15px;">
+                <i class="fas fa-download"></i> Tải xuống
+              </a>
+            </div>`;
+        } else {
+          previewContent.innerHTML = `<p>Không thể xem trước loại file này. <a href="/documents/files/${fileId}/download">Tải về để xem</a></p>`;
+        }
+        
+        document.getElementById('filePreviewModal').style.display = 'flex';
+      }
+    })
+    .catch(error => {
+      console.error('Lỗi xem trước file:', error);
+      alert('Có lỗi khi xem trước file');
+    });
+}
+
+function openGoogleDocsViewer(fileId) {
+  // Mở Google Docs Viewer trong tab mới (cần public URL)
+  const downloadUrl = window.location.origin + '/documents/files/' + fileId + '/download';
+  const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
+  window.open(viewerUrl, '_blank');
+}
+
+function closePreview() {
+  document.getElementById('filePreviewModal').style.display = 'none';
+  document.getElementById('previewContent').innerHTML = '';
+}
+
+// Close modal when clicking outside
+document.getElementById('filePreviewModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closePreview();
+  }
+});
+</script>

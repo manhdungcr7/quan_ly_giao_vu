@@ -1,0 +1,270 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/reminders.css?v=20241008">
+
+<%
+  const segmentConfigs = [
+    {
+      key: 'overdue',
+      title: 'Đang quá hạn',
+      tone: 'danger',
+      description: 'Những công việc đã trễ hạn xử lý – cần ưu tiên nguồn lực để hoàn tất.'
+    },
+    {
+      key: 'today',
+      title: 'Đến hạn trong hôm nay',
+      tone: 'primary',
+      description: 'Công việc đến hạn trong ngày – nên chốt kết quả trước khi kết thúc ca làm việc.'
+    },
+    {
+      key: 'upcoming',
+      title: 'Sắp đến hạn',
+      tone: 'info',
+      description: 'Các đầu việc còn thời gian chuẩn bị – chủ động theo dõi để không trễ tiến độ.'
+    }
+  ];
+%>
+
+<section class="reminders-page">
+  <header class="reminders-hero">
+    <div class="reminders-hero__intro">
+      <span class="reminders-hero__badge">Trung tâm điều phối</span>
+      <h1>Nhắc việc</h1>
+      <p>Theo dõi hạn xử lý từ các phân hệ báo cáo, văn bản, khảo thí và chủ động điều phối công việc.</p>
+      <ul class="reminders-hero__date">
+        <li>
+          <small>Ngày hệ thống</small>
+          <strong><%= todayLabel %></strong>
+        </li>
+        <li>
+          <small>Tổng nhắc việc</small>
+          <strong><%= taskCount %></strong>
+        </li>
+      </ul>
+    </div>
+    <div class="reminders-hero__panels">
+      <article class="reminders-hero__panel">
+        <header>
+          <h2>Phân tích nhanh</h2>
+          <span class="reminders-hero__status <%= segments.overdue.length > 0 ? 'is-alert' : '' %>">
+            <i class="fa-solid fa-circle"></i>
+            <%= segments.overdue.length > 0 ? 'Cần hành động' : 'Tiến độ khả quan' %>
+          </span>
+        </header>
+        <ul>
+          <li>
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <strong><%= segments.overdue.length %></strong>
+            <span>nhắc việc đang quá hạn</span>
+          </li>
+          <li>
+            <i class="fa-solid fa-bell"></i>
+            <strong><%= segments.today.length %></strong>
+            <span>nhắc việc đến hạn hôm nay</span>
+          </li>
+          <li>
+            <i class="fa-solid fa-forward-fast"></i>
+            <strong><%= segments.upcoming.length %></strong>
+            <span>nhắc việc sắp đến hạn</span>
+          </li>
+        </ul>
+      </article>
+      <article class="reminders-hero__panel">
+        <header>
+          <h2>Nguồn công việc</h2>
+        </header>
+        <ul>
+          <% if (sourceBreakdown && sourceBreakdown.length) { %>
+            <% sourceBreakdown.forEach(function(source){ %>
+              <li>
+                <i class="<%= source.icon %>"></i>
+                <span>
+                  <strong><%= source.label %></strong>
+                  <small><%= source.overdue %> quá hạn · <%= source.dueSoon %> sắp tới</small>
+                </span>
+                <span class="reminders-hero__count"><%= source.total %></span>
+              </li>
+            <% }) %>
+          <% } else { %>
+            <li class="reminders-hero__empty">Chưa ghi nhận nguồn nào có nhắc việc.</li>
+          <% } %>
+        </ul>
+      </article>
+    </div>
+  </header>
+
+  <section class="reminders-metrics" aria-label="Tổng quan nhắc việc">
+    <% (overviewMetrics || []).forEach(function(metric){ %>
+      <article class="reminder-metric" data-tone="<%= metric.tone %>">
+        <header>
+          <span><%= metric.label %></span>
+        </header>
+        <strong><%= metric.value %></strong>
+        <p><%= metric.hint %></p>
+      </article>
+    <% }) %>
+  </section>
+
+  <section class="reminders-filter" aria-label="Lọc theo phân hệ">
+    <div class="reminders-filter__label">
+      <i class="fa-solid fa-filter"></i>
+      <span>Lọc theo nguồn</span>
+    </div>
+    <div class="reminders-filter__chips" data-filter-container>
+      <% (sourceBreakdown || []).forEach(function(source){ %>
+        <button type="button" class="reminders-chip is-active" data-filter-type="<%= source.type %>">
+          <i class="<%= source.icon %>"></i>
+          <span><%= source.label %></span>
+          <small><%= source.total %></small>
+        </button>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="reminders-segments" aria-label="Danh sách nhắc việc">
+    <% segmentConfigs.forEach(function(config){
+         const items = segments && segments[config.key] ? segments[config.key] : [];
+    %>
+      <article class="reminder-segment" data-tone="<%= config.tone %>">
+        <header>
+          <div>
+            <h2><%= config.title %></h2>
+            <p><%= config.description %></p>
+          </div>
+          <span class="reminder-segment__count"><%= items.length %></span>
+        </header>
+        <% if (items.length) { %>
+          <ul class="reminder-list">
+            <% items.forEach(function(task){ %>
+              <li class="reminder-card" data-task-type="<%= task.type %>">
+                <header class="reminder-card__header">
+                  <span class="reminder-badge reminder-badge--<%= task.accent %>">
+                    <i class="<%= task.icon %>"></i>
+                    <%= task.typeLabel %>
+                  </span>
+                  <span class="reminder-priority" data-priority="<%= task.priorityTone %>">
+                    <i class="fa-solid fa-signal"></i>
+                    <%= task.priorityLabel %>
+                  </span>
+                </header>
+                <a class="reminder-card__title" href="<%= task.link %>"><%= task.title %></a>
+                <p class="reminder-card__meta">
+                  <span><i class="fa-solid fa-user"></i> <%= task.ownerLabel %></span>
+                  <span><i class="fa-solid fa-layer-group"></i> <%= task.reference %></span>
+                </p>
+                <p class="reminder-card__context"><%= task.context %></p>
+                <% if (task.tags && task.tags.length) { %>
+                  <div class="reminder-card__tags">
+                    <% task.tags.forEach(function(tag){ %>
+                      <span class="reminder-tag"><%= tag %></span>
+                    <% }) %>
+                  </div>
+                <% } %>
+                <footer class="reminder-card__footer">
+                  <span class="reminder-card__due">
+                    <i class="fa-solid fa-calendar-day"></i>
+                    <strong><%= task.dueDateLabel %></strong>
+                    <span><%= task.relativeLabel %></span>
+                  </span>
+                  <span class="reminder-card__status"><i class="fa-solid fa-circle-info"></i> <%= task.statusLabel %></span>
+                </footer>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <div class="reminder-empty">
+            <i class="fa-solid fa-check-double"></i>
+            <p>Không có nhắc việc trong nhóm này.</p>
+          </div>
+        <% } %>
+      </article>
+    <% }) %>
+  </section>
+
+  <section class="reminders-grid" aria-label="Dòng thời gian và ghi chú">
+    <article class="reminders-timeline">
+      <header>
+        <h2>Timeline sắp tới</h2>
+        <p>Theo dõi các hạn quan trọng để chủ động phân công xử lý.</p>
+      </header>
+      <% if (timelineItems && timelineItems.length) { %>
+        <ol>
+          <% timelineItems.forEach(function(item){ %>
+            <li class="timeline-item timeline-item--<%= item.accent %>">
+              <div class="timeline-marker"><i class="<%= item.icon %>"></i></div>
+              <div class="timeline-content">
+                <div class="timeline-content__header">
+                  <strong><a href="<%= item.link %>"><%= item.title %></a></strong>
+                  <span class="timeline-priority" data-priority="<%= item.priorityTone %>"><%= item.priorityLabel %></span>
+                </div>
+                <p><i class="fa-solid fa-user"></i> <%= item.ownerLabel %></p>
+                <footer>
+                  <span><i class="fa-solid fa-calendar"></i> <%= item.dueDateLabel %></span>
+                  <span><i class="fa-solid fa-hourglass-half"></i> <%= item.relativeLabel %></span>
+                </footer>
+              </div>
+            </li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <div class="reminder-empty">
+          <i class="fa-solid fa-calendar-check"></i>
+          <p>Chưa có timeline nào cần lưu ý.</p>
+        </div>
+      <% } %>
+    </article>
+
+    <article class="reminders-insights">
+      <header>
+        <h2>Ghi chú điều hành</h2>
+        <p>Tổng hợp kết luận nhanh để báo cáo lãnh đạo.</p>
+      </header>
+      <% if (insights && insights.length) { %>
+        <ul>
+          <% insights.forEach(function(note){ %>
+            <li><i class="fa-solid fa-lightbulb"></i><span><%= note %></span></li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <div class="reminder-empty">
+          <i class="fa-solid fa-face-smile"></i>
+          <p>Không có ghi chú đặc biệt.</p>
+        </div>
+      <% } %>
+    </article>
+  </section>
+</section>
+
+<%- contentFor('js') %>
+<script>
+(function(){
+  var container = document.querySelector('[data-filter-container]');
+  if (!container) return;
+
+  var chips = Array.prototype.slice.call(container.querySelectorAll('[data-filter-type]'));
+  var tasks = Array.prototype.slice.call(document.querySelectorAll('[data-task-type]'));
+
+  function applyFilter() {
+    var activeTypes = chips
+      .filter(function(chip){ return chip.classList.contains('is-active'); })
+      .map(function(chip){ return chip.getAttribute('data-filter-type'); });
+
+    tasks.forEach(function(task){
+      var type = task.getAttribute('data-task-type');
+      var shouldShow = !activeTypes.length || activeTypes.indexOf(type) !== -1;
+      task.style.display = shouldShow ? '' : 'none';
+    });
+  }
+
+  chips.forEach(function(chip){
+    chip.addEventListener('click', function(){
+      chip.classList.toggle('is-active');
+      if (chips.every(function(item){ return !item.classList.contains('is-active'); })) {
+        chips.forEach(function(item){ item.classList.add('is-active'); });
+      }
+      applyFilter();
+    });
+  });
+
+  applyFilter();
+})();
+</script>

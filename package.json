@@ -1,0 +1,60 @@
+{
+  "name": "quan-ly-giao-vu-mvc",
+  "version": "1.0.0",
+  "description": "Hệ thống quản lý giáo vụ - Khoa An ninh điều tra",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed:admin": "node scripts/seedAdmin.js",
+    "seed:organizations": "node scripts/seedOrganizations.js",
+    "migrate:directive": "node scripts/addDirectiveSupport.js",
+    "migrate:docfiles": "node scripts/addDocumentFilesTable.js",
+    "migrate:grader-manual": "node scripts/addManualGraderSupport.js",
+  "migrate:report-schedules": "node scripts/addReportSchedulesTable.js",
+    "db:import:optimized": "node scripts/importOptimizedSchema.js",
+    "db:reseed:evaluation": "node scripts/reseedEvaluation.js",
+    "admin:reset": "node scripts/resetAdminPassword.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "education",
+    "management",
+    "mvc",
+    "express",
+    "mysql"
+  ],
+  "author": "Khoa An ninh điều tra",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "connect-flash": "^0.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-ejs-layouts": "^2.5.1",
+    "express-fileupload": "^1.4.3",
+    "express-rate-limit": "^7.1.5",
+    "express-session": "^1.17.3",
+    "express-validator": "^7.0.1",
+    "form-data": "^4.0.4",
+    "helmet": "^7.1.0",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "method-override": "^3.0.0",
+    "moment": "^2.29.4",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.6.5",
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

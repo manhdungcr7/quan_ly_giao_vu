@@ -1,0 +1,534 @@
+<%- contentFor('css') %>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text x='50%' y='58%' dominant-baseline='middle' text-anchor='middle' font-family='Segoe UI, Arial' font-size='56' fill='white'>KA</text></svg>">
+<link rel="stylesheet" href="/css/staff.css?v=2024100701">
+<style>
+.staff-create-form {
+  max-width: 1200px;
+  margin: 2rem auto;
+  background: #fff;
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
+}
+
+.form-header {
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.form-header h1 {
+  font-size: 1.8rem;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.form-header p {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.form-section {
+  margin-bottom: 2.5rem;
+}
+
+.form-section__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.form-section__title i {
+  color: #3b82f6;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.form-group label .required {
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
+
+.form-control {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-control.is-invalid {
+  border-color: #ef4444;
+}
+
+.form-help {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.form-error {
+  font-size: 0.85rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 2rem;
+  border-top: 2px solid #e2e8f0;
+}
+
+.btn-submit-staff {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: #fff;
+  border: none;
+  padding: 0.9rem 2rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.btn-submit-staff:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  padding: 0.9rem 2rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+.form-grid--full {
+  grid-template-columns: 1fr;
+}
+
+select.form-control {
+  cursor: pointer;
+}
+
+textarea.form-control {
+  min-height: 100px;
+  resize: vertical;
+}
+</style>
+
+<div class="staff-create-form">
+  <header class="form-header">
+    <h1><i class="fa-solid fa-user-plus"></i> Thêm cán bộ mới</h1>
+    <p>Nhập đầy đủ thông tin để tạo hồ sơ cán bộ và tài khoản truy cập hệ thống.</p>
+  </header>
+
+  <form action="/staff" method="POST" novalidate>
+    <!-- Thông tin cơ bản -->
+    <section class="form-section">
+      <h3 class="form-section__title">
+        <i class="fa-solid fa-id-card"></i>
+        Thông tin cơ bản
+      </h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="full_name">Họ và tên <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="full_name" 
+            name="full_name" 
+            class="form-control <%= errors.full_name ? 'is-invalid' : '' %>"
+            value="<%= formData.full_name || '' %>"
+            required
+            autocomplete="name"
+          >
+          <% if (errors.full_name) { %>
+            <span class="form-error"><%= errors.full_name %></span>
+          <% } %>
+        </div>
+
+        <div class="form-group">
+          <label for="staff_code">Mã cán bộ <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="staff_code" 
+            name="staff_code" 
+            class="form-control <%= errors.staff_code ? 'is-invalid' : '' %>"
+            value="<%= formData.staff_code || '' %>"
+            required
+            placeholder="VD: GV001"
+          >
+          <% if (errors.staff_code) { %>
+            <span class="form-error"><%= errors.staff_code %></span>
+          <% } else { %>
+            <span class="form-help">Mã định danh duy nhất của cán bộ</span>
+          <% } %>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email <span class="required">*</span></label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            class="form-control <%= errors.email ? 'is-invalid' : '' %>"
+            value="<%= formData.email || '' %>"
+            required
+            autocomplete="email"
+          >
+          <% if (errors.email) { %>
+            <span class="form-error"><%= errors.email %></span>
+          <% } %>
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Số điện thoại</label>
+          <input 
+            type="tel" 
+            id="phone" 
+            name="phone" 
+            class="form-control"
+            value="<%= formData.phone || '' %>"
+            autocomplete="tel"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="birth_date">Ngày sinh</label>
+          <input 
+            type="date" 
+            id="birth_date" 
+            name="birth_date" 
+            class="form-control"
+            value="<%= formData.birth_date || '' %>"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="gender">Giới tính</label>
+          <select id="gender" name="gender" class="form-control">
+            <option value="">Chọn giới tính</option>
+            <option value="M" <%= formData.gender === 'M' ? 'selected' : '' %>>Nam</option>
+            <option value="F" <%= formData.gender === 'F' ? 'selected' : '' %>>Nữ</option>
+            <option value="O" <%= formData.gender === 'O' ? 'selected' : '' %>>Khác</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="id_number">Số CMND/CCCD</label>
+          <input 
+            type="text" 
+            id="id_number" 
+            name="id_number" 
+            class="form-control"
+            value="<%= formData.id_number || '' %>"
+          >
+        </div>
+      </div>
+
+      <div class="form-grid form-grid--full" style="margin-top: 1.5rem;">
+        <div class="form-group">
+          <label for="address">Địa chỉ</label>
+          <input 
+            type="text" 
+            id="address" 
+            name="address" 
+            class="form-control"
+            value="<%= formData.address || '' %>"
+            placeholder="Địa chỉ thường trú"
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- Thông tin công tác -->
+    <section class="form-section">
+      <h3 class="form-section__title">
+        <i class="fa-solid fa-briefcase"></i>
+        Thông tin công tác
+      </h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="department_id">Phòng/Bộ môn <span class="required">*</span></label>
+          <select 
+            id="department_id" 
+            name="department_id" 
+            class="form-control <%= errors.department_id ? 'is-invalid' : '' %>"
+            required
+          >
+            <option value="">Chọn phòng/bộ môn</option>
+            <% (departmentOptions || []).forEach(dept => { %>
+              <option value="<%= dept.id %>" <%= String(formData.department_id) === String(dept.id) ? 'selected' : '' %>>
+                <%= dept.name %>
+              </option>
+            <% }) %>
+          </select>
+          <% if (errors.department_id) { %>
+            <span class="form-error"><%= errors.department_id %></span>
+          <% } %>
+        </div>
+
+        <div class="form-group">
+          <label for="position_id">Chức vụ học thuật</label>
+          <select id="position_id" name="position_id" class="form-control">
+            <option value="">Chọn chức vụ</option>
+            <% (positionOptions || []).forEach(pos => { %>
+              <option value="<%= pos.id %>" <%= String(formData.position_id) === String(pos.id) ? 'selected' : '' %>>
+                <%= pos.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="employment_type">Loại hình công tác <span class="required">*</span></label>
+          <select 
+            id="employment_type" 
+            name="employment_type" 
+            class="form-control <%= errors.employment_type ? 'is-invalid' : '' %>"
+            required
+          >
+            <option value="">Chọn loại hình</option>
+            <% (employmentOptions || []).forEach(opt => { %>
+              <option value="<%= opt.value %>" <%= formData.employment_type === opt.value ? 'selected' : '' %>>
+                <%= opt.label %>
+              </option>
+            <% }) %>
+          </select>
+          <% if (errors.employment_type) { %>
+            <span class="form-error"><%= errors.employment_type %></span>
+          <% } %>
+        </div>
+
+        <div class="form-group">
+          <label for="hire_date">Ngày vào làm <span class="required">*</span></label>
+          <input 
+            type="date" 
+            id="hire_date" 
+            name="hire_date" 
+            class="form-control <%= errors.hire_date ? 'is-invalid' : '' %>"
+            value="<%= formData.hire_date || '' %>"
+            required
+          >
+          <% if (errors.hire_date) { %>
+            <span class="form-error"><%= errors.hire_date %></span>
+          <% } %>
+        </div>
+
+        <div class="form-group">
+          <label for="salary">Mức lương (VNĐ)</label>
+          <input 
+            type="number" 
+            id="salary" 
+            name="salary" 
+            class="form-control"
+            value="<%= formData.salary || '' %>"
+            min="0"
+            step="100000"
+            placeholder="0"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="status">Trạng thái</label>
+          <select id="status" name="status" class="form-control">
+            <option value="active" <%= !formData.status || formData.status === 'active' ? 'selected' : '' %>>Đang công tác</option>
+            <option value="on_leave" <%= formData.status === 'on_leave' ? 'selected' : '' %>>Nghỉ phép</option>
+            <option value="inactive" <%= formData.status === 'inactive' ? 'selected' : '' %>>Tạm dừng</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Thông tin học thuật -->
+    <section class="form-section">
+      <h3 class="form-section__title">
+        <i class="fa-solid fa-graduation-cap"></i>
+        Thông tin học thuật
+      </h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="academic_degree">Học vị</label>
+          <input 
+            type="text" 
+            id="academic_degree" 
+            name="academic_degree" 
+            class="form-control"
+            value="<%= formData.academic_degree || '' %>"
+            placeholder="VD: Tiến sĩ, Thạc sĩ"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="academic_rank">Học hàm</label>
+          <input 
+            type="text" 
+            id="academic_rank" 
+            name="academic_rank" 
+            class="form-control"
+            value="<%= formData.academic_rank || '' %>"
+            placeholder="VD: Giáo sư, Phó giáo sư"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="years_experience">Số năm kinh nghiệm</label>
+          <input 
+            type="number" 
+            id="years_experience" 
+            name="years_experience" 
+            class="form-control"
+            value="<%= formData.years_experience || '0' %>"
+            min="0"
+            max="50"
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- Ghi chú -->
+    <section class="form-section">
+      <h3 class="form-section__title">
+        <i class="fa-solid fa-note-sticky"></i>
+        Ghi chú bổ sung
+      </h3>
+      <div class="form-grid form-grid--full">
+        <div class="form-group">
+          <label for="notes">Ghi chú</label>
+          <textarea 
+            id="notes" 
+            name="notes" 
+            class="form-control"
+            placeholder="Các thông tin bổ sung, lưu ý đặc biệt..."
+          ><%= formData.notes || '' %></textarea>
+        </div>
+      </div>
+    </section>
+
+    <div class="form-actions">
+      <a href="/staff" class="btn-cancel">
+        <i class="fa-solid fa-xmark"></i>
+        Hủy bỏ
+      </a>
+      <button type="submit" class="btn-submit-staff">
+        <i class="fa-solid fa-check"></i>
+        Thêm cán bộ
+      </button>
+    </div>
+  </form>
+</div>
+
+<%- contentFor('js') %>
+<script>
+(function() {
+  const form = document.querySelector('form');
+  
+  form.addEventListener('submit', function(e) {
+    let isValid = true;
+    
+    // Validate họ tên
+    const fullName = document.getElementById('full_name');
+    if (!fullName.value || fullName.value.trim().length < 3) {
+      fullName.classList.add('is-invalid');
+      isValid = false;
+    } else {
+      fullName.classList.remove('is-invalid');
+    }
+    
+    // Validate email
+    const email = document.getElementById('email');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.value || !emailRegex.test(email.value)) {
+      email.classList.add('is-invalid');
+      isValid = false;
+    } else {
+      email.classList.remove('is-invalid');
+    }
+    
+    // Validate mã cán bộ
+    const staffCode = document.getElementById('staff_code');
+    if (!staffCode.value || staffCode.value.trim().length < 3) {
+      staffCode.classList.add('is-invalid');
+      isValid = false;
+    } else {
+      staffCode.classList.remove('is-invalid');
+    }
+    
+    // Validate department
+    const department = document.getElementById('department_id');
+    if (!department.value) {
+      department.classList.add('is-invalid');
+      isValid = false;
+    } else {
+      department.classList.remove('is-invalid');
+    }
+    
+    // Validate employment type
+    const employmentType = document.getElementById('employment_type');
+    if (!employmentType.value) {
+      employmentType.classList.add('is-invalid');
+      isValid = false;
+    } else {
+      employmentType.classList.remove('is-invalid');
+    }
+    
+    // Validate hire date
+    const hireDate = document.getElementById('hire_date');
+    if (!hireDate.value) {
+      hireDate.classList.add('is-invalid');
+      isValid = false;
+    } else {
+      hireDate.classList.remove('is-invalid');
+    }
+    
+    if (!isValid) {
+      e.preventDefault();
+      alert('Vui lòng kiểm tra lại các trường thông tin bắt buộc!');
+    }
+  });
+})();
+</script>

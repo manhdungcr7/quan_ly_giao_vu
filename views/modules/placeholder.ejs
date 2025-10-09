@@ -1,0 +1,116 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/module-placeholder.css">
+
+<%- contentFor('content') %>
+<div class="module-placeholder">
+    <div class="module-header">
+        <div class="module-header__info">
+            <div class="module-meta">
+                <% const badgeClass = module.status === 'active' ? 'module-badge--active' : 'module-badge--upcoming'; %>
+                <span class="module-badge <%= badgeClass %>"><i class="fas fa-circle"></i><%= module.statusLabel || 'Đang cập nhật' %></span>
+                <% if (module.subtitle) { %>
+                    <span class="module-subtitle"><%= module.subtitle %></span>
+                <% } %>
+            </div>
+            <h1><%= module.title %></h1>
+            <% if (module.description) { %>
+                <p class="module-description"><%= module.description %></p>
+            <% } else { %>
+                <p class="module-description">Chúng tôi đang xây dựng đầy đủ chức năng cho phân hệ này. Dưới đây là kế hoạch triển khai và các điểm nổi bật dự kiến.</p>
+            <% } %>
+        </div>
+        <div class="module-header__badge">
+            <div class="module-progress">
+                <span class="module-progress__label">Trạng thái</span>
+                <strong><%= module.statusLabel || 'Đang cập nhật' %></strong>
+            </div>
+            <div class="module-progress module-progress--secondary">
+                <span class="module-progress__label">Liên hệ phụ trách</span>
+                <strong>Phòng CNTT</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="module-grid">
+        <div class="module-card">
+            <div class="module-card__header">
+                <h2>Điểm nổi bật</h2>
+                <span class="module-card__tag">Roadmap</span>
+            </div>
+            <div class="module-card__body">
+                <% if (module.highlights && module.highlights.length) { %>
+                    <ul class="module-highlights">
+                        <% module.highlights.forEach(function(item){ %>
+                            <li>
+                                <i class="fas fa-check-circle"></i>
+                                <span><%= item %></span>
+                            </li>
+                        <% }); %>
+                    </ul>
+                <% } else { %>
+                    <p class="text-muted mb-0">Các hạng mục chức năng sẽ được cập nhật sớm.</p>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="module-card">
+            <div class="module-card__header">
+                <h2>Kế hoạch triển khai</h2>
+                <span class="module-card__tag module-card__tag--secondary">Sẵn sàng</span>
+            </div>
+            <div class="module-card__body">
+                <ol class="module-roadmap">
+                    <li>
+                        <span class="roadmap-step__title">Hoàn thiện mô hình dữ liệu</span>
+                        <span class="roadmap-step__desc">Thiết kế bảng và quan hệ phục vụ nghiệp vụ quản lý.</span>
+                    </li>
+                    <li>
+                        <span class="roadmap-step__title">Phát triển API và dịch vụ</span>
+                        <span class="roadmap-step__desc">Triển khai các endpoint chuẩn REST và tích hợp bảo mật.</span>
+                    </li>
+                    <li>
+                        <span class="roadmap-step__title">Xây dựng giao diện chi tiết</span>
+                        <span class="roadmap-step__desc">Thiết kế màn hình làm việc theo đúng mockup.</span>
+                    </li>
+                    <li>
+                        <span class="roadmap-step__title">Kiểm thử & bàn giao</span>
+                        <span class="roadmap-step__desc">Hoàn thiện tài liệu hướng dẫn, chuyển giao cho người dùng cuối.</span>
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="module-card module-card--accent">
+            <div class="module-card__header">
+                <h2>Hành động tiếp theo</h2>
+                <span class="module-card__tag module-card__tag--ghost">Tương tác</span>
+            </div>
+            <div class="module-card__body">
+                <div class="module-actions">
+                    <% if (module.actions && module.actions.length) { %>
+                        <% module.actions.forEach(function(action){ %>
+                            <button class="module-action-btn <%= action.disabled ? 'is-disabled' : '' %>" <%= action.disabled ? 'disabled' : '' %>>
+                                <%= action.label %>
+                                <% if (action.disabled) { %>
+                                    <span class="module-action-btn__note">Sắp ra mắt</span>
+                                <% } %>
+                            </button>
+                        <% }); %>
+                    <% } else { %>
+                        <button class="module-action-btn is-disabled" disabled>
+                            Chức năng đang xây dựng
+                            <span class="module-action-btn__note">Vui lòng quay lại sau</span>
+                        </button>
+                    <% } %>
+                </div>
+                <div class="module-notes">
+                    <i class="fas fa-lightbulb"></i>
+                    <div>
+                        <p class="module-notes__title">Ghi chú</p>
+                        <p class="module-notes__content"><%= module.notes || 'Đội ngũ phát triển đang phối hợp với các phòng ban để hoàn thiện nội dung nghiệp vụ.' %></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

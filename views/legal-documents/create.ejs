@@ -1,0 +1,261 @@
+<% contentFor('css', '<link rel="stylesheet" href="/css/documents.css">') %>
+
+<%- contentFor('content') %>
+<div class="documents-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">📜 Thêm văn bản pháp lý mới</h1>
+      <p class="page-subtitle">Tạo văn bản quy định, nghị quyết, thông báo trong hệ thống</p>
+    </div>
+    <div class="page-actions">
+      <a href="/legal-documents" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    </div>
+  </div>
+
+  <% if (typeof error !== 'undefined' && error.length > 0) { %>
+    <div class="alert alert-danger">
+      <%= error %>
+    </div>
+  <% } %>
+
+  <form method="post" action="/legal-documents" class="document-form" enctype="multipart/form-data">
+    <div class="form-grid">
+      <!-- Cột trái: Thông tin cơ bản -->
+      <div class="form-section">
+        <h3>📋 Thông tin cơ bản</h3>
+        
+        <div class="form-group">
+          <label for="document_number" class="required">Số hiệu văn bản</label>
+          <input type="text" name="document_number" id="document_number" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.document_number || '') : '' %>" 
+                 placeholder="VD: QC-QLTL-2025, 12/2025/NQ-HĐQT" required>
+          <small>Số hiệu phải duy nhất trong hệ thống</small>
+        </div>
+
+        <div class="form-group">
+          <label for="title" class="required">Tiêu đề văn bản</label>
+          <input type="text" name="title" id="title" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.title || '') : '' %>" 
+                 placeholder="Nhập tiêu đề đầy đủ" required>
+        </div>
+
+        <div class="form-group">
+          <label for="document_type" class="required">Loại văn bản</label>
+          <select name="document_type" id="document_type" required>
+            <option value="">-- Chọn loại --</option>
+            <option value="Luật">Luật</option>
+            <option value="Nghị định">Nghị định</option>
+            <option value="Thông tư">Thông tư</option>
+            <option value="Quyết định">Quyết định</option>
+            <option value="Quy định">Quy định</option>
+            <option value="Quy chế">Quy chế</option>
+            <option value="Nghị quyết">Nghị quyết</option>
+            <option value="Thông báo">Thông báo</option>
+            <option value="Hướng dẫn">Hướng dẫn</option>
+            <option value="Chỉ thị">Chỉ thị</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="issuing_authority" class="required">Cơ quan ban hành</label>
+          <input type="text" name="issuing_authority" id="issuing_authority" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.issuing_authority || '') : '' %>" 
+                 placeholder="VD: Khoa ANDT, Hội đồng Quản trị" required>
+        </div>
+
+        <div class="form-group">
+          <label for="subject">Lĩnh vực</label>
+          <input type="text" name="subject" id="subject" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.subject || '') : '' %>" 
+                 placeholder="VD: Quản lý tài liệu, Đào tạo, Nhân sự">
+          <small>Phân loại theo lĩnh vực áp dụng</small>
+        </div>
+
+        <div class="form-group">
+          <label for="summary">Nội dung tóm tắt</label>
+          <textarea name="summary" id="summary" rows="4" 
+                    placeholder="Mô tả ngắn gọn nội dung chính của văn bản..."><%= typeof formData !== 'undefined' ? (formData?.summary || '') : '' %></textarea>
+          <small>Giúp người đọc hiểu nhanh nội dung trước khi mở file</small>
+        </div>
+
+        <div class="form-group">
+          <label for="keywords">Từ khóa</label>
+          <input type="text" name="keywords" id="keywords" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.keywords || '') : '' %>" 
+                 placeholder="VD: quy chế, tài liệu, lưu trữ">
+          <small>Phân cách bằng dấu phẩy, giúp tìm kiếm nhanh hơn</small>
+        </div>
+      </div>
+
+      <!-- Cột phải: Thông tin pháp lý -->
+      <div class="form-section">
+        <h3>⚖️ Thông tin pháp lý</h3>
+
+        <div class="form-group">
+          <label for="issue_date">Ngày ban hành</label>
+          <input type="date" name="issue_date" id="issue_date" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.issue_date || '') : '' %>">
+        </div>
+
+        <div class="form-group">
+          <label for="effective_date">Ngày có hiệu lực</label>
+          <input type="date" name="effective_date" id="effective_date" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.effective_date || '') : '' %>">
+          <small>Phải sau hoặc bằng ngày ban hành</small>
+        </div>
+
+        <div class="form-group">
+          <label for="expiry_date">Ngày hết hiệu lực</label>
+          <input type="date" name="expiry_date" id="expiry_date" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.expiry_date || '') : '' %>">
+          <small>Để trống nếu văn bản vô thời hạn</small>
+        </div>
+
+        <div class="form-group">
+          <label for="status" class="required">Trạng thái</label>
+          <select name="status" id="status" required>
+            <option value="Dự thảo" selected>📝 Dự thảo</option>
+            <option value="Còn hiệu lực">✅ Còn hiệu lực</option>
+            <option value="Hết hiệu lực">⏳ Hết hiệu lực</option>
+            <option value="Bị thay thế">🔄 Bị thay thế</option>
+            <option value="Đã hủy">❌ Đã hủy</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="signer_name">Người ký</label>
+          <input type="text" name="signer_name" id="signer_name" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.signer_name || '') : '' %>" 
+                 placeholder="VD: Nguyễn Văn A">
+        </div>
+
+        <div class="form-group">
+          <label for="signer_position">Chức vụ người ký</label>
+          <input type="text" name="signer_position" id="signer_position" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.signer_position || '') : '' %>" 
+                 placeholder="VD: Hiệu trưởng, Chủ tịch HĐQT">
+        </div>
+
+        <div class="form-group">
+          <label for="replaced_by">Văn bản thay thế</label>
+          <input type="text" name="replaced_by" id="replaced_by" 
+                 value="<%= typeof formData !== 'undefined' ? (formData?.replaced_by || '') : '' %>" 
+                 placeholder="Số hiệu văn bản thay thế (nếu có)">
+          <small>Chỉ điền khi văn bản này bị thay thế</small>
+        </div>
+
+        <div class="form-group">
+          <label for="related_documents">Văn bản liên quan</label>
+          <textarea name="related_documents" id="related_documents" rows="3" 
+                    placeholder="Danh sách văn bản liên quan, phân cách bằng dấu phẩy"><%= typeof formData !== 'undefined' ? (formData?.related_documents || '') : '' %></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- File đính kèm -->
+    <div class="form-section full-width">
+      <h3>📎 File đính kèm</h3>
+      <div class="form-group">
+        <label for="attachments">Chọn file (PDF, DOCX, RAR, ZIP)</label>
+        <input type="file" name="attachments" id="attachments" multiple accept=".pdf,.doc,.docx,.rar,.zip,.7z">
+        <small>Có thể chọn nhiều file. Kích thước tối đa: 10MB/file.</small>
+      </div>
+      
+      <div id="file-preview" class="file-preview-list" style="margin-top: 1rem;"></div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save"></i> Lưu văn bản
+      </button>
+      <a href="/legal-documents" class="btn btn-secondary">
+        <i class="fas fa-times"></i> Hủy bỏ
+      </a>
+    </div>
+  </form>
+<% contentFor('js', '<script src="/js/legal-documents-create.js"></script>') %>
+
+<style>
+.file-preview-list {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.file-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.file-preview-item:hover {
+  background: #e9ecef;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.file-preview-item.file-error {
+  background: #fee;
+  border-color: #fcc;
+}
+
+.file-preview-item i {
+  font-size: 1.5rem;
+  color: #6c757d;
+  min-width: 24px;
+}
+
+.file-preview-item .fa-file-pdf {
+  color: #dc2626;
+}
+
+.file-preview-item .fa-file-word {
+  color: #2563eb;
+}
+
+.file-preview-item .fa-file-archive {
+  color: #ca8a04;
+}
+
+.file-preview-item .file-name {
+  flex: 1;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.file-preview-item .file-size {
+  color: #6c757d;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.form-section.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-section h3 {
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  color: #1f2937;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

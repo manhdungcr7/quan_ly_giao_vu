@@ -1,0 +1,265 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/documents.css">
+
+<%- contentFor('content') %>
+<div class="documents-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">✏️ Chỉnh sửa văn bản pháp lý</h1>
+      <p class="page-subtitle"><%= document.document_number %> - <%= document.title %></p>
+    </div>
+    <div class="page-actions">
+      <a href="/legal-documents/<%= document.id %>" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    </div>
+  </div>
+
+  <% if (typeof success !== 'undefined' && success.length > 0) { %>
+    <div class="alert alert-success">
+      <%= success %>
+    </div>
+  <% } %>
+
+  <% if (typeof error !== 'undefined' && error.length > 0) { %>
+    <div class="alert alert-danger">
+      <%= error %>
+    </div>
+  <% } %>
+
+  <form method="post" action="/legal-documents/<%= document.id %>" class="document-form" enctype="multipart/form-data">
+    <input type="hidden" name="_method" value="PUT">
+    
+    <div class="form-grid">
+      <!-- Cột trái: Thông tin cơ bản -->
+      <div class="form-section">
+        <h3>📋 Thông tin cơ bản</h3>
+        
+        <div class="form-group">
+          <label for="document_number" class="required">Số hiệu văn bản</label>
+          <input type="text" name="document_number" id="document_number" 
+                 value="<%= document.document_number %>" 
+                 placeholder="VD: QC-QLTL-2025, 12/2025/NQ-HĐQT" required>
+          <small>Số hiệu phải duy nhất trong hệ thống</small>
+        </div>
+
+        <div class="form-group">
+          <label for="title" class="required">Tiêu đề văn bản</label>
+          <input type="text" name="title" id="title" 
+                 value="<%= document.title %>" 
+                 placeholder="Nhập tiêu đề đầy đủ" required>
+        </div>
+
+        <div class="form-group">
+          <label for="document_type" class="required">Loại văn bản</label>
+          <select name="document_type" id="document_type" required>
+            <option value="">-- Chọn loại --</option>
+            <option value="Luật" <%= document.document_type === 'Luật' ? 'selected' : '' %>>Luật</option>
+            <option value="Nghị định" <%= document.document_type === 'Nghị định' ? 'selected' : '' %>>Nghị định</option>
+            <option value="Thông tư" <%= document.document_type === 'Thông tư' ? 'selected' : '' %>>Thông tư</option>
+            <option value="Quyết định" <%= document.document_type === 'Quyết định' ? 'selected' : '' %>>Quyết định</option>
+            <option value="Nghị quyết" <%= document.document_type === 'Nghị quyết' ? 'selected' : '' %>>Nghị quyết</option>
+            <option value="Quy chế" <%= document.document_type === 'Quy chế' ? 'selected' : '' %>>Quy chế</option>
+            <option value="Quy định" <%= document.document_type === 'Quy định' ? 'selected' : '' %>>Quy định</option>
+            <option value="Hướng dẫn" <%= document.document_type === 'Hướng dẫn' ? 'selected' : '' %>>Hướng dẫn</option>
+            <option value="Công văn" <%= document.document_type === 'Công văn' ? 'selected' : '' %>>Công văn</option>
+            <option value="Khác" <%= document.document_type === 'Khác' ? 'selected' : '' %>>Khác</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="issuing_authority" class="required">Cơ quan ban hành</label>
+          <input type="text" name="issuing_authority" id="issuing_authority" 
+                 value="<%= document.issuing_authority || '' %>" 
+                 placeholder="VD: Bộ Giáo dục và Đào tạo, HĐQT Trường" required>
+        </div>
+
+        <div class="form-group">
+          <label for="subject">Lĩnh vực</label>
+          <input type="text" name="subject" id="subject" 
+                 value="<%= document.subject || '' %>" 
+                 placeholder="VD: Quản lý giáo dục, Tài chính, Nhân sự">
+        </div>
+
+        <div class="form-group">
+          <label for="summary">Tóm tắt nội dung</label>
+          <textarea name="summary" id="summary" rows="4" 
+                    placeholder="Mô tả ngắn gọn nội dung chính của văn bản"><%= document.summary || '' %></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="keywords">Từ khóa</label>
+          <input type="text" name="keywords" id="keywords" 
+                 value="<%= document.keywords || '' %>" 
+                 placeholder="VD: học phí, tuyển sinh, khen thưởng">
+          <small>Phân cách bởi dấu phẩy</small>
+        </div>
+      </div>
+
+      <!-- Cột phải: Thông tin pháp lý -->
+      <div class="form-section">
+        <h3>⚖️ Thông tin pháp lý</h3>
+
+        <div class="form-group">
+          <label for="issue_date" class="required">Ngày ban hành</label>
+          <input type="date" name="issue_date" id="issue_date" 
+                 value="<%= document.issue_date ? new Date(document.issue_date).toISOString().split('T')[0] : '' %>" 
+                 required>
+        </div>
+
+        <div class="form-group">
+          <label for="effective_date">Ngày có hiệu lực</label>
+          <input type="date" name="effective_date" id="effective_date" 
+                 value="<%= document.effective_date ? new Date(document.effective_date).toISOString().split('T')[0] : '' %>">
+          <small>Để trống nếu có hiệu lực ngay từ ngày ban hành</small>
+        </div>
+
+        <div class="form-group">
+          <label for="expiry_date">Ngày hết hiệu lực</label>
+          <input type="date" name="expiry_date" id="expiry_date" 
+                 value="<%= document.expiry_date ? new Date(document.expiry_date).toISOString().split('T')[0] : '' %>">
+          <small>Để trống nếu không xác định</small>
+        </div>
+
+        <div class="form-group">
+          <label for="status" class="required">Trạng thái</label>
+          <select name="status" id="status" required>
+            <option value="">-- Chọn trạng thái --</option>
+            <option value="Dự thảo" <%= document.status === 'Dự thảo' ? 'selected' : '' %>>📝 Dự thảo</option>
+            <option value="Còn hiệu lực" <%= document.status === 'Còn hiệu lực' ? 'selected' : '' %>>✅ Còn hiệu lực</option>
+            <option value="Hết hiệu lực" <%= document.status === 'Hết hiệu lực' ? 'selected' : '' %>>⏳ Hết hiệu lực</option>
+            <option value="Bị thay thế" <%= document.status === 'Bị thay thế' ? 'selected' : '' %>>🔄 Bị thay thế</option>
+            <option value="Đã hủy" <%= document.status === 'Đã hủy' ? 'selected' : '' %>>❌ Đã hủy</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="signer_name">Người ký</label>
+          <input type="text" name="signer_name" id="signer_name" 
+                 value="<%= document.signer_name || '' %>" 
+                 placeholder="Họ tên người ký ban hành">
+        </div>
+
+        <div class="form-group">
+          <label for="signer_position">Chức vụ người ký</label>
+          <input type="text" name="signer_position" id="signer_position" 
+                 value="<%= document.signer_position || '' %>" 
+                 placeholder="VD: Hiệu trưởng, Bộ trưởng">
+        </div>
+
+        <div class="form-group">
+          <label for="replaced_by">Văn bản thay thế</label>
+          <input type="text" name="replaced_by" id="replaced_by" 
+                 value="<%= document.replaced_by || '' %>" 
+                 placeholder="Số hiệu văn bản thay thế (nếu có)">
+          <small>Chỉ điền khi trạng thái là "Bị thay thế"</small>
+        </div>
+
+        <div class="form-group">
+          <label for="related_documents">Văn bản liên quan</label>
+          <textarea name="related_documents" id="related_documents" rows="3" 
+                    placeholder="Liệt kê các văn bản liên quan (mỗi văn bản một dòng)"><%= document.related_documents || '' %></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Files đính kèm hiện tại -->
+    <% if (document.files && document.files.length > 0) { %>
+    <div class="form-section full-width">
+      <h3>📎 Files đính kèm hiện tại</h3>
+      <div class="attachment-list">
+        <% document.files.forEach(function(file) { %>
+        <div class="attachment-item">
+          <div class="file-info">
+            <i class="fas fa-file-pdf file-icon"></i>
+            <span class="file-name"><%= file.original_name %></span>
+            <small>(<%= (file.size / 1024).toFixed(1) %> KB)</small>
+          </div>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Thêm files mới -->
+    <div class="form-section full-width">
+      <h3>📎 Thêm files đính kèm mới</h3>
+      <div class="form-group">
+        <label for="attachments">Chọn files (tối đa 5 files)</label>
+        <input type="file" name="attachments" id="attachments" multiple 
+               accept=".pdf,.doc,.docx,.rar,.zip">
+        <small>Hỗ trợ: PDF, Word, RAR, ZIP. Mỗi file tối đa 10MB</small>
+      </div>
+      <div id="file-preview" class="file-preview"></div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save"></i> Cập nhật văn bản
+      </button>
+      <a href="/legal-documents/<%= document.id %>" class="btn btn-secondary">
+        <i class="fas fa-times"></i> Hủy bỏ
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+// File preview
+document.getElementById('attachments').addEventListener('change', function(e) {
+  const preview = document.getElementById('file-preview');
+  preview.innerHTML = '';
+  
+  if (this.files.length > 5) {
+    alert('Chỉ được chọn tối đa 5 files!');
+    this.value = '';
+    return;
+  }
+  
+  Array.from(this.files).forEach(file => {
+    // Check file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert(`File "${file.name}" vượt quá 10MB!`);
+      this.value = '';
+      return;
+    }
+    
+    const fileItem = document.createElement('div');
+    fileItem.className = 'file-item';
+    
+    let icon = 'fa-file';
+    if (file.type === 'application/pdf') icon = 'fa-file-pdf';
+    else if (file.type.includes('word')) icon = 'fa-file-word';
+    else if (file.type.includes('zip') || file.type.includes('rar')) icon = 'fa-file-archive';
+    
+    fileItem.innerHTML = `
+      <i class="fas ${icon} file-icon"></i>
+      <span class="file-name">${file.name}</span>
+      <small>(${(file.size / 1024).toFixed(1)} KB)</small>
+    `;
+    preview.appendChild(fileItem);
+  });
+});
+
+// Date validation
+const issueDate = document.getElementById('issue_date');
+const effectiveDate = document.getElementById('effective_date');
+const expiryDate = document.getElementById('expiry_date');
+
+effectiveDate.addEventListener('change', function() {
+  if (issueDate.value && this.value) {
+    if (new Date(this.value) < new Date(issueDate.value)) {
+      alert('Ngày có hiệu lực không thể trước ngày ban hành!');
+      this.value = '';
+    }
+  }
+});
+
+expiryDate.addEventListener('change', function() {
+  const compareDate = effectiveDate.value || issueDate.value;
+  if (compareDate && this.value) {
+    if (new Date(this.value) < new Date(compareDate)) {
+      alert('Ngày hết hiệu lực phải sau ngày có hiệu lực!');
+      this.value = '';
+    }
+  }
+});
+</script>

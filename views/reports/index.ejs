@@ -1,0 +1,387 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/reports.css?v=20241008">
+
+<%
+  const frequencyLabels = {
+    weekly: 'Báo cáo tuần',
+    monthly: 'Báo cáo tháng',
+    quarterly: 'Báo cáo quý',
+    annual: 'Báo cáo năm'
+  };
+  const statusLabels = {
+    pending: 'Chờ nộp',
+    in_progress: 'Đang thực hiện',
+    planning: 'Lên kế hoạch',
+    draft: 'Bản nháp'
+  };
+  const statusTone = {
+    pending: 'warning',
+    in_progress: 'info',
+    planning: 'muted',
+    draft: 'draft'
+  };
+  const timelineTone = {
+    in_progress: 'active',
+    planning: 'planning',
+    pending: 'pending',
+    upcoming: 'upcoming'
+  };
+  const libraryStatus = {
+    approved: 'Đã phê duyệt',
+    review: 'Đang rà soát',
+    archived: 'Lưu trữ'
+  };
+  const formatDueLabel = (item) => {
+    if (typeof item.dueInDays !== 'number') return item.dueLabel;
+    if (item.dueInDays < 0) {
+      return `Trễ ${Math.abs(item.dueInDays)} ngày`;
+    }
+    if (item.dueInDays === 0) return 'Đến hạn hôm nay';
+    if (item.dueInDays === 1) return 'Còn 1 ngày';
+    return `Còn ${item.dueInDays} ngày`;
+  };
+%>
+
+<section class="reports-page">
+  <header class="reports-hero">
+    <div class="reports-hero__content">
+      <span class="reports-hero__eyebrow">Điều hành báo cáo</span>
+      <h1>Báo cáo tổng hợp</h1>
+      <p>Trung tâm điều hành giúp theo dõi các báo cáo định kỳ tuần, tháng, quý, năm và những mốc kế hoạch quan trọng.</p>
+      <div class="reports-hero__actions">
+        <a href="/reports/schedules/new" class="btn-primary">
+          <i class="fa-solid fa-plus"></i>
+          Thiết lập lịch báo cáo mới
+        </a>
+        <a href="#reports-library" class="btn-ghost">
+          <i class="fa-solid fa-folder-open"></i>
+          Thư viện báo cáo
+        </a>
+      </div>
+    </div>
+    <div class="reports-hero__meta">
+      <div class="reports-pill reports-pill--primary">
+        <span>Ngày hệ thống</span>
+        <strong><%= new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) %></strong>
+      </div>
+      <div class="reports-pill reports-pill--soft">
+        <span>Nhắc hạn tự động</span>
+        <strong>48 giờ trước hạn</strong>
+      </div>
+    </div>
+  </header>
+
+  <section class="reports-summary" aria-label="Tổng quan báo cáo">
+    <% (summaryMetrics || []).forEach(function(metric){ %>
+      <article class="summary-card" data-tone="<%= metric.tone || 'info' %>">
+        <header>
+          <span><%= metric.label %></span>
+          <% if (metric.trend) { %>
+            <small><i class="fa-solid fa-arrow-trend-up"></i> <%= metric.trend %></small>
+          <% } %>
+        </header>
+        <strong><%= metric.value %></strong>
+        <% if (metric.hint) { %>
+          <p><%= metric.hint %></p>
+        <% } %>
+      </article>
+    <% }) %>
+  </section>
+
+  <section class="reports-grid" aria-label="Lịch báo cáo định kỳ">
+    <header class="section-header">
+      <div>
+        <h2>Lịch báo cáo trọng tâm</h2>
+        <p>Theo dõi các luồng báo cáo hiện đang triển khai và trạng thái phối hợp của từng đơn vị phụ trách.</p>
+      </div>
+      <a href="#" class="section-link" data-future-feature>
+        <i class="fa-solid fa-table-list"></i>
+        Xuất kế hoạch Excel
+      </a>
+    </header>
+    <div class="reports-grid__layout">
+      <% (scheduleBlueprint || []).forEach(function(item){ %>
+        <article class="report-card" data-tone="<%= statusTone[item.status] || 'info' %>">
+          <header class="report-card__header">
+            <div>
+              <span class="report-card__frequency"><%= frequencyLabels[item.frequency] || 'Khác' %></span>
+              <h3><%= item.title %></h3>
+            </div>
+            <span class="report-status report-status--<%= statusTone[item.status] || 'info' %>">
+              <i class="fa-solid fa-circle"></i>
+              <%= statusLabels[item.status] || 'Đang xử lý' %>
+            </span>
+          </header>
+          <div class="report-card__meta">
+            <div>
+              <span class="report-card__label">Đơn vị phụ trách</span>
+              <strong><%= item.owner %></strong>
+            </div>
+            <div>
+              <span class="report-card__label">Kênh chia sẻ</span>
+              <strong><%= item.channel %></strong>
+            </div>
+          </div>
+          <p class="report-card__desc"><%= item.scope %></p>
+          <dl class="report-card__stats">
+            <div>
+              <dt>Tiến độ</dt>
+              <dd>
+                <span class="progress-bar" style="--progress:<%= item.progress %>">
+                  <span class="progress-bar__value"></span>
+                </span>
+                <strong><%= item.progress %>%</strong>
+              </dd>
+            </div>
+            <div>
+              <dt>Tỷ lệ hoàn thành đúng hạn</dt>
+              <dd><strong><%= item.completionRate %>%</strong></dd>
+            </div>
+            <div>
+              <dt>Hạn kế tiếp</dt>
+              <dd><strong><%= item.dueLabel %></strong></dd>
+            </div>
+            <div>
+              <dt>Tệp đính kèm</dt>
+              <dd><strong><%= item.attachments %></strong> tài liệu</dd>
+            </div>
+          </dl>
+          <footer class="report-card__footer">
+            <div class="report-card__footer-left">
+              <div class="report-tags">
+                <% (item.tags || []).forEach(function(tag){ %>
+                  <span class="report-tag"><%= tag %></span>
+                <% }) %>
+              </div>
+              <% if (item.source === 'database' && item.dbId) { %>
+                <div class="report-card__actions">
+                  <a class="report-card__action" href="/reports/schedules/<%= item.dbId %>">
+                    <i class="fa-solid fa-eye"></i>
+                    Xem chi tiết
+                  </a>
+                  <a class="report-card__action" href="/reports/schedules/<%= item.dbId %>/edit">
+                    <i class="fa-solid fa-pen"></i>
+                    Chỉnh sửa
+                  </a>
+                  <form method="post" action="/reports/schedules/<%= item.dbId %>/delete" data-report-delete-form>
+                    <button type="submit" class="report-card__action report-card__action--danger">
+                      <i class="fa-solid fa-trash"></i>
+                      Xoá
+                    </button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
+            <span class="report-card__history">
+              Cập nhật gần nhất: <strong><%= item.lastSubmittedAt ? new Date(item.lastSubmittedAt).toLocaleDateString('vi-VN') : 'Chưa có dữ liệu' %></strong>
+            </span>
+          </footer>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="reports-insights" aria-label="Nhắc hạn & ghi chú điều hành">
+    <div class="insight-panel">
+      <header>
+        <h3>Báo cáo sắp đến hạn</h3>
+        <span class="badge-count"><%= (insights && insights.dueSoon && insights.dueSoon.length) || 0 %></span>
+      </header>
+      <% if (insights && insights.dueSoon && insights.dueSoon.length) { %>
+        <ul>
+          <% insights.dueSoon.forEach(function(item){ %>
+            <li>
+              <div>
+                <strong><%= item.title %></strong>
+                <span class="insight-meta"><i class="fa-solid fa-clock"></i> <%= formatDueLabel(item) %></span>
+              </div>
+              <span class="insight-owner"><i class="fa-solid fa-user-tie"></i> <%= item.owner %></span>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <p class="insight-empty">Không có báo cáo nào đến hạn trong 7 ngày tới.</p>
+      <% } %>
+    </div>
+    <div class="insight-panel">
+      <header>
+        <h3>Báo cáo trễ hạn</h3>
+        <span class="badge-count badge-count--alert"><%= (insights && insights.overdue && insights.overdue.length) || 0 %></span>
+      </header>
+      <% if (insights && insights.overdue && insights.overdue.length) { %>
+        <ul>
+          <% insights.overdue.forEach(function(item){ %>
+            <li>
+              <div>
+                <strong><%= item.title %></strong>
+                <span class="insight-meta insight-meta--alert"><i class="fa-solid fa-triangle-exclamation"></i> Trễ <%= Math.abs(item.overdueDays) %> ngày</span>
+              </div>
+              <span class="insight-owner"><i class="fa-solid fa-user-tie"></i> <%= item.owner %></span>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <p class="insight-empty">Tuyệt vời! Không có báo cáo nào trễ hạn.</p>
+      <% } %>
+    </div>
+    <div class="insight-panel">
+      <header>
+        <h3>Ghi chú điều hành</h3>
+      </header>
+      <ul class="insight-notes">
+        <% (insights && insights.keyNotes || []).forEach(function(note){ %>
+          <li><i class="fa-solid fa-lightbulb"></i> <span><%= note %></span></li>
+        <% }) %>
+      </ul>
+    </div>
+  </section>
+
+  <section class="reports-departments" aria-label="Tiến độ các phòng ban">
+    <header class="section-header">
+      <div>
+        <h2>Đơn vị phụ trách báo cáo</h2>
+        <p>Đánh giá năng lực phối hợp và các lưu ý quan trọng của từng đơn vị.</p>
+      </div>
+      <a href="#" class="section-link" data-future-feature>
+        <i class="fa-solid fa-bullseye"></i>
+        Cấu hình KPI
+      </a>
+    </header>
+    <div class="department-grid">
+      <% (departmentSnapshots || []).forEach(function(dep){ %>
+        <article class="department-card">
+          <header>
+            <h3><%= dep.department %></h3>
+            <span class="department-lead"><i class="fa-solid fa-user"></i> <%= dep.lead %></span>
+          </header>
+          <dl>
+            <div>
+              <dt>Lịch báo cáo</dt>
+              <dd><strong><%= dep.activeSchedules %></strong></dd>
+            </div>
+            <div>
+              <dt>Đến hạn</dt>
+              <dd class="text-warning"><strong><%= dep.dueSoon %></strong></dd>
+            </div>
+            <div>
+              <dt>Trễ hạn</dt>
+              <dd class="text-danger"><strong><%= dep.overdue %></strong></dd>
+            </div>
+            <div>
+              <dt>Tỷ lệ hoàn thành</dt>
+              <dd><strong><%= dep.completionRate %>%</strong></dd>
+            </div>
+          </dl>
+          <p class="department-highlight"><i class="fa-solid fa-flag"></i> <%= dep.highlight %></p>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="reports-timeline" aria-label="Dòng thời gian kế hoạch">
+    <header class="section-header">
+      <div>
+        <h2>Mốc triển khai sắp tới</h2>
+        <p>Dự kiến kiểm soát tiến độ theo từng tuần để chủ động phân công nguồn lực.</p>
+      </div>
+    </header>
+    <ol class="timeline-list">
+      <% (timeline || []).forEach(function(item){ %>
+        <li class="timeline-item timeline-item--<%= timelineTone[item.status] || 'upcoming' %>">
+          <div class="timeline-marker"></div>
+          <div class="timeline-content">
+            <header>
+              <span class="timeline-label"><%= item.label %></span>
+              <span class="timeline-range"><i class="fa-solid fa-calendar-days"></i> <%= item.dateRange %></span>
+            </header>
+            <strong><%= item.focus %></strong>
+            <p><i class="fa-solid fa-user-tie"></i> <%= item.owner %></p>
+          </div>
+        </li>
+      <% }) %>
+    </ol>
+  </section>
+
+  <section id="reports-library" class="reports-library" aria-label="Thư viện báo cáo">
+    <header class="section-header">
+      <div>
+        <h2>Thư viện báo cáo gần đây</h2>
+        <p>Tra cứu nhanh các báo cáo đã phát hành kèm trạng thái xử lý.</p>
+      </div>
+      <a href="#" class="section-link" data-future-feature>
+        <i class="fa-solid fa-cloud-arrow-down"></i>
+        Đồng bộ kho dữ liệu
+      </a>
+    </header>
+    <div class="library-list">
+      <% (reportLibrary || []).forEach(function(doc){ %>
+        <article class="library-card">
+          <header>
+            <h3><%= doc.title %></h3>
+            <span class="library-status"><%= libraryStatus[doc.status] || 'Đang cập nhật' %></span>
+          </header>
+          <div class="library-meta">
+            <span><i class="fa-solid fa-hashtag"></i> <%= doc.code %></span>
+            <span><i class="fa-solid fa-clock-rotate-left"></i> Cập nhật: <%= new Date(doc.lastUpdated).toLocaleDateString('vi-VN') %></span>
+            <span><i class="fa-solid fa-user-tie"></i> <%= doc.owner %></span>
+            <span><i class="fa-solid fa-paperclip"></i> <%= doc.attachments %> tệp</span>
+          </div>
+          <p class="library-summary"><%= doc.summary %></p>
+          <div class="library-tags">
+            <% (doc.tags || []).forEach(function(tag){ %>
+              <span class="library-tag"><%= tag %></span>
+            <% }) %>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="reports-actions" aria-label="Gợi ý thao tác nhanh">
+    <header>
+      <h2>Góc điều hành</h2>
+      <p>Đảm bảo các báo cáo đi đúng tiến độ bằng những hành động ưu tiên ngay.</p>
+    </header>
+    <div class="actions-grid">
+      <button type="button" class="action-card" data-future-feature>
+        <i class="fa-solid fa-bell"></i>
+        <strong>Thiết lập nhắc hạn đa kênh</strong>
+        <span>Tự động gửi email + Teams trước 48 giờ</span>
+      </button>
+      <button type="button" class="action-card" data-future-feature>
+        <i class="fa-solid fa-sitemap"></i>
+        <strong>Sơ đồ hóa quy trình báo cáo</strong>
+        <span>Chuẩn hóa luồng phê duyệt và trách nhiệm</span>
+      </button>
+      <button type="button" class="action-card" data-future-feature>
+        <i class="fa-solid fa-chart-pie"></i>
+        <strong>Tạo dashboard tổng hợp</strong>
+        <span>Kết nối dữ liệu để trực quan hóa kết quả</span>
+      </button>
+    </div>
+  </section>
+</section>
+
+<%- contentFor('js') %>
+<script>
+(function(){
+  document.addEventListener('click', function(event){
+    const future = event.target.closest('[data-future-feature]');
+    if (future) {
+      event.preventDefault();
+      future.classList.add('is-pulse');
+      setTimeout(function(){ future.classList.remove('is-pulse'); }, 800);
+      alert('Tính năng đang được xây dựng. Đội ngũ sẽ thông báo khi sẵn sàng!');
+    }
+  });
+
+  document.addEventListener('submit', function(event){
+    if (event.target && event.target.matches('[data-report-delete-form]')) {
+      const confirmed = confirm('Bạn có chắc chắn muốn xoá lịch báo cáo này?');
+      if (!confirmed) {
+        event.preventDefault();
+      }
+    }
+  });
+})();
+</script>

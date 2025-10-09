@@ -1,0 +1,518 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/research-manage.css?v=20241009">
+
+<%- contentFor('js') %>
+<script src="/js/research-manage.js?v=20241009" defer></script>
+
+<%
+  const projectList = Array.isArray(projects) ? projects : [];
+  const categoryOptions = Array.isArray(categories) ? categories : [];
+  const staffOptions = Array.isArray(staffMembers) ? staffMembers : [];
+  const studentProjectList = Array.isArray(studentProjects) ? studentProjects : [];
+  const studentOutputList = Array.isArray(studentOutputs) ? studentOutputs : [];
+  const projectStatusOptions = Array.isArray(projectStatuses) ? projectStatuses : [];
+  const studentStatusOptions = Array.isArray(studentStatuses) ? studentStatuses : [];
+  const outputTypeOptions = Array.isArray(outputTypes) ? outputTypes : [];
+
+  const projectStatusMap = {};
+  projectStatusOptions.forEach((item) => { projectStatusMap[item.value] = item.label; });
+  const studentStatusMap = {};
+  studentStatusOptions.forEach((item) => { studentStatusMap[item.value] = item.label; });
+  const outputTypeMap = {};
+  outputTypeOptions.forEach((item) => { outputTypeMap[item.value] = item.label; });
+
+  const formatDate = (value) => {
+    if (!value) { return ''; }
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) { return value; }
+    return dt.toLocaleDateString('vi-VN');
+  };
+
+  const toInputDate = (value) => {
+    if (!value) { return ''; }
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      return value.toISOString().slice(0, 10);
+    }
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+    if (typeof value === 'string') {
+      return value.slice(0, 10);
+    }
+    return '';
+  };
+%>
+
+<section class="research-manage-page">
+  <header class="manage-hero">
+    <div>
+      <span class="hero-eyebrow">Điều hành nghiên cứu</span>
+      <h1>Quản lý danh mục nghiên cứu khoa học</h1>
+      <p>Thêm mới, chỉnh sửa và theo dõi đề tài nghiên cứu của giảng viên, sinh viên cùng các sản phẩm khoa học liên quan.</p>
+      <div class="hero-actions">
+        <a href="/research" class="btn btn-outline">
+          <i class="fa-solid fa-chart-line"></i>
+          Xem bảng điều khiển nghiên cứu
+        </a>
+        <button type="button" class="btn btn-soft" data-reset-target="#projectForm" data-reset-label="Thêm mới đề tài">
+          <i class="fa-solid fa-plus"></i>
+          Thêm đề tài giảng viên
+        </button>
+        <button type="button" class="btn btn-soft" data-reset-target="#studentProjectForm" data-reset-label="Thêm mới đề tài">
+          <i class="fa-solid fa-user-graduate"></i>
+          Thêm đề tài sinh viên
+        </button>
+      </div>
+    </div>
+    <aside class="hero-stats">
+      <article>
+        <span class="label">Đề tài giảng viên</span>
+        <strong><%= projectList.length %></strong>
+      </article>
+      <article>
+        <span class="label">Đề tài sinh viên</span>
+        <strong><%= studentProjectList.length %></strong>
+      </article>
+      <article>
+        <span class="label">Kết quả khoa học</span>
+        <strong><%= studentOutputList.length %></strong>
+      </article>
+    </aside>
+  </header>
+
+  <div class="manage-grid">
+    <article class="manage-card">
+      <header class="card-header">
+        <div>
+          <h2>Đề tài giảng viên</h2>
+          <p>Quản lý vòng đời đề tài: từ khởi tạo, theo dõi tiến độ đến nghiệm thu.</p>
+        </div>
+        <span class="mode-indicator" data-mode-label="#projectForm">Thêm mới đề tài</span>
+      </header>
+      <form id="projectForm" class="research-form" action="/research/projects/save" method="post" data-mode="create">
+        <input type="hidden" name="id">
+        <div class="form-grid">
+          <label class="form-field">
+            <span>Mã đề tài</span>
+            <input type="text" name="project_code" placeholder="PRJ-2024-...">
+            <small>Tự sinh nếu để trống.</small>
+          </label>
+          <label class="form-field">
+            <span>Tên đề tài <sup>*</sup></span>
+            <input type="text" name="title" required>
+          </label>
+          <label class="form-field">
+            <span>Lĩnh vực</span>
+            <select name="category_id">
+              <option value="">Chưa phân loại</option>
+              <% categoryOptions.forEach(function(category){ %>
+                <option value="<%= category.id %>"><%= category.name %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Giảng viên chủ trì <sup>*</sup></span>
+            <select name="leader_id" required>
+              <option value="">-- Chọn giảng viên --</option>
+              <% staffOptions.forEach(function(staff){ %>
+                <option value="<%= staff.id %>"><%= staff.full_name || staff.staff_code || ('GV-' + staff.id) %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Ngày bắt đầu <sup>*</sup></span>
+            <input type="date" name="start_date" required>
+          </label>
+          <label class="form-field">
+            <span>Ngày kết thúc <sup>*</sup></span>
+            <input type="date" name="end_date" required>
+          </label>
+          <label class="form-field">
+            <span>Trạng thái</span>
+            <select name="status">
+              <% projectStatusOptions.forEach(function(status){ %>
+                <option value="<%= status.value %>"><%= status.label %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Tiến độ (%)</span>
+            <input type="number" name="progress" min="0" max="100" step="1" value="0">
+          </label>
+          <label class="form-field">
+            <span>Kinh phí (VNĐ)</span>
+            <input type="number" name="budget" min="0" step="1000000" placeholder="0">
+          </label>
+        </div>
+        <label class="form-field">
+          <span>Mục tiêu và phạm vi</span>
+          <textarea name="objectives" rows="3" placeholder="Mục tiêu chính, phạm vi triển khai..."></textarea>
+        </label>
+        <label class="form-field">
+          <span>Mô tả chi tiết</span>
+          <textarea name="description" rows="3" placeholder="Tóm tắt nội dung đề tài"></textarea>
+        </label>
+        <label class="form-field">
+          <span>Kết quả nổi bật</span>
+          <textarea name="results_summary" rows="3" placeholder="Tổng hợp kết quả / sản phẩm chính"></textarea>
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-save"></i>
+            Lưu thông tin
+          </button>
+          <button type="reset" class="btn btn-ghost">
+            <i class="fa-solid fa-rotate-left"></i>
+            Hủy chỉnh sửa
+          </button>
+        </div>
+      </form>
+
+      <div class="table-wrapper">
+        <table class="research-table">
+          <thead>
+            <tr>
+              <th>Mã đề tài</th>
+              <th>Tên đề tài</th>
+              <th>Lĩnh vực</th>
+              <th>Chủ trì</th>
+              <th>Tiến độ</th>
+              <th>Thời gian</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!projectList.length) { %>
+              <tr>
+                <td colspan="7" class="empty">Chưa có đề tài nào. Hãy thêm mới bằng biểu mẫu phía trên.</td>
+              </tr>
+            <% } %>
+            <% projectList.forEach(function(project){ %>
+              <tr>
+                <td><strong><%= project.project_code || 'Đang cập nhật' %></strong></td>
+                <td>
+                  <div class="row-title"><%= project.title %></div>
+                  <% if (project.description) { %>
+                    <small><%= project.description.slice(0, 120) %><%= project.description.length > 120 ? '…' : '' %></small>
+                  <% } %>
+                </td>
+                <td><%= project.category_name || 'Chưa rõ' %></td>
+                <td><%= project.leader_name || 'Chưa cập nhật' %></td>
+                <td>
+                  <span class="status-badge" data-status="<%= project.status %>"><%= projectStatusMap[project.status] || 'Đang cập nhật' %></span>
+                  <span class="muted">(<%= project.progress ?? 0 %>%)</span>
+                </td>
+                <td>
+                  <div><%= formatDate(project.start_date) || '---' %> → <%= formatDate(project.end_date) || '---' %></div>
+                </td>
+                <td class="actions">
+                  <button type="button" class="btn-icon" data-action="edit-project"
+                    data-id="<%= project.id %>"
+                    data-project_code="<%= project.project_code || '' %>"
+                    data-title="<%= project.title %>"
+                    data-category_id="<%= project.category_id || '' %>"
+                    data-leader_id="<%= project.leader_id || '' %>"
+                    data-start_date="<%= toInputDate(project.start_date) %>"
+                    data-end_date="<%= toInputDate(project.end_date) %>"
+                    data-status="<%= project.status || 'planning' %>"
+                    data-progress="<%= project.progress ?? 0 %>"
+                    data-budget="<%= project.budget ?? '' %>"
+                    data-description="<%= project.description || '' %>"
+                    data-objectives="<%= project.objectives || '' %>"
+                    data-results_summary="<%= project.results_summary || '' %>">
+                    <i class="fa-solid fa-pen"></i>
+                    <span class="sr-only">Chỉnh sửa</span>
+                  </button>
+                  <form action="/research/projects/<%= project.id %>/delete" method="post" data-confirm="Bạn chắc chắn muốn xoá đề tài này?">
+                    <button type="submit" class="btn-icon btn-icon--danger">
+                      <i class="fa-solid fa-trash"></i>
+                      <span class="sr-only">Xoá</span>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="manage-card">
+      <header class="card-header">
+        <div>
+          <h2>Đề tài sinh viên</h2>
+          <p>Ghi nhận sáng kiến của sinh viên, cấu hình trạng thái và tiến độ thực hiện.</p>
+        </div>
+        <span class="mode-indicator" data-mode-label="#studentProjectForm">Thêm mới đề tài</span>
+      </header>
+      <form id="studentProjectForm" class="research-form" action="/research/student-projects/save" method="post" data-mode="create">
+        <input type="hidden" name="id">
+        <div class="form-grid">
+          <label class="form-field">
+            <span>Mã đề tài</span>
+            <input type="text" name="project_code" placeholder="SVR-2024-...">
+          </label>
+          <label class="form-field">
+            <span>Tên đề tài <sup>*</sup></span>
+            <input type="text" name="title" required>
+          </label>
+          <label class="form-field">
+            <span>Lĩnh vực</span>
+            <input type="text" name="field" placeholder="Công nghệ, An ninh...">
+          </label>
+          <label class="form-field">
+            <span>Giảng viên hướng dẫn</span>
+            <select name="supervisor_id" data-sync-name="supervisor_name">
+              <option value="">-- Chọn giảng viên --</option>
+              <% staffOptions.forEach(function(staff){ %>
+                <option value="<%= staff.id %>" data-full-name="<%= staff.full_name || '' %>"><%= staff.full_name || staff.staff_code || ('GV-' + staff.id) %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Tên giảng viên (tùy chỉnh)</span>
+            <input type="text" name="supervisor_name" placeholder="Nếu giảng viên không có trong danh sách">
+          </label>
+          <label class="form-field">
+            <span>Trưởng nhóm <sup>*</sup></span>
+            <input type="text" name="lead_student" required>
+          </label>
+          <label class="form-field">
+            <span>Quy mô nhóm</span>
+            <input type="number" name="team_size" min="1" max="20" value="1">
+          </label>
+          <label class="form-field">
+            <span>Trạng thái</span>
+            <select name="status">
+              <% studentStatusOptions.forEach(function(status){ %>
+                <option value="<%= status.value %>"><%= status.label %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Tiến độ (%)</span>
+            <input type="number" name="progress" min="0" max="100" step="1" value="0">
+          </label>
+          <label class="form-field">
+            <span>Ngày bắt đầu</span>
+            <input type="date" name="start_date">
+          </label>
+          <label class="form-field">
+            <span>Ngày kết thúc</span>
+            <input type="date" name="end_date">
+          </label>
+        </div>
+        <label class="form-field">
+          <span>Tóm tắt</span>
+          <textarea name="summary" rows="3"></textarea>
+        </label>
+        <label class="form-field">
+          <span>Thành tích / giải thưởng</span>
+          <textarea name="achievements" rows="2"></textarea>
+        </label>
+        <label class="form-field">
+          <span>Liên kết tham khảo</span>
+          <input type="url" name="reference_url" placeholder="https://...">
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-save"></i>
+            Lưu đề tài
+          </button>
+          <button type="reset" class="btn btn-ghost">
+            <i class="fa-solid fa-rotate-left"></i>
+            Hủy chỉnh sửa
+          </button>
+        </div>
+      </form>
+
+      <div class="table-wrapper">
+        <table class="research-table">
+          <thead>
+            <tr>
+              <th>Mã</th>
+              <th>Tên đề tài</th>
+              <th>Nhóm</th>
+              <th>GV hướng dẫn</th>
+              <th>Tiến độ</th>
+              <th>Thời gian</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!studentProjectList.length) { %>
+              <tr>
+                <td colspan="7" class="empty">Chưa ghi nhận đề tài sinh viên.</td>
+              </tr>
+            <% } %>
+            <% studentProjectList.forEach(function(project){ %>
+              <tr>
+                <td><strong><%= project.project_code || 'SVR-' + project.id %></strong></td>
+                <td>
+                  <div class="row-title"><%= project.title %></div>
+                  <% if (project.summary) { %>
+                    <small><%= project.summary.slice(0, 120) %><%= project.summary.length > 120 ? '…' : '' %></small>
+                  <% } %>
+                </td>
+                <td>
+                  <div><strong><%= project.lead_student || '---' %></strong></div>
+                  <small><%= project.team_size || 1 %> thành viên</small>
+                </td>
+                <td><%= project.supervisor_name || 'Chưa cập nhật' %></td>
+                <td>
+                  <span class="status-badge" data-status="<%= project.status %>"><%= studentStatusMap[project.status] || 'Đang cập nhật' %></span>
+                  <span class="muted">(<%= project.progress ?? 0 %>%)</span>
+                </td>
+                <td><%= formatDate(project.start_date) || '---' %> → <%= formatDate(project.end_date) || '---' %></td>
+                <td class="actions">
+                  <button type="button" class="btn-icon" data-action="edit-student-project"
+                    data-id="<%= project.id %>"
+                    data-project_code="<%= project.project_code || '' %>"
+                    data-title="<%= project.title %>"
+                    data-field="<%= project.field || '' %>"
+                    data-supervisor_id="<%= project.supervisor_id || '' %>"
+                    data-supervisor_name="<%= project.supervisor_name || '' %>"
+                    data-lead_student="<%= project.lead_student || '' %>"
+                    data-team_size="<%= project.team_size || 1 %>"
+                    data-status="<%= project.status || 'proposal' %>"
+                    data-progress="<%= project.progress ?? 0 %>"
+                    data-start_date="<%= toInputDate(project.start_date) %>"
+                    data-end_date="<%= toInputDate(project.end_date) %>"
+                    data-summary="<%= project.summary || '' %>"
+                    data-achievements="<%= project.achievements || '' %>"
+                    data-reference_url="<%= project.reference_url || '' %>">
+                    <i class="fa-solid fa-pen"></i>
+                    <span class="sr-only">Chỉnh sửa</span>
+                  </button>
+                  <form action="/research/student-projects/<%= project.id %>/delete" method="post" data-confirm="Xoá đề tài sinh viên này?">
+                    <button type="submit" class="btn-icon btn-icon--danger">
+                      <i class="fa-solid fa-trash"></i>
+                      <span class="sr-only">Xoá</span>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="manage-card">
+      <header class="card-header">
+        <div>
+          <h2>Kết quả nghiên cứu</h2>
+          <p>Quản lý các bài báo, giải thưởng, sản phẩm từ đề tài sinh viên.</p>
+        </div>
+        <span class="mode-indicator" data-mode-label="#studentOutputForm">Thêm mới kết quả</span>
+      </header>
+      <form id="studentOutputForm" class="research-form" action="/research/student-outputs/save" method="post" data-mode="create">
+        <input type="hidden" name="id">
+        <div class="form-grid">
+          <label class="form-field">
+            <span>Thuộc đề tài</span>
+            <select name="project_id">
+              <option value="">-- Chọn đề tài sinh viên --</option>
+              <% studentProjectList.forEach(function(project){ %>
+                <option value="<%= project.id %>"><%= project.title %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Loại kết quả</span>
+            <select name="type">
+              <% outputTypeOptions.forEach(function(type){ %>
+                <option value="<%= type.value %>"><%= type.label %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Tiêu đề <sup>*</sup></span>
+            <input type="text" name="title" required>
+          </label>
+          <label class="form-field">
+            <span>Ngày công bố</span>
+            <input type="date" name="publish_date">
+          </label>
+          <label class="form-field">
+            <span>Tác giả chính</span>
+            <input type="text" name="lead_author" placeholder="Tên sinh viên hoặc nhóm">
+          </label>
+        </div>
+        <label class="form-field">
+          <span>Mô tả / Trích dẫn</span>
+          <textarea name="description" rows="3"></textarea>
+        </label>
+        <label class="form-field">
+          <span>Liên kết truy cập</span>
+          <input type="url" name="reference_url" placeholder="https://...">
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-save"></i>
+            Lưu kết quả
+          </button>
+          <button type="reset" class="btn btn-ghost">
+            <i class="fa-solid fa-rotate-left"></i>
+            Hủy chỉnh sửa
+          </button>
+        </div>
+      </form>
+
+      <div class="table-wrapper">
+        <table class="research-table">
+          <thead>
+            <tr>
+              <th>Tiêu đề</th>
+              <th>Loại</th>
+              <th>Thuộc đề tài</th>
+              <th>Ngày</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!studentOutputList.length) { %>
+              <tr>
+                <td colspan="5" class="empty">Chưa có kết quả khoa học nào.</td>
+              </tr>
+            <% } %>
+            <% studentOutputList.forEach(function(output){ %>
+              <tr>
+                <td>
+                  <div class="row-title"><%= output.title %></div>
+                  <% if (output.description) { %>
+                    <small><%= output.description.slice(0, 120) %><%= output.description.length > 120 ? '…' : '' %></small>
+                  <% } %>
+                </td>
+                <td><span class="status-badge" data-status="<%= output.type %>"><%= outputTypeMap[output.type] || 'Khác' %></span></td>
+                <td><%= output.project_title || 'Độc lập' %></td>
+                <td><%= formatDate(output.publish_date) || '---' %></td>
+                <td class="actions">
+                  <button type="button" class="btn-icon" data-action="edit-student-output"
+                    data-id="<%= output.id %>"
+                    data-project_id="<%= output.project_id || '' %>"
+                    data-type="<%= output.type || 'other' %>"
+                    data-title="<%= output.title %>"
+                    data-publish_date="<%= toInputDate(output.publish_date) %>"
+                    data-lead_author="<%= output.lead_author || '' %>"
+                    data-description="<%= output.description || '' %>"
+                    data-reference_url="<%= output.reference_url || '' %>">
+                    <i class="fa-solid fa-pen"></i>
+                    <span class="sr-only">Chỉnh sửa</span>
+                  </button>
+                  <form action="/research/student-outputs/<%= output.id %>/delete" method="post" data-confirm="Xoá kết quả này?">
+                    <button type="submit" class="btn-icon btn-icon--danger">
+                      <i class="fa-solid fa-trash"></i>
+                      <span class="sr-only">Xoá</span>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </div>
+</section>
