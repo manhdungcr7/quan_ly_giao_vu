@@ -1,0 +1,69 @@
+:root {
+    --department-accent: rgba(45, 212, 191, 0.22);
+    --department-accent-strong: rgba(16, 185, 129, 0.18);
+    --department-muted: rgba(148, 163, 184, 0.18);
+}
+
+.department-layout .page-header {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(45, 212, 191, 0.12));
+    border-color: rgba(45, 212, 191, 0.18);
+}
+
+.department-layout .metric-card:nth-of-type(3) {
+    background: linear-gradient(135deg, rgba(45, 212, 191, 0.16), rgba(14, 165, 233, 0.1));
+    border-color: rgba(94, 234, 212, 0.42);
+}
+
+.department-layout .metric-card:nth-of-type(4) {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(236, 72, 153, 0.1));
+    border-color: rgba(192, 132, 252, 0.28);
+}
+
+.department-layout .table tbody tr[data-level="root"] strong {
+    color: #0f172a;
+}
+
+.department-layout .table tbody tr[data-level="child"] strong {
+    color: #1d4ed8;
+}
+
+.cell-badge--muted {
+    background: var(--department-muted);
+    color: #475569;
+}
+
+.department-layout .cell-inline i {
+    color: #0ea5e9;
+}
+
+.department-layout .table tbody tr:hover {
+    background: rgba(45, 212, 191, 0.07);
+}
+
+.department-layout .filter-group + .filter-group {
+    margin-left: 8px;
+}
+
+.department-layout .form-panel__header {
+    border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+}
+
+.department-layout .form-panel__footer {
+    gap: 10px;
+}
+
+.form-panel__backdrop[data-panel-backdrop] {
+    background: rgba(15, 23, 42, 0.32);
+}
+
+@media (max-width: 1280px) {
+    .department-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .department-layout .form-panel {
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}

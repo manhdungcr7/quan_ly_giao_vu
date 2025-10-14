@@ -2296,6 +2296,14 @@ body {
     }
   };
 
+  const entriesByDay = {};
+  (Array.isArray(entries) ? entries : []).forEach((entry) => {
+    const dayIndex = Number(entry.day_of_week);
+    if (!Number.isNaN(dayIndex) && dayIndex >= 1 && dayIndex <= 7) {
+      entriesByDay[dayIndex] = entry;
+    }
+  });
+
   const baseWeekStart = parseISODate(weekStart);
   const baseWeekEnd = addDays(baseWeekStart, 6);
   const currentWeekLabel = `Tuần ${isoWeekNumber(baseWeekStart)} · ${baseWeekStart.getFullYear()}`;
@@ -2313,63 +2321,173 @@ body {
       year: start.getFullYear()
     };
   });
+  const currentIsoWeekLabel = `Tuần ${isoWeekNumber(baseWeekStart)}`;
+  const normalizedAcademicStart = workbook?.academic_start_week
+    ? toISODate(parseISODate(workbook.academic_start_week))
+    : '';
+  const academicStartDisplay = normalizedAcademicStart
+    ? formatRange(parseISODate(normalizedAcademicStart), addDays(parseISODate(normalizedAcademicStart), 6))
+    : '';
+
+  const statusLabelMap = {
+    draft: 'Bản nháp',
+    submitted: 'Chờ duyệt',
+    approved: 'Đã duyệt',
+    rejected: 'Bị từ chối'
+  };
+  const statusClassMap = {
+    draft: 'status-draft',
+    submitted: 'status-submitted',
+    approved: 'status-approved',
+    rejected: 'status-rejected'
+  };
+
+  const resolveRoleLabel = (roleName) => {
+    if (!roleName) return '';
+    const normalized = roleName.toString().toLowerCase();
+    if (roleLabels && roleLabels[normalized]) {
+      return roleLabels[normalized];
+    }
+    return roleName;
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return '';
+    try {
+      return new Date(value).toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return value;
+    }
+  };
+
+  const workbookStatus = (workbook && workbook.status) || 'draft';
+  const workbookStatusLabel = statusLabelMap[workbookStatus] || 'Không xác định';
+  const workbookStatusClass = statusClassMap[workbookStatus] || 'status-draft';
+  const isOwnerView = Boolean(isOwner);
+  const isApproverView = Boolean(isApprover);
+  const approverSelectedName = approver ? (approver.full_name || approver.username || '') : '';
+  const approverSelectedRole = approver ? resolveRoleLabel(approver.role_name) : '';
+  const currentApproverId = approver ? Number(approver.id) : null;
+  const canSubmit = isOwnerView && (workbookStatus === 'draft' || workbookStatus === 'rejected');
+  const canSelectApprover = isOwnerView && (workbookStatus === 'draft' || workbookStatus === 'rejected');
+  const canAddWeek = isOwnerView;
+  const canDecideApproval = isApproverView && workbookStatus === 'submitted';
 %>
 
 <div class="workbook-layout" 
      data-workbook-id="<%= workbook.id %>" 
      data-week-start="<%= weekStart %>"
-     data-week-end="<%= weekEnd %>">
+     data-week-end="<%= weekEnd %>"
+     data-current-status="<%= workbookStatus %>"
+     data-current-approver="<%= approver ? approver.id : '' %>"
+     data-can-edit="<%= isOwnerView ? 'true' : 'false' %>"
+     data-is-approver="<%= isApproverView ? 'true' : 'false' %>"
+  data-can-approve="<%= canDecideApproval ? 'true' : 'false' %>"
+  data-academic-start="<%= normalizedAcademicStart %>"
+  data-user-id="<%= user.id %>">
   <!-- Left Sidebar -->
   <aside class="workbook-sidebar">
     <!-- Week Selector -->
-    <div class="sidebar-card">
+    <div class="sidebar-card sidebar-card--week">
       <h3 class="sidebar-card-title">
         <i class="fas fa-calendar-week"></i>
         Chọn tuần
       </h3>
       <div class="week-selector">
-        <div class="week-selector-header">
-          <button class="week-nav-btn" data-action="prev-week" title="Tuần trước">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <div class="week-current">
-            <span class="week-tag">
-              <i class="fas fa-circle" style="font-size: 0.45rem;"></i>
-              <%= currentWeekLabel %>
-            </span>
-            <div class="week-dates"><%= currentWeekRange %></div>
+        <div class="week-selector__pill">
+          <span class="week-selector__pill-label">Tuần hiện tại</span>
+          <strong class="week-selector__pill-value" data-current-week-academic data-default-label="<%= currentIsoWeekLabel %>"><%= currentIsoWeekLabel %></strong>
+          <span class="week-selector__pill-range" data-current-week-range><%= currentWeekRange %></span>
+        </div>
+        <div class="week-selector__controls">
+          <div class="week-selector__nav">
+            <button class="week-nav-btn" data-action="prev-week" title="Tuần trước">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="week-selector__summary">
+              <span class="week-selector__summary-label">Đang xem</span>
+              <span class="week-selector__summary-value" data-current-week-summary><%= currentWeekRange %></span>
+            </div>
+            <button class="week-nav-btn" data-action="next-week" title="Tuần sau">
+              <i class="fas fa-chevron-right"></i>
+            </button>
           </div>
-          <button class="week-nav-btn" data-action="next-week" title="Tuần sau">
-            <i class="fas fa-chevron-right"></i>
+          <button class="week-selector__toggle" data-action="toggle-week-rail" type="button" aria-expanded="false">
+            <i class="fas fa-layer-group"></i>
+            <span>Hiện danh sách tuần</span>
           </button>
         </div>
 
-        <div class="week-chip-rail">
+        <div class="week-chip-rail" role="list">
           <% weekChips.forEach((chip) => { %>
             <button
               class="week-chip <%= chip.offset === 0 ? 'active' : '' %>"
+              data-week-chip
+              data-week-offset="<%= chip.offset %>"
               data-action="select-week"
               data-week-start="<%= chip.startISO %>"
               data-week-end="<%= chip.endISO %>"
               data-display-label="<%= chip.label %>"
-              aria-pressed="<%= chip.offset === 0 %>">
-              <span class="week-chip-label"><%= chip.label %> · <%= chip.year %></span>
+              aria-pressed="<%= chip.offset === 0 %>"
+              role="listitem"
+              aria-label="<%= chip.label %> · <%= chip.displayRange %>">
+              <span class="week-chip-label" data-week-label data-default-label="<%= chip.label %> · <%= chip.year %>"><%= chip.label %> · <%= chip.year %></span>
               <span class="week-chip-range"><%= chip.displayRange %></span>
             </button>
           <% }) %>
         </div>
 
-        <div class="week-picker">
-          <div class="week-picker-body">
-            <i class="fas fa-calendar-alt"></i>
-            <input
-              type="date"
-              value="<%= weekStart %>"
-              data-action="week-date-input"
-              aria-label="Chọn ngày trong tuần" />
-            <button data-action="week-date-apply" type="button">Xem tuần</button>
+        <div class="week-picker" aria-labelledby="weekPickerLabel">
+          <div class="week-picker-header" id="weekPickerLabel">
+            <span class="week-picker-title">Chọn tuần khác</span>
+            <span class="week-picker-description">Hệ thống tự chuyển về Thứ 2</span>
           </div>
-          <p class="week-picker-hint">Chọn bất kỳ ngày nào trong tuần bạn muốn theo dõi, hệ thống sẽ tự động điều chỉnh về Thứ 2.</p>
+          <div class="week-picker-body">
+            <div class="week-picker-input">
+              <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+              <input
+                type="date"
+                value="<%= weekStart %>"
+                data-action="week-date-input"
+                aria-label="Chọn ngày trong tuần" />
+            </div>
+            <button class="week-picker-submit" data-action="week-date-apply" type="button">
+              <i class="fas fa-eye"></i>
+              <span>Xem tuần</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="week-academic-config">
+          <div class="week-academic-config__header">
+            <span class="week-academic-config__title">Tuần đầu năm học</span>
+            <button type="button" class="week-academic-config__reset" data-action="reset-academic-start">Đặt lại</button>
+          </div>
+          <p class="week-academic-config__description">Chọn tuần sẽ được đánh số là tuần 1 của năm học.</p>
+          <div class="week-academic-config__body">
+            <div class="week-picker-input">
+              <i class="fas fa-flag" aria-hidden="true"></i>
+              <input
+                type="date"
+                value="<%= normalizedAcademicStart || weekStart %>"
+                data-academic-start-input
+                aria-label="Thiết lập tuần bắt đầu năm học" />
+            </div>
+            <button class="week-picker-submit" data-action="apply-academic-start" type="button">
+              <i class="fas fa-save"></i>
+              <span>Áp dụng</span>
+            </button>
+          </div>
+          <p class="week-academic-config__current">
+            <span>Hiện tại:</span>
+            <strong data-academic-start-display><%= academicStartDisplay || 'Theo tuần hiện tại' %></strong>
+          </p>
         </div>
       </div>
     </div>
@@ -2387,8 +2505,32 @@ body {
         </div>
         <div class="info-item">
           <span class="info-label">Trạng thái:</span>
-          <span class="status-badge status-draft">Bản nháp</span>
+          <span class="status-badge <%= workbookStatusClass %>"><%= workbookStatusLabel %></span>
         </div>
+        <% if (approverSelectedName) { %>
+        <div class="info-item">
+          <span class="info-label">Người duyệt:</span>
+          <span class="info-value"><%= approverSelectedName %><%= approverSelectedRole ? ` · ${approverSelectedRole}` : '' %></span>
+        </div>
+        <% } %>
+        <% if (workbook.approval_requested_at) { %>
+        <div class="info-item">
+          <span class="info-label">Gửi duyệt:</span>
+          <span class="info-value"><%= formatDateTime(workbook.approval_requested_at) %></span>
+        </div>
+        <% } %>
+        <% if (workbook.approval_decision_at) { %>
+        <div class="info-item">
+          <span class="info-label">Duyệt lúc:</span>
+          <span class="info-value"><%= formatDateTime(workbook.approval_decision_at) %></span>
+        </div>
+        <% } %>
+        <% if (workbook.approval_note) { %>
+        <div class="info-item">
+          <span class="info-label">Ghi chú:</span>
+          <span class="info-value"><%= workbook.approval_note %></span>
+        </div>
+        <% } %>
       </div>
     </div>
 
@@ -2399,14 +2541,53 @@ body {
         Thao tác
       </h3>
       <div class="action-buttons">
+        <% if (canAddWeek) { %>
         <button class="action-btn btn-add" data-action="add-week">
           <i class="fas fa-plus-circle"></i>
           <span>Thêm tuần</span>
         </button>
+        <% } %>
+        <% if (canSelectApprover) { %>
+        <div class="approval-select">
+          <label for="approverSelect">Chọn người duyệt</label>
+          <select id="approverSelect" data-approver-select>
+            <option value="">-- Chọn người duyệt --</option>
+            <% (approverOptions || []).forEach(function(option){ %>
+              <% const optionRole = resolveRoleLabel(option.role_name); %>
+              <option value="<%= option.id %>" <%= option.id === currentApproverId ? 'selected' : '' %>>
+                <%= option.full_name || option.username %><%= optionRole ? ` · ${optionRole}` : '' %>
+              </option>
+            <% }) %>
+          </select>
+          <% if (!approverOptions || !approverOptions.length) { %>
+            <p class="approval-hint">Chưa có người duyệt phù hợp trong hệ thống.</p>
+          <% } else { %>
+            <p class="approval-hint">Chỉ hiển thị các tài khoản có chức vụ cao hơn.</p>
+          <% } %>
+        </div>
+        <% } %>
+        <% if (canSubmit) { %>
         <button class="action-btn btn-submit" data-action="submit-workbook">
           <i class="fas fa-paper-plane"></i>
           <span>Gửi duyệt</span>
         </button>
+        <% } %>
+        <% if (canDecideApproval) { %>
+        <div class="approval-review">
+          <label for="approverDecisionNote">Nhận xét của bạn</label>
+          <textarea id="approverDecisionNote" data-approver-note placeholder="Nhập nhận xét hoặc yêu cầu bổ sung..."><%= workbook.approval_note || '' %></textarea>
+          <div class="approval-review__actions">
+            <button class="action-btn btn-approve" data-action="approve-workbook">
+              <i class="fas fa-check-circle"></i>
+              <span>Phê duyệt</span>
+            </button>
+            <button class="action-btn btn-reject" data-action="reject-workbook">
+              <i class="fas fa-times-circle"></i>
+              <span>Từ chối</span>
+            </button>
+          </div>
+        </div>
+        <% } %>
       </div>
     </div>
   </aside>
@@ -2434,17 +2615,12 @@ body {
       <div class="days-grid">
         <%
           const daysOfWeek = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
-          const entryMap = {};
-          entries.forEach(entry => {
-            entryMap[entry.day_of_week] = entry;
-          });
-
-          for(let day = 1; day <= 7; day++) {
-            const entry = entryMap[day] || {};
-            const currentDate = new Date(weekStart);
+          for (let day = 1; day <= 7; day++) {
+            const entry = entriesByDay[day] || {};
+            const currentDate = new Date(baseWeekStart.getTime());
             currentDate.setDate(currentDate.getDate() + (day - 1));
             const progressValue = entry.progress || 0;
-            const dateStr = currentDate.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'});
+            const dateStr = currentDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
         %>
         <div class="day-card" data-day="<%= day %>" data-workbook-id="<%= workbook.id %>">
           <div class="day-card-header">
@@ -2470,7 +2646,7 @@ body {
                 <i class="fas fa-bullseye"></i>
                 Main Focus
               </h4>
-              <p class="section-content <%= entry.main_focus ? '' : 'empty' %>">
+              <p class="section-content <%= entry.main_focus ? '' : 'empty' %>" data-main-focus-display>
                 <%= entry.main_focus || 'Chưa có mục tiêu' %>
               </p>
             </div>
@@ -2644,15 +2820,71 @@ body {
               </div>
             </div>
 
-            <% if(entry.notes) { %>
             <div class="card-section">
               <h4 class="section-title">
                 <i class="fas fa-sticky-note"></i>
                 Ghi chú
               </h4>
-              <p class="section-content"><%= entry.notes %></p>
+              <p class="section-content <%= entry.notes ? '' : 'empty' %>" data-notes-display>
+                <%= entry.notes || 'Chưa có ghi chú' %>
+              </p>
             </div>
-            <% } %>
+
+            <div class="inline-detail-toggle">
+              <button class="inline-detail-btn" type="button" data-action="toggle-inline-details" data-day="<%= day %>" data-workbook="<%= workbook.id %>" aria-expanded="false">
+                <i class="fas fa-pen"></i>
+                Nhập nhanh chi tiết
+              </button>
+            </div>
+
+            <div class="inline-detail-panel" data-inline-panel data-day="<%= day %>" data-workbook="<%= workbook.id %>" hidden>
+              <div class="inline-detail-field">
+                <label for="inlineMainFocus-<%= day %>">Mục tiêu chính</label>
+                <textarea
+                  id="inlineMainFocus-<%= day %>"
+                  class="inline-input"
+                  data-inline-main-focus
+                  rows="2"
+                  maxlength="200"
+                  placeholder="Nhập mục tiêu chính trong ngày..."><%= entry.main_focus || '' %></textarea>
+              </div>
+
+              <div class="inline-detail-field">
+                <label for="inlineNotes-<%= day %>">Ghi chú & Ý tưởng</label>
+                <textarea
+                  id="inlineNotes-<%= day %>"
+                  class="inline-input"
+                  data-inline-notes
+                  rows="3"
+                  placeholder="Ghi lại những ý tưởng, lưu ý quan trọng..."><%= entry.notes || '' %></textarea>
+              </div>
+
+              <div class="inline-detail-field">
+                <label for="inlineProgress-<%= day %>">Tiến độ</label>
+                <div class="inline-progress-control">
+                  <input
+                    type="range"
+                    id="inlineProgress-<%= day %>"
+                    class="inline-progress-slider"
+                    data-inline-progress
+                    min="0"
+                    max="100"
+                    value="<%= progressValue %>">
+                  <span class="inline-progress-value" data-inline-progress-display><%= progressValue %>%</span>
+                </div>
+              </div>
+
+              <div class="inline-detail-actions">
+                <button type="button" class="inline-save-btn" data-action="save-inline-details" data-day="<%= day %>" data-workbook="<%= workbook.id %>">
+                  <i class="fas fa-check"></i>
+                  Lưu
+                </button>
+                <button type="button" class="inline-cancel-btn" data-action="cancel-inline-details" data-day="<%= day %>" data-workbook="<%= workbook.id %>">
+                  <i class="fas fa-times"></i>
+                  Hủy
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <% } %>

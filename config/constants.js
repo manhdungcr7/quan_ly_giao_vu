@@ -5,7 +5,43 @@ const CONSTANTS = {
         ADMIN: 'admin',
         STAFF: 'staff',
         LECTURER: 'lecturer',
-        VIEWER: 'viewer'
+        VIEWER: 'viewer',
+        GUEST: 'guest',
+        DEPARTMENT_HEAD: 'department_head',
+        DEPUTY_DEPARTMENT_HEAD: 'deputy_department_head',
+        BOARD: 'board'
+    },
+
+    ROLE_HIERARCHY: [
+        'admin',
+        'board',
+        'department_head',
+        'deputy_department_head',
+        'lecturer',
+        'staff',
+        'viewer',
+        'guest'
+    ],
+
+    USER_APPROVAL_STATUS: {
+        PENDING: 'pending',
+        APPROVED: 'approved',
+        REJECTED: 'rejected'
+    },
+
+    USER_ROLE_LABELS: {
+        admin: 'Quản trị viên',
+        staff: 'Cán bộ',
+        lecturer: 'Giảng viên',
+        viewer: 'Người xem',
+        guest: 'Khách',
+        department_head: 'Trưởng khoa',
+        deputy_department_head: 'Phó trưởng khoa',
+        board: 'Ban giám hiệu'
+    },
+
+    DEFAULTS: {
+        NEW_USER_ROLE: 'guest'
     },
 
     // Document status
@@ -143,6 +179,11 @@ const CONSTANTS = {
             FILE_TOO_LARGE: 'File quá lớn',
             INVALID_FILE_TYPE: 'Loại file không được hỗ trợ'
         }
+    },
+
+    // Security settings
+    SECURITY: {
+        bcryptRounds: 10
     },
 
     // Validation rules

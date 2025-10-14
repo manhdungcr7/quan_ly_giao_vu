@@ -1,0 +1,254 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/academic-years.css">
+
+<% 
+const academicYearsList = academicYears || [];
+const statusLabels = { active: 'Đang hoạt động', planned: 'Dự kiến', inactive: 'Ngừng' };
+const statusCounts = academicYearsList.reduce((acc, year) => {
+    const key = year.status || 'unknown';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+}, {});
+function formatDate(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+%>
+
+<div class="academic-layout">
+    <div class="academic-main">
+        <section class="page-header">
+            <div class="page-header__intro">
+                <h1>Quản lý năm học</h1>
+                <p>Thiết lập khung năm học để đồng bộ báo cáo và phối hợp giữa các phân hệ.</p>
+            </div>
+            <div class="page-header__actions">
+                <button class="btn btn-primary" type="button" data-toggle-form>
+                    <i class="fa fa-plus" aria-hidden="true"></i>
+                    <span>Thêm năm học</span>
+                </button>
+            </div>
+        </section>
+
+        <% if (academicYearsList.length) { %>
+        <section class="metrics-grid">
+            <article class="metric-card">
+                <span class="metric-label">Tổng năm học</span>
+                <strong class="metric-value"><%= academicYearsList.length %></strong>
+                <span class="metric-subtext">Bao gồm mọi trạng thái</span>
+            </article>
+            <article class="metric-card metric-card--accent">
+                <span class="metric-label">Đang hoạt động</span>
+                <strong class="metric-value"><%= statusCounts.active || 0 %></strong>
+                <span class="metric-subtext">Chỉ được phép có một năm học hoạt động</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-label">Đang dự kiến</span>
+                <strong class="metric-value"><%= statusCounts.planned || 0 %></strong>
+                <span class="metric-subtext">Sẵn sàng chuyển trạng thái khi khởi động</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-label">Đã ngừng</span>
+                <strong class="metric-value"><%= statusCounts.inactive || 0 %></strong>
+                <span class="metric-subtext">Lưu trữ cho mục đích tham chiếu</span>
+            </article>
+        </section>
+        <% } %>
+
+        <section class="card">
+            <header class="card__header">
+                <div class="card__title">
+                    <h2>Danh sách năm học</h2>
+                    <p>Theo dõi toàn bộ năm học đã khai báo, điều chỉnh trạng thái và thông tin khi cần.</p>
+                </div>
+                <% if (academicYearsList.length) { %>
+                <div class="table-toolbar">
+                    <div class="filter-group" role="radiogroup" aria-label="Lọc trạng thái">
+                        <button class="filter-chip is-active" type="button" data-status-filter="all">Tất cả (<%= academicYearsList.length %>)</button>
+                        <button class="filter-chip" type="button" data-status-filter="active">Đang hoạt động (<%= statusCounts.active || 0 %>)</button>
+                        <button class="filter-chip" type="button" data-status-filter="planned">Dự kiến (<%= statusCounts.planned || 0 %>)</button>
+                        <button class="filter-chip" type="button" data-status-filter="inactive">Ngừng (<%= statusCounts.inactive || 0 %>)</button>
+                    </div>
+                    <div class="toolbar-aside">
+                        <div class="search-group">
+                            <i class="fa fa-search" aria-hidden="true"></i>
+                            <input type="search" placeholder="Tìm theo mã hoặc tên năm học" aria-label="Tìm kiếm năm học" data-search-input>
+                        </div>
+                        <div class="results-count" data-results-count><%= academicYearsList.length %> năm học</div>
+                    </div>
+                </div>
+                <% } %>
+            </header>
+
+            <div class="card__body">
+                <% if (academicYearsList.length) { %>
+                <div class="table-region">
+                    <div class="table-wrapper">
+                        <table class="table" data-academic-table>
+                            <thead>
+                                <tr>
+                                    <th>Mã</th>
+                                    <th>Hiển thị</th>
+                                    <th>Thời gian</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ghi chú</th>
+                                    <th class="table__actions">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% academicYearsList.forEach(function(year){
+                                    const searchText = [year.year_code || '', year.display_name || '', year.notes || ''].join(' ').toLowerCase();
+                                    const startDate = formatDate(year.start_date);
+                                    const endDate = formatDate(year.end_date);
+                                    const status = year.status || 'planned';
+                                    const label = statusLabels[status] || status;
+                                %>
+                                <tr data-academic-row data-status="<%= status %>" data-search-text="<%= searchText %>" class="status-<%= status %> <%= status === 'active' ? 'is-current' : '' %>">
+                                    <td>
+                                        <div class="cell-title">
+                                            <span class="code-pill"><%= year.year_code %></span>
+                                            <span class="cell-subtext">ID: <%= year.id %></span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="cell-stacked">
+                                            <strong><%= year.display_name || 'Chưa đặt tên' %></strong>
+                                            <% if (status === 'active') { %>
+                                                <span class="cell-badge">Đang sử dụng</span>
+                                            <% } %>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <% if (startDate && endDate) { %>
+                                        <div class="cell-stacked">
+                                            <span class="cell-inline"><i class="fa fa-calendar-day" aria-hidden="true"></i><%= startDate %></span>
+                                            <span class="cell-inline"><i class="fa fa-calendar-check" aria-hidden="true"></i><%= endDate %></span>
+                                        </div>
+                                        <% } else { %>
+                                        <span class="cell-muted">Chưa thiết lập</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-badge--<%= status %>">
+                                            <span class="status-dot"></span>
+                                            <%= label %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="cell-notes"><%= year.notes || '—' %></span>
+                                    </td>
+                                    <td class="table__actions">
+                                        <div class="action-stack">
+                                            <form class="inline-form" method="post" action="/academic-years/<%= year.id %>/status">
+                                                <% if (status !== 'active') { %>
+                                                <button class="action-button" type="submit" name="status" value="active" title="Đặt làm năm học đang hoạt động">
+                                                    <i class="fa fa-play-circle" aria-hidden="true"></i>
+                                                    <span>Hoạt động</span>
+                                                </button>
+                                                <% } %>
+                                                <% if (status !== 'planned') { %>
+                                                <button class="action-button" type="submit" name="status" value="planned" title="Đánh dấu là dự kiến">
+                                                    <i class="fa fa-lightbulb" aria-hidden="true"></i>
+                                                    <span>Dự kiến</span>
+                                                </button>
+                                                <% } %>
+                                                <% if (status !== 'inactive') { %>
+                                                <button class="action-button" type="submit" name="status" value="inactive" title="Chuyển sang trạng thái ngừng">
+                                                    <i class="fa fa-circle-stop" aria-hidden="true"></i>
+                                                    <span>Ngừng</span>
+                                                </button>
+                                                <% } %>
+                                            </form>
+                                            <form class="inline-form" method="post" action="/academic-years/<%= year.id %>/delete" onsubmit="return confirm('Bạn có chắc chắn muốn xóa năm học này?');">
+                                                <button class="action-button action-button--danger" type="submit" title="Xóa năm học">
+                                                    <i class="fa fa-trash" aria-hidden="true"></i>
+                                                    <span>Xóa</span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-empty" data-empty-state hidden>
+                        <i class="fa fa-magnifying-glass" aria-hidden="true"></i>
+                        <p>Không tìm thấy năm học nào khớp bộ lọc hiện tại.</p>
+                    </div>
+                </div>
+                <% } else { %>
+                <div class="empty-state">
+                    <i class="fa fa-calendar-plus" aria-hidden="true"></i>
+                    <h3>Chưa có năm học</h3>
+                    <p>Bắt đầu bằng cách tạo năm học đầu tiên để đồng bộ dữ liệu các phân hệ.</p>
+                    <button class="btn btn-primary" type="button" data-toggle-form>
+                        <i class="fa fa-plus" aria-hidden="true"></i>
+                        <span>Thêm năm học</span>
+                    </button>
+                </div>
+                <% } %>
+            </div>
+        </section>
+    </div>
+
+    <aside class="form-panel" data-form-panel hidden tabindex="-1">
+        <div class="form-panel__header">
+            <div>
+                <h2>Thêm năm học</h2>
+                <p>Thiết lập sớm để lên kế hoạch môn học, lịch thi và báo cáo.</p>
+            </div>
+            <button class="form-panel__close" type="button" data-close-form aria-label="Đóng">
+                <i class="fa fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>
+        <form class="form-panel__body" method="post" action="/academic-years" novalidate>
+            <div class="form-group">
+                <label for="year_code">Mã năm học</label>
+                <input id="year_code" name="year_code" type="text" placeholder="VD: 2025-2026" required inputmode="numeric" pattern="\d{4}-\d{4}">
+                <small>Định dạng yyyy-yyyy, ví dụ: 2025-2026.</small>
+            </div>
+            <div class="form-group">
+                <label for="display_name">Tên hiển thị</label>
+                <input id="display_name" name="display_name" type="text" placeholder="VD: Năm học 2025-2026">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="start_date">Ngày bắt đầu</label>
+                    <input id="start_date" name="start_date" type="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="end_date">Ngày kết thúc</label>
+                    <input id="end_date" name="end_date" type="date" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="status">Trạng thái ban đầu</label>
+                <select id="status" name="status">
+                    <option value="planned">Dự kiến</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="inactive">Ngừng</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="notes">Ghi chú</label>
+                <textarea id="notes" name="notes" rows="3" placeholder="Thông tin thêm (nếu có)"></textarea>
+            </div>
+            <div class="form-hint">
+                <i class="fa fa-lightbulb" aria-hidden="true"></i>
+                <p>Sau khi lưu, bạn có thể chuyển ngay sang trạng thái hoạt động hoặc dự kiến tùy theo kế hoạch.</p>
+            </div>
+            <footer class="form-panel__footer">
+                <button class="btn btn-secondary" type="button" data-close-form>Hủy</button>
+                <button class="btn btn-primary" type="submit">Lưu năm học</button>
+            </footer>
+        </form>
+    </aside>
+</div>
+
+<div class="form-panel__backdrop" data-form-backdrop hidden></div>
+
+<%- contentFor('js') %>
+<script src="/js/academic-years.js"></script>

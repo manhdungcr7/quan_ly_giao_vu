@@ -2,14 +2,20 @@
 <link rel="stylesheet" href="/css/documents.css">
 
 <%- contentFor('content') %>
+<%- include('../partials/alerts') %>
 <div class="documents-page">
+  <% const STATUS_LABELS = {
+    pending: 'Chờ xử lý',
+    processing: 'Đang xử lý',
+    completed: 'Hoàn tất',
+    approved: 'Đã duyệt',
+    archived: 'Đã lưu trữ',
+    overdue: 'Quá hạn'
+  }; %>
   <div class="page-header">
     <div>
       <h1 class="page-title"><%= direction === 'incoming' ? 'Văn bản đến' : 'Văn bản đi' %></h1>
       <p class="page-subtitle">Danh sách <%= direction === 'incoming' ? 'các văn bản được tiếp nhận' : 'các văn bản ban hành' %> trong hệ thống</p>
-    </div>
-    <div class="page-actions">
-      <a href="/documents/create" class="btn btn-primary"><i class="fas fa-plus"></i> Thêm văn bản</a>
     </div>
   </div>
 
@@ -24,31 +30,64 @@
     </div>
   <% } %>
 
-  <div class="tabs">
-    <a href="/documents/incoming" class="tab <%= direction==='incoming' ? 'active' : '' %>">Văn bản đến</a>
-    <a href="/documents/outgoing" class="tab <%= direction==='outgoing' ? 'active' : '' %>">Văn bản đi</a>
-  </div>
+  <section class="documents-toolbar" aria-label="Điều hướng quản lý văn bản">
+    <div class="documents-toolbar__cluster">
+      <div class="documents-toolbar__badge" aria-hidden="true">
+        <i class="fas fa-folder-open"></i>
+      </div>
+      <div class="documents-toolbar__meta">
+        <span class="documents-toolbar__eyebrow">Điều hướng nhanh</span>
+        <span class="documents-toolbar__title">Quản lý văn bản</span>
+      </div>
+      <div class="documents-toolbar__tabs" role="tablist">
+        <a href="/documents/incoming"
+           class="documents-tab <%= direction==='incoming' ? 'documents-tab--active' : '' %>"
+           role="tab"
+           aria-selected="<%= direction==='incoming' ? 'true' : 'false' %>">
+          <i class="fas fa-inbox"></i>
+          <span>Văn bản đến</span>
+        </a>
+        <a href="/documents/outgoing"
+           class="documents-tab <%= direction==='outgoing' ? 'documents-tab--active' : '' %>"
+           role="tab"
+           aria-selected="<%= direction==='outgoing' ? 'true' : 'false' %>">
+          <i class="fas fa-paper-plane"></i>
+          <span>Văn bản đi</span>
+        </a>
+      </div>
+    </div>
+    <div class="documents-toolbar__actions">
+      <div class="documents-toolbar__stat" title="Tổng số văn bản trong bộ lọc hiện tại">
+        <span class="documents-toolbar__stat-label">Tổng</span>
+        <span class="documents-toolbar__stat-value"><%= stats?.total || 0 %></span>
+      </div>
+      <a href="/documents/create" class="documents-toolbar__cta">
+        <i class="fas fa-plus"></i>
+        <span>Thêm văn bản</span>
+      </a>
+    </div>
+  </section>
 
-  <div class="stats-cards">
-    <div class="stat-card">
-      <div class="stat-value"><%= stats?.total || 0 %></div>
-      <div class="stat-label">Tổng</div>
+  <div class="documents-kpis">
+    <div class="documents-kpi">
+      <span class="documents-kpi__value"><%= stats?.total || 0 %></span>
+      <span class="documents-kpi__label">Tổng</span>
     </div>
-    <div class="stat-card stat-card--pending">
-      <div class="stat-value"><%= stats?.pending || 0 %></div>
-      <div class="stat-label">Chờ xử lý</div>
+    <div class="documents-kpi documents-kpi--pending">
+      <span class="documents-kpi__value"><%= stats?.pending || 0 %></span>
+      <span class="documents-kpi__label">Chờ xử lý</span>
     </div>
-    <div class="stat-card stat-card--processing">
-      <div class="stat-value"><%= stats?.processing || 0 %></div>
-      <div class="stat-label">Đang xử lý</div>
+    <div class="documents-kpi documents-kpi--processing">
+      <span class="documents-kpi__value"><%= stats?.processing || 0 %></span>
+      <span class="documents-kpi__label">Đang xử lý</span>
     </div>
-    <div class="stat-card stat-card--completed">
-      <div class="stat-value"><%= stats?.completed || 0 %></div>
-      <div class="stat-label">Hoàn tất</div>
+    <div class="documents-kpi documents-kpi--completed">
+      <span class="documents-kpi__value"><%= stats?.completed || 0 %></span>
+      <span class="documents-kpi__label">Hoàn tất</span>
     </div>
-    <div class="stat-card stat-card--overdue">
-      <div class="stat-value"><%= stats?.overdue || 0 %></div>
-      <div class="stat-label">Quá hạn</div>
+    <div class="documents-kpi documents-kpi--overdue">
+      <span class="documents-kpi__value"><%= stats?.overdue || 0 %></span>
+      <span class="documents-kpi__label">Quá hạn</span>
     </div>
   </div>
 
@@ -59,21 +98,36 @@
     </div>
     <div class="filter-group">
       <label>Trạng thái</label>
-      <select name="status">
-        <option value="">-- Tất cả --</option>
-        <% ['pending','processing','completed','approved'].forEach(function(st){ %>
-          <option value="<%= st %>" <%= filters.status===st ? 'selected' : '' %>><%= st %></option>
+      <input type="hidden" name="status" id="filter_status_value" value="<%= filters.status || '' %>">
+      <% const STATUS_ORDER = ['pending','processing','completed','approved','archived','overdue']; %>
+      <% const currentStatusLabel = filters.status ? (STATUS_LABELS[filters.status] || filters.status) : ''; %>
+      <input type="text"
+             id="filter_status_display"
+             placeholder="Nhập để tìm trạng thái"
+             list="filterStatusOptions"
+             autocomplete="off"
+             value="<%= currentStatusLabel %>">
+      <datalist id="filterStatusOptions">
+        <% STATUS_ORDER.forEach(function(st){ %>
+          <option value="<%= STATUS_LABELS[st] || st %>" data-id="<%= st %>"></option>
         <% }) %>
-      </select>
+      </datalist>
     </div>
     <div class="filter-group">
       <label>Loại</label>
-      <select name="type_id">
-        <option value="">-- Tất cả --</option>
-        <% (types||[]).forEach(function(t){ %>
-          <option value="<%= t.id %>" <%= (filters.type_id == t.id)? 'selected' : '' %>><%= t.name %></option>
+      <input type="hidden" name="type_id" id="filter_type_id" value="<%= filters.type_id || '' %>">
+      <% const currentFilterType = (types || []).find(function(t){ return String(filters.type_id || '') === String(t.id); }); %>
+      <input type="text"
+             id="filter_type_display"
+             placeholder="Nhập để tìm loại văn bản"
+             list="filterTypeOptions"
+             autocomplete="off"
+             value="<%= currentFilterType ? currentFilterType.name : '' %>">
+      <datalist id="filterTypeOptions">
+        <% (types || []).forEach(function(t){ %>
+          <option value="<%= t.name %>" data-id="<%= t.id %>"></option>
         <% }) %>
-      </select>
+      </datalist>
     </div>
     <div class="filter-group">
       <label>Từ ngày</label>
@@ -136,7 +190,7 @@
               <td><%= d.processing_deadline ? new Date(d.processing_deadline).toLocaleDateString('vi-VN') : '-' %></td>
               <td>
                 <% const st = d.status || 'pending'; %>
-                <span class="status-badge status-<%= st %>"><%= st %></span>
+                <span class="status-badge status-<%= st %>"><%= STATUS_LABELS[st] || st %></span>
               </td>
               <td class="actions">
                 <div class="action-buttons">
@@ -315,6 +369,218 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let currentDocId = null;
+
+  function setupSmartSuggest(config) {
+    const displayEl = document.getElementById(config.displayId);
+    const hiddenEl = config.hiddenId ? document.getElementById(config.hiddenId) : null;
+    const datalistEl = document.getElementById(config.datalistId);
+
+    if (!displayEl || !datalistEl) {
+      return null;
+    }
+
+    const storageKey = config.storageKey;
+    const allowUnknown = config.allowUnknown !== false;
+    const rememberUnknown = config.rememberUnknown !== false;
+    const highlightUnknown = config.highlightUnknown === true;
+    const maxSuggestions = config.maxSuggestions || 25;
+
+    const normalize = function(str) {
+      return (str || '').trim().toLowerCase();
+    };
+
+    const ensureOption = function(label, value) {
+      const cleanedLabel = label && label.trim();
+      if (!cleanedLabel) {
+        return null;
+      }
+      const existing = Array.from(datalistEl.options).find(function(opt) {
+        return normalize(opt.value) === normalize(cleanedLabel);
+      });
+      if (existing) {
+        if (value && !existing.dataset.id) {
+          existing.dataset.id = value;
+        }
+        return existing;
+      }
+      const option = document.createElement('option');
+      option.value = cleanedLabel;
+      if (value) {
+        option.dataset.id = value;
+      }
+      datalistEl.appendChild(option);
+      return option;
+    };
+
+    if (Array.isArray(config.baseOptions)) {
+      config.baseOptions.forEach(function(opt) {
+        ensureOption(opt.label, opt.value);
+      });
+    }
+
+    const loadStored = function() {
+      if (!storageKey) {
+        return [];
+      }
+      try {
+        const raw = localStorage.getItem(storageKey);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.warn('Không thể đọc gợi ý đã lưu của', storageKey, error);
+        return [];
+      }
+    };
+
+    const saveStored = function(list) {
+      if (!storageKey) {
+        return;
+      }
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(list.slice(0, maxSuggestions)));
+      } catch (error) {
+        console.warn('Không thể lưu gợi ý cho', storageKey, error);
+      }
+    };
+
+    loadStored().forEach(function(opt) {
+      ensureOption(opt.label, opt.value);
+    });
+
+    const findByLabel = function(label) {
+      return Array.from(datalistEl.options).find(function(opt) {
+        return normalize(opt.value) === normalize(label);
+      }) || null;
+    };
+
+    const findByValue = function(value) {
+      return Array.from(datalistEl.options).find(function(opt) {
+        return (opt.dataset && opt.dataset.id) && String(opt.dataset.id) === String(value);
+      }) || null;
+    };
+
+    if (hiddenEl && hiddenEl.value) {
+      const preset = findByValue(hiddenEl.value);
+      if (preset && preset.value) {
+        displayEl.value = preset.value;
+      }
+    } else if (hiddenEl && displayEl.value) {
+      const match = findByLabel(displayEl.value);
+      if (match && match.dataset && match.dataset.id) {
+        hiddenEl.value = match.dataset.id;
+      }
+    }
+
+    const rememberChoice = function(label, value) {
+      if (!storageKey) {
+        return;
+      }
+      const trimmed = (label || '').trim();
+      if (!trimmed) {
+        return;
+      }
+
+      const stored = loadStored();
+      if (stored.some(function(item) { return normalize(item.label) === normalize(trimmed); })) {
+        return;
+      }
+
+      const entry = { label: trimmed };
+      if (value) {
+        entry.value = value;
+      }
+
+      stored.unshift(entry);
+      saveStored(stored);
+      ensureOption(entry.label, entry.value);
+    };
+
+    const syncHidden = function() {
+      const label = displayEl.value.trim();
+      const matched = findByLabel(label);
+      if (hiddenEl) {
+        if (matched) {
+          hiddenEl.value = matched.dataset && matched.dataset.id ? matched.dataset.id : '';
+        } else if (allowUnknown) {
+          hiddenEl.value = label;
+        } else {
+          hiddenEl.value = '';
+        }
+      }
+
+      if (highlightUnknown) {
+        if (label && !matched) {
+          displayEl.classList.add('input-unmatched');
+        } else {
+          displayEl.classList.remove('input-unmatched');
+        }
+      }
+
+      return { label, matched };
+    };
+
+    displayEl.addEventListener('change', function() {
+      const result = syncHidden();
+      if (result.label && (result.matched || rememberUnknown)) {
+        const storedValue = result.matched && result.matched.dataset ? result.matched.dataset.id : (hiddenEl ? hiddenEl.value : '');
+        rememberChoice(result.label, storedValue);
+      }
+    });
+
+    displayEl.addEventListener('blur', function() {
+      const result = syncHidden();
+      if (result.label && (result.matched || rememberUnknown)) {
+        const storedValue = result.matched && result.matched.dataset ? result.matched.dataset.id : (hiddenEl ? hiddenEl.value : '');
+        rememberChoice(result.label, storedValue);
+      }
+    });
+
+    displayEl.addEventListener('input', function() {
+      if (!displayEl.value.trim()) {
+        if (hiddenEl) {
+          hiddenEl.value = '';
+        }
+        displayEl.classList.remove('input-unmatched');
+      }
+    });
+
+    const filtersForm = document.querySelector('form.filters');
+    if (filtersForm) {
+      filtersForm.addEventListener('submit', function() {
+        const result = syncHidden();
+        if (result.label && (result.matched || rememberUnknown)) {
+          const storedValue = result.matched && result.matched.dataset ? result.matched.dataset.id : (hiddenEl ? hiddenEl.value : '');
+          rememberChoice(result.label, storedValue);
+        }
+      });
+    }
+
+    syncHidden();
+    return {
+      sync: syncHidden
+    };
+  }
+
+  setupSmartSuggest({
+    displayId: 'filter_status_display',
+    hiddenId: 'filter_status_value',
+    datalistId: 'filterStatusOptions',
+    storageKey: 'qlgv_filter_status_history',
+    allowUnknown: true,
+    rememberUnknown: true,
+    highlightUnknown: false,
+    baseOptions: []
+  });
+
+  setupSmartSuggest({
+    displayId: 'filter_type_display',
+    hiddenId: 'filter_type_id',
+    datalistId: 'filterTypeOptions',
+    storageKey: 'qlgv_filter_type_history',
+    allowUnknown: false,
+    rememberUnknown: true,
+    highlightUnknown: true
+  });
     
     // Utility functions
     function showModal(modalId) {

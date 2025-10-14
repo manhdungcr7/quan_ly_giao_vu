@@ -248,14 +248,22 @@ class ExaminationModalManager {
                     <input type="number" name="expected_copies" class="form-control" min="0">
                   </div>
 
-                  <div class="form-group">
-                    <label><i class="fas fa-user-check"></i> Cán bộ chấm thi</label>
-                    <input type="text" name="grader_name" class="form-control combo-input" 
-                           list="gradersList" placeholder="Nhập hoặc chọn cán bộ">
-                    <datalist id="gradersList"></datalist>
-                    <input type="hidden" name="grader_id">
-                    <small class="form-hint">Có thể nhập thủ công hoặc chọn từ danh sách</small>
-                  </div>
+                      <div class="form-group">
+                        <label><i class="fas fa-user-check"></i> Cán bộ chấm 1</label>
+                        <input type="text" name="grader_name" class="form-control combo-input" 
+                               list="gradersList" placeholder="Nhập hoặc chọn cán bộ">
+                        <datalist id="gradersList"></datalist>
+                        <input type="hidden" name="grader_id">
+                        <small class="form-hint">Có thể nhập thủ công hoặc chọn từ danh sách</small>
+                      </div>
+
+                      <div class="form-group">
+                        <label><i class="fas fa-user-friends"></i> Cán bộ chấm 2</label>
+                        <input type="text" name="grader2_name" class="form-control combo-input" 
+                               list="gradersList" placeholder="Nhập hoặc chọn cán bộ thứ hai">
+                        <input type="hidden" name="grader2_id">
+                        <small class="form-hint">Tùy chọn: nhập thủ công hoặc chọn cán bộ hỗ trợ</small>
+                      </div>
 
                   <div class="form-group">
                     <label><i class="fas fa-calendar-times"></i> Hạn chấm bài</label>
@@ -607,6 +615,22 @@ class ExaminationModalManager {
         graderIdInput.value = '';
       }
     }
+
+    const grader2Input = form.querySelector('[name="grader2_name"]');
+    const grader2IdInput = form.querySelector('[name="grader2_id"]');
+    if (grader2Input && grader2IdInput) {
+      if (session.grader2_name) {
+        const grader2 = this.referenceData?.graders?.find(g => g.id == session.grader2_id);
+        grader2Input.value = grader2 ? `${grader2.full_name} (${grader2.email})` : session.grader2_name;
+        grader2IdInput.value = session.grader2_id || '';
+      } else if (session.grader2_manual_name) {
+        grader2Input.value = session.grader2_manual_name;
+        grader2IdInput.value = '';
+      } else {
+        grader2Input.value = '';
+        grader2IdInput.value = '';
+      }
+    }
   }
 
   clearForm() {
@@ -636,8 +660,10 @@ class ExaminationModalManager {
     const className = data.class_name;
     const classId = data.class_id || this.findIdByName(this.referenceData?.classes, className, 'name', 'code');
     
-    const graderName = data.grader_name;
-    const graderId = data.grader_id || this.findIdByName(this.referenceData?.graders, graderName, 'full_name');
+  const graderName = data.grader_name;
+  const graderId = data.grader_id || this.findIdByName(this.referenceData?.graders, graderName, 'full_name');
+  const grader2Name = data.grader2_name;
+  const grader2Id = data.grader2_id || this.findIdByName(this.referenceData?.graders, grader2Name, 'full_name');
 
     // Build final data object
     const finalData = {
@@ -648,8 +674,10 @@ class ExaminationModalManager {
       subject_name: subjectName,
       class_id: classId || null,
       class_name: className,
-      grader_id: graderId || null,
-      grader_name: graderName
+  grader_id: graderId || null,
+  grader_name: graderName,
+  grader2_id: grader2Id || null,
+  grader2_name: grader2Name
     };
 
   // Keep *_name fields so backend can create missing refs when *_id not provided
@@ -662,6 +690,15 @@ class ExaminationModalManager {
       finalData.grader_id = null;
     } else if (finalData.grader_id !== null) {
       finalData.grader_id = Number(finalData.grader_id);
+    }
+
+    if (typeof finalData.grader2_name === 'string') {
+      finalData.grader2_name = finalData.grader2_name.trim();
+    }
+    if (finalData.grader2_id === '' || Number.isNaN(Number(finalData.grader2_id))) {
+      finalData.grader2_id = null;
+    } else if (finalData.grader2_id !== null) {
+      finalData.grader2_id = Number(finalData.grader2_id);
     }
 
   // Convert empty date strings to null to avoid MySQL errors

@@ -2,6 +2,7 @@
 <link rel="stylesheet" href="/css/documents.css">
 
 <%- contentFor('content') %>
+<%- include('../partials/alerts') %>
 <div class="documents-page">
   <div class="page-header">
     <div>
@@ -29,6 +30,14 @@
       <%= error %>
     </div>
   <% } %>
+
+  <% const STATUS_LABELS = {
+    pending: 'Chờ xử lý',
+    processing: 'Đang xử lý',
+    completed: 'Hoàn tất',
+    approved: 'Đã duyệt',
+    archived: 'Đã lưu trữ'
+  }; %>
 
   <div class="document-detail">
     <div class="detail-grid">
@@ -70,7 +79,7 @@
 
         <div class="detail-row">
           <label>Trạng thái:</label>
-          <span class="status-badge status-<%= document.status %>"><%= document.status %></span>
+          <span class="status-badge status-<%= document.status %>"><%= STATUS_LABELS[document.status] || document.status %></span>
         </div>
       </div>
 

@@ -1,3 +1,11 @@
+<% 
+// Define breadcrumb for this page
+breadcrumb = [
+  { label: 'Trang chủ', url: '/', icon: 'fa-home' },
+  { label: 'Quản lý cán bộ', url: '/staff', icon: 'fa-users' }
+];
+%>
+
 <%- contentFor('css') %>
 <link rel="stylesheet" href="/css/staff.css?v=2024100601">
 
@@ -84,6 +92,8 @@ if (filtersApplied && filtersApplied.employment_type) {
 }
 const searchResetLink = searchResetParams.toString() ? `/staff?${searchResetParams.toString()}` : '/staff';
 %>
+
+<%- include('../partials/alerts') %>
 
 <section class="staff-page">
   <header class="staff-hero">

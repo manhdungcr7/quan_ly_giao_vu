@@ -39,12 +39,178 @@
   gap: 10px;
 }
 
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.insight-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e6e8ec;
+  padding: 18px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insight-card--primary {
+  background: linear-gradient(120deg, #6f42c1 0%, #9265de 100%);
+  border: none;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(111, 66, 193, 0.25);
+}
+
+.insight-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.insight-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+.insight-subtext {
+  font-size: 0.9rem;
+  color: inherit;
+  opacity: 0.75;
+}
+
+.insight-delta {
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #198754;
+}
+
+.insight-delta--warn {
+  color: #d6336c;
+}
+
+.insight-highlight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border: 1px solid #e6e8ec;
+  border-radius: 12px;
+  background: #f6f4ff;
+  margin-bottom: 24px;
+}
+
+.highlight-meta {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.highlight-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  color: #3d3d3d;
+}
+
+.insight-highlight strong {
+  font-size: 1.05rem;
+  color: #2c3e50;
+}
+
 .filter-toolbar {
   background: #f8f9fa;
   padding: 20px;
   border-radius: 8px;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.alert-section {
+  margin-bottom: 24px;
+}
+
+.alert-section__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #6f42c1;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.alert-card {
+  border: 1px solid #fde4ea;
+  background: #fff5f8;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.alert-card--warning {
+  border-color: #ffe7cc;
+  background: #fff9f1;
+}
+
+.alert-card--info {
+  border-color: #d9ecff;
+  background: #f2f8ff;
+}
+
+.alert-card__header {
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.alert-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alert-item {
+  font-size: 0.9rem;
+  color: #2c3e50;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.alert-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.alert-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .filter-form {
@@ -115,6 +281,48 @@
   padding: 12px 16px;
   vertical-align: middle;
   color: #2c3e50;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: #eef2f7;
+  color: #495057;
+}
+
+.status-chip i {
+  font-size: 0.8rem;
+}
+
+.status-chip--scheduled {
+  background: #e7f1ff;
+  color: #1f6feb;
+}
+
+.status-chip--progress {
+  background: #fff3cd;
+  color: #b58105;
+}
+
+.status-chip--completed {
+  background: #e6f4ea;
+  color: #1a7f37;
+}
+
+.status-chip--offline {
+  background: #f4edf9;
+  color: #6f42c1;
+}
+
+.status-chip--risk {
+  background: #fde4ea;
+  color: #c0325c;
 }
 
 .btn-group {
@@ -247,6 +455,10 @@
   .filter-actions {
     flex: 1 1 100%;
   }
+
+  .insight-highlight {
+    padding: 16px;
+  }
 }
 
 .link-cell {
@@ -335,6 +547,146 @@
   </div>
 </div>
 
+<%
+  const statusCounts = (insights && insights.statusCounts) || {};
+  const totalSessions = (insights && insights.totalSessions) || 0;
+  const unassignedCount = (insights && insights.unassignedCount) || 0;
+  const dueSoonCount = (insights && insights.gradingDueSoonCount) || 0;
+  const overdueCount = (insights && insights.overdueGradingCount) || 0;
+  const nextUpcoming = insights && insights.nextUpcoming;
+  const overdueList = (alerts && alerts.overdueGrading) || [];
+  const dueSoonList = (alerts && alerts.gradingDueSoon) || [];
+  const unassignedList = (alerts && alerts.unassignedSessions) || [];
+  const hasAlerts = overdueList.length || dueSoonList.length || unassignedList.length;
+%>
+
+<div class="insights-grid">
+  <div class="insight-card insight-card--primary">
+    <span class="insight-label">Tổng ca thi</span>
+    <span class="insight-value"><%= totalSessions %></span>
+    <span class="insight-subtext">Bao gồm tất cả trạng thái hiện hành</span>
+  </div>
+  <div class="insight-card">
+    <span class="insight-label">Đang diễn ra</span>
+    <span class="insight-value"><%= statusCounts.in_progress || 0 %></span>
+    <span class="insight-subtext">Theo dõi sát tiến độ phòng thi</span>
+  </div>
+  <div class="insight-card">
+    <span class="insight-label">Cần phân công</span>
+    <span class="insight-value"><%= unassignedCount %></span>
+    <span class="insight-subtext">Chưa có cán bộ chấm</span>
+    <% if (unassignedCount > 0) { %>
+      <span class="insight-delta insight-delta--warn"><i class="fas fa-user-clock"></i> Ưu tiên xử lý</span>
+    <% } %>
+  </div>
+  <div class="insight-card">
+    <span class="insight-label">Cảnh báo hạn chấm</span>
+    <span class="insight-value"><%= overdueCount %></span>
+    <span class="insight-subtext">Quá hạn: <%= overdueCount %> | Sắp đến hạn: <%= dueSoonCount %></span>
+    <% if (overdueCount === 0 && dueSoonCount > 0) { %>
+      <span class="insight-delta"><i class="fas fa-hourglass-half"></i> Có hạn trong 7 ngày</span>
+    <% } %>
+    <% if (overdueCount > 0) { %>
+      <span class="insight-delta insight-delta--warn"><i class="fas fa-triangle-exclamation"></i> Cần nhắc việc ngay</span>
+    <% } %>
+  </div>
+</div>
+
+<% if (nextUpcoming) { %>
+  <div class="insight-highlight">
+    <div>
+      <span class="insight-label">Ca thi gần nhất</span>
+      <strong><i class="fas fa-calendar-day"></i> <%= nextUpcoming.name %></strong>
+    </div>
+    <div class="highlight-meta">
+      <% if (nextUpcoming.date) { %>
+        <% const examDate = new Date(nextUpcoming.date); %>
+        <span><i class="fas fa-clock"></i> <%= examDate.toLocaleDateString('vi-VN') %> <%= nextUpcoming.time ? ('| ' + nextUpcoming.time.substring(0,5)) : '' %></span>
+      <% } %>
+      <% if (nextUpcoming.classCode) { %>
+        <span><i class="fas fa-users"></i> Lớp <%= nextUpcoming.classCode %></span>
+      <% } %>
+      <span><i class="fas fa-info-circle"></i> <%= nextUpcoming.status === 'in_progress' ? 'Đang thi' : (nextUpcoming.status === 'completed' ? 'Hoàn thành' : 'Đã lên lịch') %></span>
+      <a class="btn btn-sm btn-outline-primary" href="/examination/<%= nextUpcoming.id %>">
+        <i class="fas fa-arrow-right"></i> Xem chi tiết
+      </a>
+    </div>
+  </div>
+<% } %>
+
+<% if (hasAlerts) { %>
+  <section class="alert-section">
+    <div class="alert-section__title"><i class="fas fa-exclamation-circle"></i> Hạng mục cần theo dõi</div>
+    <div class="alert-grid">
+      <% if (overdueList.length) { %>
+        <div class="alert-card">
+          <div class="alert-card__header">
+            <span><i class="fas fa-bell"></i> Quá hạn chấm</span>
+            <span class="badge bg-danger"><%= overdueList.length %></span>
+          </div>
+          <ul class="alert-list">
+            <% overdueList.slice(0,3).forEach(item => { %>
+              <li class="alert-item">
+                <strong><%= item.exam_name || item.subject_name %></strong>
+                <div class="alert-meta">
+                  <% if (item.grading_deadline) { %>
+                    <span><i class="fas fa-calendar-times"></i> <%= new Date(item.grading_deadline).toLocaleDateString('vi-VN') %></span>
+                  <% } %>
+                  <span><i class="fas fa-user"></i> <%= item.grader_name || item.grader_manual_name || 'Chưa phân công' %></span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      <% } %>
+
+      <% if (dueSoonList.length) { %>
+        <div class="alert-card alert-card--warning">
+          <div class="alert-card__header">
+            <span><i class="fas fa-hourglass-half"></i> Sắp đến hạn</span>
+            <span class="badge bg-warning text-dark"><%= dueSoonList.length %></span>
+          </div>
+          <ul class="alert-list">
+            <% dueSoonList.slice(0,3).forEach(item => { %>
+              <li class="alert-item">
+                <strong><%= item.exam_name || item.subject_name %></strong>
+                <div class="alert-meta">
+                  <% if (item.grading_deadline) { %>
+                    <span><i class="fas fa-calendar-day"></i> <%= new Date(item.grading_deadline).toLocaleDateString('vi-VN') %></span>
+                  <% } %>
+                  <span><i class="fas fa-user"></i> <%= item.grader_name || item.grader_manual_name || 'Chưa phân công' %></span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      <% } %>
+
+      <% if (unassignedList.length) { %>
+        <div class="alert-card alert-card--info">
+          <div class="alert-card__header">
+            <span><i class="fas fa-user-clock"></i> Chưa phân công</span>
+            <span class="badge bg-info text-dark"><%= unassignedCount %></span>
+          </div>
+          <ul class="alert-list">
+            <% unassignedList.slice(0,4).forEach(item => { %>
+              <li class="alert-item">
+                <strong><%= item.exam_name || item.subject_name %></strong>
+                <div class="alert-meta">
+                  <% if (item.exam_date) { %>
+                    <span><i class="fas fa-calendar"></i> <%= new Date(item.exam_date).toLocaleDateString('vi-VN') %></span>
+                  <% } %>
+                  <span><i class="fas fa-users"></i> Lớp <%= item.class_code || '-' %></span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      <% } %>
+    </div>
+  </section>
+<% } %>
+
 <!-- Filter Toolbar -->
 <div class="filter-toolbar">
   <form method="GET" action="/examination" class="filter-form">
@@ -391,16 +743,29 @@
 <!-- Data Table -->
 <div class="card">
   <div class="card-body">
+    <%
+      const statusConfig = {
+        scheduled: { label: 'Đã lên lịch', icon: 'fa-calendar-check', className: 'status-chip--scheduled' },
+        in_progress: { label: 'Đang thi', icon: 'fa-wave-square', className: 'status-chip--progress' },
+        completed: { label: 'Hoàn thành', icon: 'fa-circle-check', className: 'status-chip--completed' },
+        offline: { label: 'Ngoại tuyến', icon: 'fa-plug-circle-xmark', className: 'status-chip--offline' },
+        cancelled: { label: 'Tạm hoãn', icon: 'fa-triangle-exclamation', className: 'status-chip--risk' },
+        pending: { label: 'Đang cập nhật', icon: 'fa-ellipsis', className: '' },
+        unknown: { label: 'Đang cập nhật', icon: 'fa-ellipsis', className: '' }
+      };
+    %>
     <div class="table-responsive">
       <table class="table table-hover">
         <thead>
           <tr>
             <th>Tên ca thi</th>
+            <th>Trạng thái</th>
             <th>Mã môn</th>
             <th>Lớp</th>
             <th>Môn học</th>
             <th class="text-center">SL SV</th>
-            <th>Cán bộ chấm</th>
+            <th>Cán bộ chấm 1</th>
+            <th>Cán bộ chấm 2</th>
             <th>Hạn chấm</th>
             <th>Ngày thi</th>
             <th>Link</th>
@@ -410,7 +775,7 @@
         <tbody>
           <% if (sessions.length === 0) { %>
             <tr>
-              <td colspan="10" class="text-center text-muted py-5">
+              <td colspan="12" class="text-center text-muted py-5">
                 <i class="fas fa-inbox fa-3x mb-3"></i>
                 <p>Chưa có ca thi nào</p>
               </td>
@@ -422,6 +787,17 @@
                   <a href="/examination/<%= session.id %>">
                     <%= session.exam_name || session.subject_name %>
                   </a>
+                </td>
+                <td>
+                  <%
+                    const config = statusConfig[session.status] || statusConfig.unknown;
+                    const statusIcon = config.icon || 'fa-ellipsis';
+                    const statusClass = config.className ? ('status-chip ' + config.className) : 'status-chip';
+                  %>
+                  <span class="<%= statusClass %>">
+                    <i class="fas <%= statusIcon %>"></i>
+                    <%= config.label %>
+                  </span>
                 </td>
                 <td><%= session.subject_code || '-' %></td>
                 <td><%= session.class_code || '-' %></td>
@@ -435,6 +811,21 @@
                   <% } else if (session.grader_manual_name) { %>
                     <span class="manual-grader-text">
                       <i class="fas fa-user-pen"></i> <%= session.grader_manual_name %>
+                    </span>
+                  <% } else { %>
+                    <span class="text-muted">
+                      <i class="fas fa-user-times"></i> Chưa phân công
+                    </span>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (session.grader2_name) { %>
+                    <span class="text-primary">
+                      <i class="fas fa-user-check"></i> <%= session.grader2_name %>
+                    </span>
+                  <% } else if (session.grader2_manual_name) { %>
+                    <span class="manual-grader-text">
+                      <i class="fas fa-user-pen"></i> <%= session.grader2_manual_name %>
                     </span>
                   <% } else { %>
                     <span class="text-muted">
@@ -481,9 +872,10 @@
                   <% if (session.link || (session.file_count && session.file_count > 0)) { %>
                     <div class="link-cell">
                       <% if (session.file_count && session.file_count > 0) { %>
-                        <button class="btn btn-sm btn-outline-primary" 
-                                onclick="examinationModalManager.open(<%= session.id %>)"
-                                title="Xem <%= session.file_count %> file">
+      <button class="btn btn-sm btn-outline-primary" 
+        data-action="open-session"
+        data-session-id="<%= session.id %>"
+        title="Xem file đính kèm">
                           <i class="fas fa-paperclip"></i>
                           <span class="badge bg-primary"><%= session.file_count %></span>
                         </button>
@@ -495,43 +887,45 @@
                       <% } %>
                     </div>
                   <% } else { %>
-                    <button class="btn btn-sm btn-outline-secondary" 
-                            onclick="examinationModalManager.open(<%= session.id %>)"
-                            title="Upload file">
+        <button class="btn btn-sm btn-outline-secondary" 
+          data-action="open-session"
+          data-session-id="<%= session.id %>"
+          title="Upload file">
                       <i class="fas fa-upload"></i>
                     </button>
                   <% } %>
                 </td>
                 <td class="text-center">
                   <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary" 
-                            onclick="examinationModalManager.open(<%= session.id %>)"
-                            title="Sửa">
+        <button class="btn btn-sm btn-outline-primary" 
+          data-action="open-session"
+          data-session-id="<%= session.id %>"
+          title="Sửa">
                       <i class="fas fa-edit"></i>
                     </button>
                     <% if (session.grader_id && session.grading_deadline && !session.reminder_sent) { %>
-          <button class="btn btn-sm btn-outline-warning" 
-            data-action="send-reminder"
-            data-session-id="<%= session.id %>"
-            title="Nhắc việc">
-                        <i class="fas fa-bell"></i>
-                      </button>
+                    <button class="btn btn-sm btn-outline-warning"
+                            data-action="send-reminder"
+                            data-session-id="<%= session.id %>"
+                            title="Nhắc việc">
+                      <i class="fas fa-bell"></i>
+                    </button>
                     <% } else if (session.reminder_sent) { %>
-                      <button class="btn btn-sm btn-outline-secondary" 
-                              title="Đã nhắc việc" disabled>
-                        <i class="fas fa-bell-slash"></i>
-                      </button>
+                    <button class="btn btn-sm btn-outline-secondary"
+                            title="Đã nhắc việc" disabled>
+                      <i class="fas fa-bell-slash"></i>
+                    </button>
                     <% } %>
-        <button class="btn btn-sm btn-outline-danger" 
-          data-action="delete-session"
-          data-session-id="<%= session.id %>"
-          title="Xóa">
+                    <button class="btn btn-sm btn-outline-danger"
+                            data-action="delete-session"
+                            data-session-id="<%= session.id %>"
+                            title="Xóa">
                       <i class="fas fa-trash"></i>
                     </button>
-        <button class="btn btn-sm btn-outline-success" 
-          data-action="backup-session"
-          data-session-id="<%= session.id %>"
-          title="Sao lưu">
+                    <button class="btn btn-sm btn-outline-success"
+                            data-action="backup-session"
+                            data-session-id="<%= session.id %>"
+                            title="Sao lưu">
                       <i class="fas fa-save"></i>
                     </button>
                   </div>
@@ -620,6 +1014,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const id = btn.dataset.sessionId;
       if (id) {
         backupSession(id);
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-action="open-session"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.sessionId;
+      if (id && typeof examinationModalManager !== 'undefined') {
+        examinationModalManager.open(id);
       }
     });
   });

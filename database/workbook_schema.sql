@@ -2,16 +2,22 @@
 CREATE TABLE IF NOT EXISTS `workbooks` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `user_id` int unsigned NOT NULL,
+  `approver_id` int unsigned DEFAULT NULL COMMENT 'Người duyệt được chỉ định',
   `week_start` date NOT NULL COMMENT 'Ngày bắt đầu tuần (thứ 2)',
   `week_end` date NOT NULL COMMENT 'Ngày kết thúc tuần (chủ nhật)',
   `status` enum('draft','submitted','approved','rejected') NOT NULL DEFAULT 'draft' COMMENT 'Trạng thái: bản nháp, đã gửi, đã duyệt, từ chối',
   `quick_notes` longtext COMMENT 'Ghi chú nhanh cho tuần',
+  `approval_requested_at` datetime DEFAULT NULL COMMENT 'Thời điểm gửi duyệt',
+  `approval_decision_at` datetime DEFAULT NULL COMMENT 'Thời điểm người duyệt ra quyết định',
+  `approval_note` varchar(255) DEFAULT NULL COMMENT 'Nhận xét của người duyệt',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_user_week` (`user_id`, `week_start`, `week_end`),
   KEY `idx_status` (`status`),
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  KEY `idx_approver` (`approver_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`approver_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Sổ tay công tác theo tuần';
 
 -- Tạo bảng workbook_entries (chi tiết công việc từng ngày)

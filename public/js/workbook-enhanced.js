@@ -13,14 +13,16 @@
   // Global state
   let currentWorkbookId = null;
   let currentEntries = {};
+  let currentStatus = 'draft';
+  let currentApproverId = null;
+  let isOwnerView = false;
+  let canApproveWorkbook = false;
+  let academicStartISO = null;
+  let academicStartDate = null;
+  let academicStorageKey = null;
+  let weekRailExpanded = false;
 
-  const apiBaseUrl = (() => {
-    const { protocol, hostname, port } = window.location;
-    if (protocol === 'https:' && (hostname === 'localhost' || hostname === '127.0.0.1')) {
-      return `http://${hostname}${port ? `:${port}` : ''}`;
-    }
-    return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
-  })();
+  const apiBaseUrl = window.location.origin;
 
   function buildApiUrl(path) {
     if (!path) {
@@ -36,6 +38,36 @@
     }
 
     return `${apiBaseUrl}${path}`;
+  }
+
+  async function parseJsonResponse(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(text || 'Máy chủ trả về dữ liệu không hợp lệ');
+    }
+    return response.json();
+  }
+
+  function getLocalStorageItem(key) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (error) {
+      console.warn('Không thể truy cập localStorage:', error);
+      return null;
+    }
+  }
+
+  function setLocalStorageItem(key, value) {
+    try {
+      if (value === null || value === undefined) {
+        window.localStorage.removeItem(key);
+      } else {
+        window.localStorage.setItem(key, value);
+      }
+    } catch (error) {
+      console.warn('Không thể cập nhật localStorage:', error);
+    }
   }
   // Date helpers for week navigation
   function parseISODate(value) {
@@ -111,10 +143,17 @@
     const workbookElement = document.querySelector('[data-workbook-id]');
     if (workbookElement) {
       currentWorkbookId = workbookElement.dataset.workbookId;
+      currentStatus = workbookElement.dataset.currentStatus || 'draft';
+      currentApproverId = workbookElement.dataset.currentApprover || null;
+      isOwnerView = workbookElement.dataset.canEdit === 'true';
+      canApproveWorkbook = workbookElement.dataset.canApprove === 'true';
     }
     
     // Setup event listeners
     setupEventListeners();
+
+    // Initialize week selector preferences
+    initializeWeekPreferences();
     
     // Load progress bars
     updateAllProgressBars();
@@ -182,6 +221,31 @@
       });
     }
 
+    const toggleWeekRailBtn = document.querySelector('[data-action="toggle-week-rail"]');
+    if (toggleWeekRailBtn) {
+      toggleWeekRailBtn.addEventListener('click', handleToggleWeekRail);
+    }
+
+    const applyAcademicStartBtn = document.querySelector('[data-action="apply-academic-start"]');
+    if (applyAcademicStartBtn) {
+      applyAcademicStartBtn.addEventListener('click', applyAcademicStart);
+    }
+
+    const resetAcademicStartBtn = document.querySelector('[data-action="reset-academic-start"]');
+    if (resetAcademicStartBtn) {
+      resetAcademicStartBtn.addEventListener('click', resetAcademicStart);
+    }
+
+    const academicStartInput = document.querySelector('[data-academic-start-input]');
+    if (academicStartInput) {
+      academicStartInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          applyAcademicStart();
+        }
+      });
+    }
+
     // Action buttons
     const addWeekBtn = document.querySelector('[data-action="add-week"]');
     const submitBtn = document.querySelector('[data-action="submit-workbook"]');
@@ -192,6 +256,23 @@
     if (addWeekBtn) {
       addWeekBtn.addEventListener('click', addNewWeek);
       console.log('✅ Add week button listener added');
+    }
+
+    const approveBtn = document.querySelector('[data-action="approve-workbook"]');
+    const rejectBtn = document.querySelector('[data-action="reject-workbook"]');
+
+    if (approveBtn) {
+      approveBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        handleApprovalDecision('approved');
+      });
+    }
+
+    if (rejectBtn) {
+      rejectBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        handleApprovalDecision('rejected');
+      });
     }
     if (submitBtn) {
       submitBtn.addEventListener('click', submitWorkbook);
@@ -395,6 +476,27 @@
         if (!Number.isNaN(day) && !Number.isNaN(workbookId)) {
           quickTaskManager.pasteFromClipboard(day, workbookId);
         }
+        return;
+      }
+
+      const inlineToggleBtn = target.closest('[data-action="toggle-inline-details"]');
+      if (inlineToggleBtn) {
+        event.preventDefault();
+        handleInlineDetailToggle(inlineToggleBtn);
+        return;
+      }
+
+      const inlineSaveBtn = target.closest('[data-action="save-inline-details"]');
+      if (inlineSaveBtn) {
+        event.preventDefault();
+        handleInlineDetailSave(inlineSaveBtn);
+        return;
+      }
+
+      const inlineCancelBtn = target.closest('[data-action="cancel-inline-details"]');
+      if (inlineCancelBtn) {
+        event.preventDefault();
+        handleInlineDetailCancel(inlineCancelBtn);
       }
     });
 
@@ -414,6 +516,13 @@
           quickTaskManager.showSuggestions(input, day);
         }
       });
+    });
+
+    document.addEventListener('input', (event) => {
+      const slider = event.target.closest('[data-inline-progress]');
+      if (slider) {
+        handleInlineProgressInput(slider);
+      }
     });
 
     console.log('✅ All event listeners setup complete');
@@ -520,6 +629,352 @@
       label: `tuần ${label}`,
       loadingMessage: 'Đang tải tuần được chọn...'
     });
+  }
+
+  function initializeWeekPreferences() {
+    const layout = document.querySelector('.workbook-layout');
+    if (!layout) {
+      return;
+    }
+
+    if (!academicStorageKey) {
+      const userId = layout.dataset.userId || 'anonymous';
+      academicStorageKey = `workbook-academic-start:${userId}`;
+    }
+
+    const stored = academicStorageKey ? getLocalStorageItem(academicStorageKey) : null;
+    const fallback = layout.dataset.academicStart || '';
+    const iso = stored || fallback;
+
+    if (iso) {
+      const parsed = parseISODate(iso);
+      if (parsed) {
+        const normalized = normalizeToMonday(parsed);
+        academicStartDate = normalized;
+        academicStartISO = toISODateString(normalized);
+        layout.dataset.academicStart = academicStartISO;
+      }
+    } else {
+      layout.dataset.academicStart = '';
+    }
+
+    updateAcademicPreferenceWidgets();
+    updateAcademicWeekLabels();
+    updateWeekRailVisibility();
+  }
+
+  function handleToggleWeekRail() {
+    weekRailExpanded = !weekRailExpanded;
+    updateWeekRailVisibility();
+  }
+
+  function updateWeekRailVisibility() {
+    const toggleBtn = document.querySelector('[data-action="toggle-week-rail"]');
+    const chips = document.querySelectorAll('[data-week-chip]');
+
+    chips.forEach((chip) => {
+      const offset = chip.dataset.weekOffset;
+      if (!weekRailExpanded && offset !== '0') {
+        chip.setAttribute('hidden', 'true');
+      } else {
+        chip.removeAttribute('hidden');
+      }
+    });
+
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', weekRailExpanded ? 'true' : 'false');
+      const labelSpan = toggleBtn.querySelector('span');
+      if (labelSpan) {
+        labelSpan.textContent = weekRailExpanded ? 'Thu gọn danh sách tuần' : 'Hiện danh sách tuần';
+      }
+    }
+  }
+
+  function applyAcademicStart() {
+    const layout = document.querySelector('.workbook-layout');
+    const input = document.querySelector('[data-academic-start-input]');
+    if (!layout || !input) {
+      return;
+    }
+
+    const value = input.value;
+    const parsed = parseISODate(value);
+    if (!parsed) {
+      showNotification('❌ Ngày không hợp lệ', 'error');
+      return;
+    }
+
+    const normalized = normalizeToMonday(parsed);
+    academicStartDate = normalized;
+    academicStartISO = toISODateString(normalized);
+    layout.dataset.academicStart = academicStartISO;
+    if (academicStorageKey) {
+      setLocalStorageItem(academicStorageKey, academicStartISO);
+    }
+
+    updateAcademicPreferenceWidgets();
+    updateAcademicWeekLabels();
+    showNotification('✅ Đã cập nhật tuần bắt đầu năm học', 'success');
+  }
+
+  function resetAcademicStart() {
+    const layout = document.querySelector('.workbook-layout');
+    if (!layout) {
+      return;
+    }
+
+    academicStartDate = null;
+    academicStartISO = null;
+    layout.dataset.academicStart = '';
+    if (academicStorageKey) {
+      setLocalStorageItem(academicStorageKey, null);
+    }
+
+    updateAcademicPreferenceWidgets();
+    updateAcademicWeekLabels();
+    showNotification('ℹ️ Đã đặt lại tuần đầu năm học', 'info');
+  }
+
+  function computeAcademicWeekNumber(weekStartISO) {
+    if (!academicStartDate || !weekStartISO) {
+      return null;
+    }
+    const target = parseISODate(weekStartISO);
+    if (!target) {
+      return null;
+    }
+
+    const normalizedTarget = normalizeToMonday(target);
+    const diffMs = normalizedTarget.getTime() - academicStartDate.getTime();
+    const weeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
+    if (Number.isNaN(weeks)) {
+      return null;
+    }
+    return weeks >= 0 ? weeks + 1 : 1;
+  }
+
+  function updateAcademicWeekLabels() {
+    const layout = document.querySelector('.workbook-layout');
+    const currentWeekLabel = document.querySelector('[data-current-week-academic]');
+    const currentWeekStart = layout ? layout.dataset.weekStart : null;
+
+    if (currentWeekLabel && currentWeekStart) {
+      const defaultLabel = currentWeekLabel.dataset.defaultLabel || currentWeekLabel.textContent;
+      const weekNumber = computeAcademicWeekNumber(currentWeekStart);
+      if (weekNumber) {
+        currentWeekLabel.textContent = `Tuần học số ${weekNumber}`;
+      } else {
+        currentWeekLabel.textContent = defaultLabel;
+      }
+    }
+
+    document.querySelectorAll('[data-week-chip]').forEach((chip) => {
+      const labelEl = chip.querySelector('[data-week-label]');
+      if (!labelEl) {
+        return;
+      }
+      const defaultLabel = labelEl.dataset.defaultLabel || labelEl.textContent;
+      const weekNumber = computeAcademicWeekNumber(chip.dataset.weekStart);
+      if (weekNumber) {
+        const startDate = parseISODate(chip.dataset.weekStart);
+        const yearText = startDate ? startDate.getFullYear() : '';
+        labelEl.textContent = yearText ? `Tuần ${weekNumber} · ${yearText}` : `Tuần ${weekNumber}`;
+      } else {
+        labelEl.textContent = defaultLabel;
+      }
+    });
+  }
+
+  function updateAcademicPreferenceWidgets() {
+    const layout = document.querySelector('.workbook-layout');
+    const input = document.querySelector('[data-academic-start-input]');
+    const displayEl = document.querySelector('[data-academic-start-display]');
+
+    if (input) {
+      if (academicStartISO) {
+        input.value = academicStartISO;
+      } else if (layout && layout.dataset.weekStart) {
+        input.value = layout.dataset.weekStart;
+      }
+    }
+
+    if (displayEl) {
+      if (academicStartDate) {
+        const { start, end } = getWeekRange(academicStartDate);
+        displayEl.textContent = formatWeekRangeLabel(start, end);
+      } else {
+        displayEl.textContent = 'Theo tuần hiện tại';
+      }
+    }
+  }
+
+  function normalizeTaskArrayData(rawTasks) {
+    let parsed = [];
+
+    if (Array.isArray(rawTasks)) {
+      parsed = rawTasks;
+    } else if (typeof rawTasks === 'string' && rawTasks.trim()) {
+      try {
+        parsed = JSON.parse(rawTasks);
+      } catch (error) {
+        parsed = rawTasks.split('\n').map((line) => line.trim()).filter(Boolean);
+      }
+    } else if (rawTasks && typeof rawTasks === 'object') {
+      parsed = [rawTasks];
+    }
+
+    const allowedPriorities = new Set(['low', 'medium', 'high']);
+
+    return parsed
+      .map((task) => {
+        if (typeof task === 'string') {
+          const clean = task.trim();
+          if (!clean) {
+            return null;
+          }
+          return { text: clean, completed: false, priority: 'medium' };
+        }
+
+        if (task && typeof task === 'object') {
+          const text = typeof task.text === 'string' ? task.text.trim() : '';
+          if (!text) {
+            return null;
+          }
+
+          const priority = allowedPriorities.has(task.priority) ? task.priority : 'medium';
+          return {
+            text,
+            completed: Boolean(task.completed),
+            priority
+          };
+        }
+
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  function getPriorityLabel(priority) {
+    switch (priority) {
+      case 'high':
+        return 'Cao';
+      case 'low':
+        return 'Thấp';
+      default:
+        return 'Trung bình';
+    }
+  }
+
+  function computeTaskProgress(tasks) {
+    const normalized = normalizeTaskArrayData(tasks);
+    if (!normalized.length) {
+      return 0;
+    }
+    const completed = normalized.reduce((count, task) => count + (task.completed ? 1 : 0), 0);
+    return Math.round((completed / normalized.length) * 100);
+  }
+
+  async function fetchEntryData(workbookId, day) {
+    try {
+      const res = await fetch(buildApiUrl(`/workbook/entry?workbook_id=${workbookId}&day_of_week=${day}`), {
+        credentials: 'same-origin'
+      });
+
+      if (!res.ok) {
+        return null;
+      }
+
+      const data = await res.json();
+      if (data.success && data.entry) {
+        const normalized = {
+          workbook_id: workbookId,
+          day_of_week: day,
+          main_focus: data.entry.main_focus || '',
+          tasks: normalizeTaskArrayData(data.entry.tasks),
+          notes: data.entry.notes || '',
+          progress: Number.parseInt(data.entry.progress, 10) || 0
+        };
+        currentEntries[day] = normalized;
+        return normalized;
+      }
+    } catch (error) {
+      console.error('fetchEntryData error:', error);
+    }
+
+    return null;
+  }
+
+  async function ensureEntryData(workbookId, day) {
+    const cached = currentEntries[day];
+    if (cached) {
+      cached.tasks = normalizeTaskArrayData(cached.tasks);
+      cached.progress = Number.isFinite(cached.progress) ? cached.progress : 0;
+      if (cached.progress < 0) cached.progress = 0;
+      if (cached.progress > 100) cached.progress = 100;
+      return cached;
+    }
+
+    const fetched = await fetchEntryData(workbookId, day);
+    if (fetched) {
+      return fetched;
+    }
+
+    const fallback = {
+      workbook_id: workbookId,
+      day_of_week: day,
+      main_focus: '',
+      tasks: [],
+      notes: '',
+      progress: 0
+    };
+    currentEntries[day] = fallback;
+    return fallback;
+  }
+
+  async function persistEntryData(workbookId, day, entry) {
+    const normalizedTasks = normalizeTaskArrayData(entry.tasks);
+    const progressValue = Number.parseInt(entry.progress, 10) || 0;
+    const safeProgress = Math.max(0, Math.min(100, progressValue));
+
+    const payload = {
+      workbook_id: workbookId,
+      day_of_week: day,
+      main_focus: (entry.main_focus || '').trim(),
+      tasks: JSON.stringify(normalizedTasks),
+      notes: (entry.notes || '').trim(),
+      progress: safeProgress
+    };
+
+    try {
+      const res = await fetch(buildApiUrl('/workbook/entry'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Save failed');
+      }
+
+      currentEntries[day] = {
+        workbook_id: workbookId,
+        day_of_week: day,
+        main_focus: payload.main_focus,
+        tasks: normalizedTasks,
+        notes: payload.notes,
+        progress: safeProgress
+      };
+
+      return true;
+    } catch (error) {
+      console.error('persistEntryData error:', error);
+      showNotification('❌ Lỗi khi lưu công việc', 'error');
+      return false;
+    }
   }
 
   /**
@@ -683,18 +1138,38 @@
       return;
     }
 
+    const approverSelect = document.querySelector('[data-approver-select]');
+    const selectedApprover = approverSelect ? approverSelect.value.trim() : '';
+
+    if (!selectedApprover) {
+      showNotification('Vui lòng chọn người duyệt trước khi gửi.', 'error');
+      if (approverSelect) {
+        approverSelect.focus();
+      }
+      return;
+    }
+
     try {
       showLoading('Đang gửi duyệt...');
 
-  const response = await fetch(buildApiUrl(`/workbook/${currentWorkbookId}/status`), {
+      const response = await fetch(buildApiUrl(`/workbook/${currentWorkbookId}/status`), {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({ status: 'submitted' })
+        credentials: 'include',
+        body: JSON.stringify({
+          status: 'submitted',
+          approver_id: selectedApprover
+        })
       });
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
+
+      if (!response.ok) {
+        throw new Error(data?.message || 'Gửi duyệt thất bại');
+      }
 
       hideLoading();
 
@@ -704,9 +1179,12 @@
         const statusBadge = document.querySelector('.status-badge');
         if (statusBadge) {
           statusBadge.textContent = 'Chờ duyệt';
-          statusBadge.classList.remove('status-draft');
+          statusBadge.classList.remove('status-draft', 'status-submitted', 'status-approved', 'status-rejected');
           statusBadge.classList.add('status-submitted');
         }
+        currentStatus = 'submitted';
+        currentApproverId = selectedApprover;
+        setTimeout(() => window.location.reload(), 800);
       } else {
         showNotification(data.message || 'Có lỗi xảy ra', 'error');
       }
@@ -714,6 +1192,67 @@
       hideLoading();
       console.error('Error submitting workbook:', error);
       showNotification('Lỗi kết nối server', 'error');
+    }
+  }
+
+  async function handleApprovalDecision(decision) {
+    if (!currentWorkbookId) {
+      showNotification('Không tìm thấy ID sổ tay', 'error');
+      return;
+    }
+
+    if (!['approved', 'rejected'].includes(decision)) {
+      console.warn('Invalid decision requested:', decision);
+      return;
+    }
+
+    const noteField = document.querySelector('[data-approver-note]');
+    const note = noteField ? noteField.value.trim() : '';
+
+    if (decision === 'rejected' && !note) {
+      const confirmReject = confirm('Bạn chưa nhập nhận xét. Bạn có chắc muốn từ chối mà không để lại lời nhắn?');
+      if (!confirmReject) {
+        if (noteField) {
+          noteField.focus();
+        }
+        return;
+      }
+    }
+
+    try {
+      showLoading(decision === 'approved' ? 'Đang phê duyệt...' : 'Đang từ chối...');
+
+      const response = await fetch(buildApiUrl(`/workbook/${currentWorkbookId}/status`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          status: decision,
+          note
+        })
+      });
+
+      const data = await parseJsonResponse(response);
+
+      hideLoading();
+
+      if (!response.ok) {
+        throw new Error(data?.message || 'Không thể cập nhật trạng thái');
+      }
+
+      if (data.success) {
+        showNotification('Đã cập nhật trạng thái phê duyệt.', 'success');
+        setTimeout(() => window.location.reload(), 800);
+      } else {
+        showNotification(data.message || 'Có lỗi xảy ra', 'error');
+      }
+    } catch (error) {
+      hideLoading();
+      console.error('Error deciding workbook:', error);
+      showNotification(error.message || 'Lỗi cập nhật trạng thái', 'error');
     }
   }
 
@@ -990,46 +1529,33 @@
       return;
     }
 
-    // Update main focus
-    const mainFocusEl = dayCard.querySelector('.card-section .section-content');
-    if (mainFocusEl && !mainFocusEl.classList.contains('task-list')) {
-      mainFocusEl.textContent = data.main_focus || 'Chưa có mục tiêu';
-      mainFocusEl.classList.toggle('empty', !data.main_focus);
-      console.log('✅ Updated main focus');
+    // Update main focus display & inline input
+    const mainFocusDisplay = dayCard.querySelector('[data-main-focus-display]');
+    if (mainFocusDisplay) {
+      mainFocusDisplay.textContent = data.main_focus || 'Chưa có mục tiêu';
+      mainFocusDisplay.classList.toggle('empty', !data.main_focus);
+    }
+    const mainFocusInput = dayCard.querySelector('[data-inline-main-focus]');
+    if (mainFocusInput) {
+      mainFocusInput.value = data.main_focus || '';
     }
 
-    // Update tasks section
-    const tasksSection = Array.from(dayCard.querySelectorAll('.card-section')).find(section => 
-      section.querySelector('.section-title')?.textContent.includes('Công việc')
-    );
-    
-    if (tasksSection) {
-      // Remove old content
-      const oldTaskList = tasksSection.querySelector('.task-list');
-      const oldEmptyMsg = tasksSection.querySelector('.section-content.empty');
-      
-      if (oldTaskList) oldTaskList.remove();
-      if (oldEmptyMsg) oldEmptyMsg.remove();
-      
-      // Add new content
-      if (data.tasks && Array.isArray(data.tasks) && data.tasks.length > 0) {
-        const taskList = document.createElement('ul');
-        taskList.className = 'task-list';
-        taskList.innerHTML = data.tasks.map(task => `<li>${task}</li>`).join('');
-        tasksSection.appendChild(taskList);
-        console.log('✅ Updated tasks:', data.tasks.length, 'tasks');
-      } else {
-        const emptyMsg = document.createElement('p');
-        emptyMsg.className = 'section-content empty';
-        emptyMsg.innerHTML = '<i class="fas fa-plus-circle"></i> Thêm công việc';
-        tasksSection.appendChild(emptyMsg);
-        console.log('ℹ️ No tasks to display');
-      }
+    // Update notes display & inline input
+    const notesDisplay = dayCard.querySelector('[data-notes-display]');
+    if (notesDisplay) {
+      notesDisplay.textContent = data.notes || 'Chưa có ghi chú';
+      notesDisplay.classList.toggle('empty', !data.notes);
+    }
+    const notesInput = dayCard.querySelector('[data-inline-notes]');
+    if (notesInput) {
+      notesInput.value = data.notes || '';
     }
 
     // Update progress
     const progressFill = dayCard.querySelector('.progress-fill');
     const progressText = dayCard.querySelector('.progress-text');
+    const progressInput = dayCard.querySelector('[data-inline-progress]');
+    const progressDisplay = dayCard.querySelector('[data-inline-progress-display]');
     if (progressFill) {
       progressFill.style.width = data.progress + '%';
       progressFill.setAttribute('data-progress', data.progress);
@@ -1037,8 +1563,148 @@
     if (progressText) {
       progressText.textContent = data.progress + '%';
     }
+    if (progressInput) {
+      progressInput.value = data.progress;
+    }
+    if (progressDisplay) {
+      progressDisplay.textContent = `${data.progress}%`;
+    }
     
     console.log('✅ Day card update complete');
+  }
+
+  function getInlinePanel(day, workbookId) {
+    return document.querySelector(`.inline-detail-panel[data-day="${day}"][data-workbook="${workbookId}"]`);
+  }
+
+  function getInlineToggleButton(day, workbookId) {
+    return document.querySelector(`[data-action="toggle-inline-details"][data-day="${day}"][data-workbook="${workbookId}"]`);
+  }
+
+  function setInlinePanelVisibility(panel, button, expanded) {
+    if (!panel) {
+      return;
+    }
+    if (expanded) {
+      panel.removeAttribute('hidden');
+    } else {
+      panel.setAttribute('hidden', 'true');
+    }
+    if (button) {
+      button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+  }
+
+  async function populateInlinePanel(panel, day, workbookId) {
+    if (!panel) {
+      return;
+    }
+    const entry = await ensureEntryData(workbookId, day);
+    if (!entry) {
+      return;
+    }
+
+    const mainInput = panel.querySelector('[data-inline-main-focus]');
+    if (mainInput) {
+      mainInput.value = entry.main_focus || '';
+    }
+
+    const notesInput = panel.querySelector('[data-inline-notes]');
+    if (notesInput) {
+      notesInput.value = entry.notes || '';
+    }
+
+    const progressInput = panel.querySelector('[data-inline-progress]');
+    if (progressInput) {
+      progressInput.value = entry.progress || 0;
+      handleInlineProgressInput(progressInput);
+    }
+  }
+
+  async function handleInlineDetailToggle(button) {
+    const day = parseInt(button.dataset.day, 10);
+    const workbookId = parseInt(button.dataset.workbook, 10);
+    if (Number.isNaN(day) || Number.isNaN(workbookId)) {
+      return;
+    }
+
+    const panel = getInlinePanel(day, workbookId);
+    if (!panel) {
+      return;
+    }
+
+    const expanded = button.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      setInlinePanelVisibility(panel, button, false);
+      return;
+    }
+
+    await populateInlinePanel(panel, day, workbookId);
+    setInlinePanelVisibility(panel, button, true);
+  }
+
+  async function handleInlineDetailSave(button) {
+    const day = parseInt(button.dataset.day, 10);
+    const workbookId = parseInt(button.dataset.workbook, 10);
+    if (Number.isNaN(day) || Number.isNaN(workbookId)) {
+      return;
+    }
+
+    const panel = getInlinePanel(day, workbookId);
+    if (!panel) {
+      return;
+    }
+
+    const entry = await ensureEntryData(workbookId, day);
+    if (!entry) {
+      return;
+    }
+
+    const mainInput = panel.querySelector('[data-inline-main-focus]');
+    const notesInput = panel.querySelector('[data-inline-notes]');
+    const progressInput = panel.querySelector('[data-inline-progress]');
+
+    entry.main_focus = mainInput ? mainInput.value.trim() : '';
+    entry.notes = notesInput ? notesInput.value.trim() : '';
+    entry.progress = progressInput ? (Number.parseInt(progressInput.value, 10) || 0) : entry.progress;
+
+    const ok = await persistEntryData(workbookId, day, entry);
+    if (ok) {
+      updateDayCard(day, entry);
+      setInlinePanelVisibility(panel, getInlineToggleButton(day, workbookId), false);
+      showNotification('✅ Đã lưu chi tiết công việc', 'success');
+    }
+  }
+
+  async function handleInlineDetailCancel(button) {
+    const day = parseInt(button.dataset.day, 10);
+    const workbookId = parseInt(button.dataset.workbook, 10);
+    if (Number.isNaN(day) || Number.isNaN(workbookId)) {
+      return;
+    }
+
+    const panel = getInlinePanel(day, workbookId);
+    if (!panel) {
+      return;
+    }
+
+    await populateInlinePanel(panel, day, workbookId);
+    setInlinePanelVisibility(panel, getInlineToggleButton(day, workbookId), false);
+  }
+
+  function handleInlineProgressInput(slider) {
+    if (!slider) {
+      return;
+    }
+    const panel = slider.closest('[data-inline-panel]');
+    if (!panel) {
+      return;
+    }
+    const value = Number.parseInt(slider.value, 10) || 0;
+    const display = panel.querySelector('[data-inline-progress-display]');
+    if (display) {
+      display.textContent = `${value}%`;
+    }
   }
 
   /**
@@ -1305,75 +1971,28 @@
     const getQuickInputEl = (day) => document.querySelector(`.quick-add-single[data-day="${day}"] .quick-task-input-enhanced`);
     const getPriorityEl = (day) => document.querySelector(`.quick-add-single[data-day="${day}"] .priority-select-quick`);
 
-    async function fetchEntry(workbookId, day) {
-      try {
-  const res = await fetch(buildApiUrl(`/workbook/entry?workbook_id=${workbookId}&day_of_week=${day}`), { credentials: 'same-origin' });
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (data.success && data.entry) {
-          // Normalize tasks
-          let tasks = [];
-          if (data.entry.tasks) {
-            try { tasks = JSON.parse(data.entry.tasks); } catch { tasks = []; }
-          }
-          if (!Array.isArray(tasks)) tasks = [];
-          data.entry.tasks = tasks;
-          currentEntries[day] = data.entry;
-          return data.entry;
-        }
-      } catch (e) {
-        console.error('fetchEntry error:', e);
-      }
-      // fallback
-      const fallback = { workbook_id: workbookId, day_of_week: day, main_focus: '', tasks: [], notes: '', progress: 0 };
-      currentEntries[day] = fallback;
-      return fallback;
-    }
-
-    async function persistEntry(workbookId, day, entry) {
-      const payload = {
-        workbook_id: workbookId,
-        day_of_week: day,
-        main_focus: entry.main_focus || '',
-        tasks: JSON.stringify(entry.tasks || []),
-        notes: entry.notes || '',
-        // Keep existing progress to avoid surprises
-        progress: typeof entry.progress === 'number' ? entry.progress : 0
-      };
-      try {
-  const res = await fetch(buildApiUrl('/workbook/entry'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || 'Save failed');
-        return true;
-      } catch (e) {
-        console.error('persistEntry error:', e);
-        showNotification('❌ Lỗi khi lưu công việc', 'error');
-        return false;
-      }
-    }
-
     function renderTaskList(day, workbookId, tasks) {
       const listEl = getTaskListEl(day);
       if (!listEl) return;
       listEl.innerHTML = '';
-      tasks.forEach((task, index) => {
-        const taskText = typeof task === 'object' ? (task.text || '') : String(task || '');
-        const completed = typeof task === 'object' ? !!task.completed : false;
+      const normalized = normalizeTaskArrayData(tasks);
+      normalized.forEach((task, index) => {
+        const taskText = task.text || '';
+        const completed = !!task.completed;
+        const priority = task.priority || 'medium';
+        const priorityLabel = getPriorityLabel(priority);
         const li = document.createElement('li');
         li.className = `task-item-inline ${completed ? 'completed' : ''}`;
         li.dataset.taskIndex = index;
         li.dataset.day = day;
         li.dataset.workbook = workbookId;
         li.innerHTML = `
+          <div class="task-priority-badge priority-${priority}"></div>
           <div class="task-checkbox-wrapper">
             <input type="checkbox" class="task-checkbox" ${completed ? 'checked' : ''}>
           </div>
           <span class="task-text-inline">${taskText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+          <span class="task-priority-label priority-${priority}">${priorityLabel}</span>
           <button class="task-delete-inline" title="Xóa"><i class="fas fa-times"></i></button>
         `;
         const checkbox = li.querySelector('.task-checkbox');
@@ -1403,21 +2022,20 @@
       if (!text) return;
       const priorityEl = getPriorityEl(day);
       const priority = priorityEl ? priorityEl.value : 'medium';
-      const entry = (currentEntries[day]) || await fetchEntry(workbookId, day);
-      // Normalize task object
-      entry.tasks = Array.isArray(entry.tasks) ? entry.tasks : [];
+      const entry = await ensureEntryData(workbookId, day);
       entry.tasks.push({ text, completed: false, priority });
-      const ok = await persistEntry(workbookId, day, entry);
+      entry.progress = computeTaskProgress(entry.tasks);
+      const ok = await persistEntryData(workbookId, day, entry);
       if (ok) {
         renderTaskList(day, workbookId, entry.tasks);
         input.value = '';
+        updateDayCard(day, entry);
         showNotification('✅ Đã thêm công việc', 'success');
       }
     }
 
     async function toggleTask(checkboxEl, day, workbookId, index) {
-      const entry = (currentEntries[day]) || await fetchEntry(workbookId, day);
-      entry.tasks = Array.isArray(entry.tasks) ? entry.tasks : [];
+      const entry = await ensureEntryData(workbookId, day);
       const t = entry.tasks[index];
       if (t === undefined) return;
       if (typeof t === 'object') {
@@ -1425,19 +2043,22 @@
       } else {
         entry.tasks[index] = { text: String(t), completed: !!checkboxEl.checked };
       }
-      const ok = await persistEntry(workbookId, day, entry);
+      entry.progress = computeTaskProgress(entry.tasks);
+      const ok = await persistEntryData(workbookId, day, entry);
       if (ok) {
         renderTaskList(day, workbookId, entry.tasks);
+        updateDayCard(day, entry);
       }
     }
 
     async function deleteTask(day, workbookId, index) {
-      const entry = (currentEntries[day]) || await fetchEntry(workbookId, day);
-      entry.tasks = Array.isArray(entry.tasks) ? entry.tasks : [];
+      const entry = await ensureEntryData(workbookId, day);
       entry.tasks.splice(index, 1);
-      const ok = await persistEntry(workbookId, day, entry);
+      entry.progress = computeTaskProgress(entry.tasks);
+      const ok = await persistEntryData(workbookId, day, entry);
       if (ok) {
         renderTaskList(day, workbookId, entry.tasks);
+        updateDayCard(day, entry);
         showNotification('🗑️ Đã xóa công việc', 'info');
       }
     }
@@ -1452,17 +2073,18 @@
       input.focus();
       const commit = async () => {
         const newText = input.value.trim();
-        const entry = (currentEntries[day]) || await fetchEntry(workbookId, day);
-        entry.tasks = Array.isArray(entry.tasks) ? entry.tasks : [];
+        const entry = await ensureEntryData(workbookId, day);
         if (entry.tasks[index] === undefined) return;
         if (typeof entry.tasks[index] === 'object') {
           entry.tasks[index].text = newText;
         } else {
           entry.tasks[index] = newText;
         }
-        const ok = await persistEntry(workbookId, day, entry);
+        entry.progress = computeTaskProgress(entry.tasks);
+        const ok = await persistEntryData(workbookId, day, entry);
         if (ok) {
           renderTaskList(day, workbookId, entry.tasks);
+          updateDayCard(day, entry);
         }
       };
       input.addEventListener('blur', commit);
@@ -1491,14 +2113,15 @@
       if (!batch) return;
       const lines = batch.value.split('\n').map(s => s.replace(/^[-•\s]+/, '').trim()).filter(Boolean);
       if (lines.length === 0) return;
-      const entry = (currentEntries[day]) || await fetchEntry(workbookId, day);
-      entry.tasks = Array.isArray(entry.tasks) ? entry.tasks : [];
+      const entry = await ensureEntryData(workbookId, day);
       lines.forEach(t => entry.tasks.push({ text: t, completed: false, priority: 'medium' }));
-      const ok = await persistEntry(workbookId, day, entry);
+      entry.progress = computeTaskProgress(entry.tasks);
+      const ok = await persistEntryData(workbookId, day, entry);
       if (ok) {
         renderTaskList(day, workbookId, entry.tasks);
         batch.value = '';
         toggleBatchMode(day);
+        updateDayCard(day, entry);
         showNotification(`✅ Đã thêm ${lines.length} công việc`, 'success');
       }
     }
@@ -1509,12 +2132,13 @@
         research: ['Đọc tài liệu', 'Thực nghiệm/viết báo cáo', 'Trao đổi với nhóm'],
         admin: ['Xử lý công văn', 'Cập nhật hồ sơ', 'Báo cáo định kỳ']
       };
-      const entry = (currentEntries[day]) || await fetchEntry(workbookId, day);
-      entry.tasks = Array.isArray(entry.tasks) ? entry.tasks : [];
+      const entry = await ensureEntryData(workbookId, day);
       (templates[type] || []).forEach(t => entry.tasks.push({ text: t, completed: false, priority: 'medium' }));
-      const ok = await persistEntry(workbookId, day, entry);
+      entry.progress = computeTaskProgress(entry.tasks);
+      const ok = await persistEntryData(workbookId, day, entry);
       if (ok) {
         renderTaskList(day, workbookId, entry.tasks);
+        updateDayCard(day, entry);
         showNotification('✅ Đã áp dụng mẫu công việc', 'success');
       }
     }
@@ -1523,12 +2147,13 @@
         const text = await navigator.clipboard.readText();
         const lines = text.split('\n').map(s => s.replace(/^[-•\s]+/, '').trim()).filter(Boolean);
         if (lines.length) {
-          const entry = (currentEntries[day]) || await fetchEntry(workbookId, day);
-          entry.tasks = Array.isArray(entry.tasks) ? entry.tasks : [];
+          const entry = await ensureEntryData(workbookId, day);
           lines.forEach(t => entry.tasks.push({ text: t, completed: false, priority: 'medium' }));
-          const ok = await persistEntry(workbookId, day, entry);
+          entry.progress = computeTaskProgress(entry.tasks);
+          const ok = await persistEntryData(workbookId, day, entry);
           if (ok) {
             renderTaskList(day, workbookId, entry.tasks);
+            updateDayCard(day, entry);
             showNotification(`✅ Đã dán ${lines.length} công việc`, 'success');
           }
         }

@@ -1,8 +1,52 @@
 const Workbook = require('../models/Workbook');
 const WorkbookEntry = require('../models/WorkbookEntry');
+const User = require('../models/User');
+const CONSTANTS = require('../../config/constants');
 const db = require('../../config/database');
 
 class WorkbookController {
+  constructor() {
+    this.userModel = new User();
+  }
+
+  normalizeProgressSummary(raw) {
+    const toNumber = (value) => {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : 0;
+    };
+
+    const averageRaw = raw?.average ?? raw?.avg ?? 0;
+    const completed = Math.max(0, toNumber(raw?.completed));
+    const inProgress = Math.max(0, toNumber(raw?.inProgress));
+    const total = Math.max(0, toNumber(raw?.total));
+  const averageBase = total > 0 ? toNumber(averageRaw) : 0;
+  const average = Math.max(0, Math.min(100, averageBase));
+
+    return {
+      average,
+      completed,
+      inProgress,
+      total
+    };
+  }
+
+  getUserRoleName(sessionUser) {
+    if (!sessionUser) {
+      return '';
+    }
+    const name = sessionUser.role_name || sessionUser.roleName || '';
+    return name.toString().trim().toLowerCase();
+  }
+
+  async getEligibleApproversForUser(sessionUser) {
+    const roleName = this.getUserRoleName(sessionUser);
+    if (!roleName) {
+      return [];
+    }
+
+    return await this.userModel.getEligibleApprovers(roleName, sessionUser?.id);
+  }
+
   /**
    * Hiển thị trang chính của sổ tay công tác
    */
@@ -48,6 +92,21 @@ class WorkbookController {
         week_start: normalizedWeekStart,
         week_end: normalizedWeekEnd
       };
+
+      const isOwner = normalizedWorkbook.user_id === userId;
+      const isApprover = normalizedWorkbook.approver_id === userId;
+
+      let approver = null;
+      if (normalizedWorkbook?.approver_id) {
+        try {
+          approver = await this.userModel.findWithRole(normalizedWorkbook.approver_id, {
+            includeInactive: true,
+            includeAllStatuses: true
+          });
+        } catch (error) {
+          console.warn('Unable to load approver info for workbook', normalizedWorkbook.id, error.message || error);
+        }
+      }
       
       // Lấy tất cả entries của tuần - ensure it's an array
       let entries = await WorkbookEntry.findByWorkbook(normalizedWorkbook.id);
@@ -63,17 +122,27 @@ class WorkbookController {
       }
       
       // Lấy thống kê progress
-      const progress = await WorkbookEntry.getWeekProgress(normalizedWorkbook.id);
+  const rawProgress = await WorkbookEntry.getWeekProgress(normalizedWorkbook.id);
+  const progress = this.normalizeProgressSummary(rawProgress);
       
+      const approverOptions = isOwner
+        ? await this.getEligibleApproversForUser(req.session.user)
+        : [];
+
       res.render('workbook/index', {
         title: 'Sổ tay công tác',
         user: req.session.user,
         workbook: normalizedWorkbook,
         entries,
-        progress,
+  progress,
         weekStart: normalizedWeekStart,
         weekEnd: normalizedWeekEnd,
-        currentPath: '/workbook'
+        currentPath: '/workbook',
+        approver,
+        roleLabels: CONSTANTS.USER_ROLE_LABELS,
+        approverOptions,
+        isOwner,
+        isApprover
       });
       
     } catch (error) {
@@ -199,15 +268,32 @@ class WorkbookController {
     try {
       const userId = req.session.user.id;
       const { id } = req.params;
-      const { status } = req.body;
+      const { status, approver_id: approverId, note } = req.body;
       
       // Verify workbook belongs to user
-      const workbooks = await db.query('SELECT * FROM workbooks WHERE id = ?', [id]);
-      const workbook = Array.isArray(workbooks) ? workbooks[0] : workbooks;
-      if (!workbook || workbook.user_id !== userId) {
+      const rawResult = await db.query('SELECT * FROM workbooks WHERE id = ?', [id]);
+      const workbookRows = Array.isArray(rawResult[0]) ? rawResult[0] : rawResult;
+      const workbook = Array.isArray(workbookRows) ? workbookRows[0] : workbookRows;
+      if (!workbook) {
         return res.status(403).json({
           success: false,
           message: 'Không có quyền truy cập'
+        });
+      }
+
+      const isOwner = workbook.user_id === userId;
+      const isApprover = workbook.approver_id === userId;
+
+      const ownerAllowedStatuses = new Set(['draft', 'submitted']);
+      const approverAllowedStatuses = new Set(['approved', 'rejected']);
+
+      const isOwnerAction = ownerAllowedStatuses.has(status) || (!approverAllowedStatuses.has(status));
+      const isApproverAction = approverAllowedStatuses.has(status);
+
+      if ((isOwnerAction && !isOwner) || (isApproverAction && !isApprover)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bạn không được phép cập nhật trạng thái này'
         });
       }
       
@@ -219,8 +305,69 @@ class WorkbookController {
           message: 'Trạng thái không hợp lệ'
         });
       }
-      
-      await Workbook.updateStatus(id, status);
+
+      const extraUpdates = {};
+
+      if (status === 'submitted') {
+        if (!approverId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Vui lòng chọn người duyệt có chức vụ cao hơn'
+          });
+        }
+
+        const parsedApproverId = Number.parseInt(approverId, 10);
+        if (!Number.isInteger(parsedApproverId) || parsedApproverId <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Người duyệt không hợp lệ'
+          });
+        }
+
+        const approver = await this.userModel.findWithRole(parsedApproverId, {
+          includeInactive: false,
+          includeAllStatuses: false
+        });
+
+        if (!approver) {
+          return res.status(404).json({
+            success: false,
+            message: 'Không tìm thấy người duyệt được chọn'
+          });
+        }
+
+        const hierarchy = Array.isArray(CONSTANTS.ROLE_HIERARCHY) ? CONSTANTS.ROLE_HIERARCHY : [];
+        const approverRole = (approver.role_name || '').toString().trim().toLowerCase();
+        const submitterRole = this.getUserRoleName(req.session.user);
+        const approverIndex = hierarchy.indexOf(approverRole);
+        const submitterIndex = hierarchy.indexOf(submitterRole);
+
+        if (approverIndex === -1 || submitterIndex === -1 || approverIndex >= submitterIndex) {
+          return res.status(400).json({
+            success: false,
+            message: 'Người duyệt phải có chức vụ cao hơn bạn'
+          });
+        }
+
+        extraUpdates.approver_id = parsedApproverId;
+        extraUpdates.approval_requested_at = new Date();
+        extraUpdates.approval_decision_at = null;
+        extraUpdates.approval_note = null;
+      }
+
+      if (['approved', 'rejected'].includes(status)) {
+        extraUpdates.approval_decision_at = new Date();
+        extraUpdates.approval_note = note || null;
+      }
+
+      if (status === 'draft') {
+        extraUpdates.approver_id = null;
+        extraUpdates.approval_requested_at = null;
+        extraUpdates.approval_decision_at = null;
+        extraUpdates.approval_note = null;
+      }
+
+      await Workbook.updateStatus(id, status, extraUpdates);
       
       res.json({
         success: true,
@@ -233,6 +380,27 @@ class WorkbookController {
         success: false,
         message: 'Lỗi khi cập nhật trạng thái'
       });
+    }
+  }
+
+  async listApproverOptions(req, res) {
+    try {
+      const approverOptions = await this.getEligibleApproversForUser(req.session.user);
+      res.json({ success: true, data: approverOptions });
+    } catch (error) {
+      console.error('Error loading approver options:', error);
+      res.status(500).json({ success: false, message: 'Không thể tải danh sách người duyệt' });
+    }
+  }
+
+  async listPendingApprovals(req, res) {
+    try {
+      const approverId = req.session.user.id;
+      const pending = await Workbook.getPendingApprovalsForApprover(approverId, 20);
+      res.json({ success: true, data: pending });
+    } catch (error) {
+      console.error('Error loading pending approvals:', error);
+      res.status(500).json({ success: false, message: 'Không thể tải danh sách sổ tay chờ duyệt' });
     }
   }
 
@@ -322,12 +490,13 @@ class WorkbookController {
       console.log('📖 WorkbookController.show - Loading workbook:', { id, userId });
       
       // Query database
-      const workbooks = await db.query('SELECT * FROM workbooks WHERE id = ?', [id]);
-      const workbook = Array.isArray(workbooks) ? workbooks[0] : workbooks;
+  const workbooks = await db.query('SELECT * FROM workbooks WHERE id = ?', [id]);
+  const workbookRows = Array.isArray(workbooks[0]) ? workbooks[0] : workbooks;
+  const workbook = Array.isArray(workbookRows) ? workbookRows[0] : workbookRows;
       
       console.log('🔍 Workbook query result:', { found: !!workbook, workbook_user: workbook?.user_id, session_user: userId });
       
-      if (!workbook || workbook.user_id !== userId) {
+      if (!workbook || (workbook.user_id !== userId && workbook.approver_id !== userId)) {
         console.log('❌ Workbook not found or unauthorized');
         req.flash('error', 'Không tìm thấy sổ tay công tác');
         return res.redirect('/workbook');
@@ -337,23 +506,46 @@ class WorkbookController {
       let entries = await WorkbookEntry.findByWorkbook(id);
       
       // Ensure entries is always an array
+      if (Array.isArray(entries[0])) {
+        entries = entries[0];
+      }
       if (!Array.isArray(entries)) {
         entries = [];
       }
       
-      const progress = await WorkbookEntry.getWeekProgress(id);
-      
-  const normalizedWeekStart = this.normalizeDateValue(workbook.week_start) || this.getWeekStart(new Date());
-  const normalizedWeekEnd = this.normalizeDateValue(workbook.week_end) || this.getWeekEnd(normalizedWeekStart);
+  const rawProgress = await WorkbookEntry.getWeekProgress(id);
+  const progress = this.normalizeProgressSummary(rawProgress);
+
+      const normalizedWeekStart = this.normalizeDateValue(workbook.week_start) || this.getWeekStart(new Date());
+      const normalizedWeekEnd = this.normalizeDateValue(workbook.week_end) || this.getWeekEnd(normalizedWeekStart);
       const normalizedWorkbook = {
         ...workbook,
         week_start: normalizedWeekStart,
         week_end: normalizedWeekEnd
       };
 
+      const isOwner = normalizedWorkbook.user_id === userId;
+      const isApprover = normalizedWorkbook.approver_id === userId;
+
+      let approver = null;
+      if (normalizedWorkbook?.approver_id) {
+        try {
+          approver = await this.userModel.findWithRole(normalizedWorkbook.approver_id, {
+            includeInactive: true,
+            includeAllStatuses: true
+          });
+        } catch (error) {
+          console.warn('Unable to load approver info for workbook', normalizedWorkbook.id, error.message || error);
+        }
+      }
+
       console.log('📊 Rendering workbook:', { id, entriesCount: entries.length, progress });
       
       // Render using index view instead of show
+      const approverOptions = isOwner
+        ? await this.getEligibleApproversForUser(req.session.user)
+        : [];
+
       res.render('workbook/index', {
         title: 'Sổ tay công tác',
         user: req.session.user,
@@ -362,7 +554,12 @@ class WorkbookController {
         progress,
         weekStart: normalizedWeekStart,
         weekEnd: normalizedWeekEnd,
-        currentPath: '/workbook'
+        currentPath: '/workbook',
+        approver,
+        roleLabels: CONSTANTS.USER_ROLE_LABELS,
+        approverOptions,
+        isOwner,
+        isApprover
       });
       
     } catch (error) {

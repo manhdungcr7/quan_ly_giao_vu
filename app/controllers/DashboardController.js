@@ -4,7 +4,10 @@ const Document = require('../models/Document');
 const Asset = require('../models/Asset');
 const Project = require('../models/Project');
 const WorkSchedule = require('../models/WorkSchedule');
-const { parseScopeParam, resolveScope, buildScopeOptions } = require('../utils/timeScopes');
+const Workbook = require('../models/Workbook');
+const AcademicYear = require('../models/AcademicYear');
+const CONSTANTS = require('../../config/constants');
+const { parseScopeParam, resolveScope, buildScopeOptions, normalizeAcademicYearCode } = require('../utils/timeScopes');
 
 class DashboardController {
     constructor() {
@@ -14,13 +17,66 @@ class DashboardController {
         this.assetModel = new Asset();
     this.projectModel = new Project();
         // WorkSchedule sử dụng static methods cho lịch cá nhân
+        this.academicYearModel = new AcademicYear();
     }
 
-    prepareScopeContext(scopeParam) {
+    async prepareScopeContext(scopeParam) {
         const referenceDate = new Date();
         const parsedScope = parseScopeParam(typeof scopeParam === 'string' ? scopeParam : null);
-        const activeScope = resolveScope(parsedScope, { referenceDate });
-        const scopeOptions = buildScopeOptions(referenceDate);
+
+        let academicYearRecords = [];
+        try {
+            academicYearRecords = await this.academicYearModel.findAll({
+                orderBy: 'start_date',
+                orderDirection: 'DESC'
+            });
+        } catch (error) {
+            console.warn('Không thể tải danh sách năm học, sử dụng chế độ mặc định.', error);
+        }
+
+        const normalizedRecords = Array.isArray(academicYearRecords) ? academicYearRecords : [];
+        const normalizedScope = (() => {
+            if (parsedScope) {
+                return parsedScope;
+            }
+            const firstActive = normalizedRecords.find((year) => year.status === 'active');
+            const fallback = normalizedRecords[0];
+            const candidate = firstActive || fallback;
+            const normalizedCode = candidate ? normalizeAcademicYearCode(candidate.year_code || candidate.code) : null;
+            if (normalizedCode) {
+                return {
+                    mode: 'academic_year',
+                    academicYear: normalizedCode
+                };
+            }
+            return null;
+        })();
+
+        const activeScope = resolveScope(normalizedScope, { referenceDate });
+        const scopeOptions = buildScopeOptions(referenceDate, {
+            yearRecords: normalizedRecords,
+            includeInactiveYears: true
+        });
+
+        let adjustedScope = activeScope;
+        if (activeScope && normalizedRecords.length) {
+            const matchingRecord = normalizedRecords.find((year) => {
+                const code = normalizeAcademicYearCode(year.year_code || year.code);
+                const activeCode = normalizeAcademicYearCode(activeScope.academicYear);
+                return code && activeCode && code === activeCode;
+            });
+            if (matchingRecord) {
+                const startDate = new Date(matchingRecord.start_date);
+                const endDate = new Date(matchingRecord.end_date);
+                adjustedScope = {
+                    ...activeScope,
+                    label: matchingRecord.display_name || `Năm học ${normalizeAcademicYearCode(matchingRecord.year_code || matchingRecord.code)}`,
+                    startDate: Number.isNaN(startDate.getTime()) ? activeScope.startDate : startDate,
+                    endDate: Number.isNaN(endDate.getTime()) ? activeScope.endDate : endDate,
+                    selectionValue: `academic_year|${normalizeAcademicYearCode(matchingRecord.year_code || matchingRecord.code)}`
+                };
+            }
+        }
 
         const formatDisplayDate = (value) => {
             const date = value instanceof Date ? value : new Date(value);
@@ -34,11 +90,11 @@ class DashboardController {
             });
         };
 
-        const scopeRangeLabel = activeScope
-            ? `${formatDisplayDate(activeScope.startDate)} - ${formatDisplayDate(activeScope.endDate)}`
+        const scopeRangeLabel = adjustedScope
+            ? `${formatDisplayDate(adjustedScope.startDate)} - ${formatDisplayDate(adjustedScope.endDate)}`
             : '';
 
-        return { activeScope, scopeOptions, scopeRangeLabel, referenceDate };
+        return { activeScope: adjustedScope, scopeOptions, scopeRangeLabel, referenceDate };
     }
 
     // Hiển thị trang dashboard chính
@@ -46,7 +102,7 @@ class DashboardController {
         const user = req.session.user;
         try {
             const scopeParam = req.query?.scope;
-            const { activeScope, scopeOptions, scopeRangeLabel } = this.prepareScopeContext(scopeParam);
+            const { activeScope, scopeOptions, scopeRangeLabel } = await this.prepareScopeContext(scopeParam);
             const timeRange = activeScope ? { startDate: activeScope.startDate, endDate: activeScope.endDate } : null;
 
             // Thực hiện song song và không fail toàn bộ nếu 1 phần lỗi
@@ -179,6 +235,10 @@ class DashboardController {
                 { label: 'Báo cáo', icon: 'fa-chart-pie', href: '/reports', color: 'warning' }
             ];
 
+            if ((user?.role_name || user?.roleName || '').toString().toLowerCase() === CONSTANTS.ROLES.ADMIN) {
+                quickActions.unshift({ label: 'Người dùng', icon: 'fa-user-shield', href: '/users', color: 'danger' });
+            }
+
             const normalizeDeadlineLabel = (value) => {
                 if (!value) return null;
                 try {
@@ -307,7 +367,7 @@ class DashboardController {
 
             res.render('dashboard/main', {
                 title: 'Trang chủ',
-                appName: 'KA Management',
+                appName: 'quản lý giáo vụ Khoa',
                 isAuthenticated: true,
                 currentPath: req.path,
                 isAdmin: user.role === 'admin',
@@ -471,6 +531,51 @@ class DashboardController {
             // Lấy tài liệu quá hạn
             const overdueDocuments = await this.documentModel.getOverdueDocuments();
 
+            const pendingWorkbookApprovalsRaw = await Workbook.getPendingApprovalsForApprover(userId, 5);
+
+            const formatDate = (value) => {
+                if (!value) return null;
+                try {
+                    return new Date(value).toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+                } catch (error) {
+                    return value;
+                }
+            };
+
+            const formatDateTime = (value) => {
+                if (!value) return null;
+                try {
+                    return new Date(value).toLocaleString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } catch (error) {
+                    return value;
+                }
+            };
+
+            const formatWeekRange = (start, end) => {
+                const startLabel = formatDate(start);
+                const endLabel = formatDate(end);
+                if (!startLabel && !endLabel) {
+                    return '';
+                }
+                if (!startLabel) {
+                    return `Đến ${endLabel}`;
+                }
+                if (!endLabel) {
+                    return `Từ ${startLabel}`;
+                }
+                return `${startLabel} - ${endLabel}`;
+            };
+
             // Lọc chỉ lấy những tài liệu liên quan đến user
             const userUpcomingDeadlines = upcomingDeadlines.filter(doc => 
                 doc.assigned_to === userId || doc.created_by === userId
@@ -480,10 +585,23 @@ class DashboardController {
                 doc.assigned_to === userId || doc.created_by === userId
             );
 
+            const pendingWorkbookApprovals = pendingWorkbookApprovalsRaw.map(workbook => ({
+                type: 'workbook',
+                id: workbook.id,
+                title: workbook.owner_name ? `${workbook.owner_name} · Sổ tay tuần` : 'Sổ tay công tác',
+                content_summary: `Tuần: ${formatWeekRange(workbook.week_start, workbook.week_end) || 'Chưa xác định'}`,
+                processing_deadline: formatDate(workbook.week_end),
+                approval_requested_at: formatDateTime(workbook.approval_requested_at),
+                badgeColor: 'is-info',
+                badge: 'Chờ duyệt',
+                link: `/workbook/${workbook.id}`
+            }));
+
             return {
                 upcomingDeadlines: userUpcomingDeadlines,
                 overdueDocuments: userOverdueDocuments,
-                totalNotifications: userUpcomingDeadlines.length + userOverdueDocuments.length
+                pendingWorkbooks: pendingWorkbookApprovals,
+                totalNotifications: userUpcomingDeadlines.length + userOverdueDocuments.length + pendingWorkbookApprovals.length
             };
         } catch (error) {
             console.error('Error getting notifications:', error);
@@ -523,7 +641,7 @@ class DashboardController {
     async getStatsAPI(req, res) {
         try {
             const { type, period, scope } = req.query;
-            const { activeScope } = this.prepareScopeContext(scope);
+            const { activeScope } = await this.prepareScopeContext(scope);
             const timeRange = activeScope ? { startDate: activeScope.startDate, endDate: activeScope.endDate } : null;
 
             let data = {};

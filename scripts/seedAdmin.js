@@ -37,14 +37,15 @@ async function seedAdmin() {
         const hashedPassword = await bcrypt.hash(adminPassword, 10);
         
         const adminResult = await db.insert(
-            'INSERT INTO users (username, email, password_hash, full_name, role_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
+            'INSERT INTO users (username, email, password_hash, full_name, role_id, is_active, approval_status, approved_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
             [
                 adminUsername,
                 adminEmail,
                 hashedPassword,
                 'Administrator',
                 adminRole.id,
-                1
+                1,
+                'approved'
             ]
         );
 

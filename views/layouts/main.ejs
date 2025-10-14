@@ -4,18 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title ? title + ' - ' : '' %><%= appName %></title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+DQogIDxkZWZzPg0KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+DQogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjM2I4MmY2Ii8+DQogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM4YjVjZjYiLz4NCiAgICA8L2xpbmVhckdyYWRpZW50Pg0KICA8L2RlZnM+DQogIDxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE0IiBmaWxsPSJ1cmwoI2cpIi8+DQogIDxnIGZpbGw9IiNmZmYiIGZvbnQtZmFtaWx5PSInSW50ZXInLCAnU2Vnb2UgVUknLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCI+DQogICAgPHRleHQgeD0iMzIiIHk9IjM0Ij5LQTwvdGV4dD4NCiAgPC9nPg0KPC9zdmc+DQo=">
+    <% const appUrlObject = (() => { try { return new URL(appUrl); } catch (_) { return null; } })(); %>
+    <% const canonicalHost = appUrlObject ? appUrlObject.host : 'localhost:3000'; %>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="alternate icon" type="image/png" sizes="32x32" href="/favicon-32.png">
     <script>
         (function(){
-            var protocol = window.location.protocol;
-            var host = window.location.hostname;
-            var port = window.location.port ? ':' + window.location.port : '';
-            if (protocol === 'https:' && (host === 'localhost' || host === '127.0.0.1')) {
-                var targetHost = host === 'localhost' ? '127.0.0.1' : host;
-                var target = 'http://' + targetHost + port + window.location.pathname + window.location.search + window.location.hash;
-                if (target !== window.location.href) {
-                    window.location.replace(target);
+            function enforceDevScheme(){
+                var body = document.body;
+                if (!body) {
+                    return;
                 }
+
+                var dataset = body.dataset || {};
+                var supportsHttps = dataset.supportsHttps === '1';
+                if (supportsHttps) {
+                    return;
+                }
+
+                var protocol = window.location.protocol;
+                var host = window.location.hostname;
+                var portValue = window.location.port;
+                var port = portValue ? ':' + portValue : '';
+                var isLoopback = (host === 'localhost' || host === '127.0.0.1');
+                var isPrivateIPv4 = /^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+                var portNumber = portValue ? parseInt(portValue, 10) : null;
+                var isDevPort = portNumber === null || (portNumber >= 3000 && portNumber <= 3999);
+                var shouldDowngrade = protocol === 'https:' && (isLoopback || isPrivateIPv4) && isDevPort;
+
+                if (shouldDowngrade) {
+                    var fallbackUrl = dataset.httpFallback || '';
+                    var targetHost = isLoopback ? '127.0.0.1' : host;
+                    var base = fallbackUrl && fallbackUrl.startsWith('http') ? fallbackUrl : ('http://' + targetHost + port);
+                    var target = base + window.location.pathname + window.location.search + window.location.hash;
+                    if (target !== window.location.href) {
+                        window.location.replace(target);
+                    }
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', enforceDevScheme);
+            } else {
+                enforceDevScheme();
             }
         })();
     </script>
@@ -24,12 +55,13 @@
     <link href="/css/app.css" rel="stylesheet">
     <link href="/assets/css/style.css" rel="stylesheet">
     <link href="/css/layout.css" rel="stylesheet">
+    <link href="/css/breadcrumb.css" rel="stylesheet">
     <!-- Font Awesome for file type icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <!-- Additional CSS -->
     <%- defineContent('css') %>
 </head>
-<body class="<%= isAuthenticated ? 'app-auth' : '' %>">
+<body class="<%= isAuthenticated ? 'app-auth' : '' %>" data-supports-https="<%= supportsHttps ? '1' : '0' %>" data-http-fallback="<%= httpFallbackUrl %>">
     <% if (isAuthenticated) { %>
         <div class="app-layout">
             <aside class="app-sidebar" id="appSidebar">
@@ -48,7 +80,7 @@
                         <span class="topbar-brand__logo">KA</span>
                         <div class="topbar-brand__text">
                             <span class="topbar-brand__title">Khoa An ninh điều tra</span>
-                            <span class="topbar-brand__subtitle">Quản lý công việc nội bộ</span>
+                            <span class="topbar-brand__subtitle">quản lý giáo vụ Khoa</span>
                         </div>
                     </div>
                     <div class="topbar-page">
@@ -61,12 +93,19 @@
                             <button class="topbar-user__details" type="button" data-user-menu-toggle aria-haspopup="true" aria-expanded="false">
                                 <div class="topbar-user__meta">
                                     <span class="topbar-user__name"><%= (user && (user.fullName || user.full_name || user.username)) || 'Người dùng' %></span>
-                                    <span class="topbar-user__role"><%= (user && (user.roleName || user.role_name)) || 'Administrator' %></span>
+                                    <span class="topbar-user__role"><%= (user && (user.role_label || user.roleName || user.role_name)) || 'Administrator' %></span>
                                 </div>
                                 <div class="topbar-user__avatar"><%= (user && (user.fullName || user.full_name || user.username) || '?').charAt(0).toUpperCase() %></div>
                                 <span class="topbar-user__chevron" aria-hidden="true">⌄</span>
                             </button>
                             <div class="topbar-user__menu" data-user-menu-dropdown hidden>
+                                <% const userRoleName = user && (user.role_name || user.roleName); %>
+                                <% const isAdminView = userRoleName && userRoleName.toString().toLowerCase() === 'admin'; %>
+                                <% if (isAdminView) { %>
+                                <a class="topbar-user__menu-item" href="/users">
+                                    <span>🛡️ Quản lý người dùng</span>
+                                </a>
+                                <% } %>
                                 <a class="topbar-user__menu-item" href="<%= (user && user.id) ? ('/users/' + user.id) : '#' %>">
                                     <span>👤 Hồ sơ cá nhân</span>
                                 </a>

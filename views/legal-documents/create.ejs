@@ -1,6 +1,16 @@
+<% 
+// Define breadcrumb for this page
+breadcrumb = [
+  { label: 'Trang chủ', url: '/', icon: 'fa-home' },
+  { label: 'Văn bản pháp lý', url: '/legal-documents', icon: 'fa-balance-scale' },
+  { label: 'Thêm văn bản mới', url: '/legal-documents/create', icon: 'fa-plus-circle' }
+];
+%>
+
 <% contentFor('css', '<link rel="stylesheet" href="/css/documents.css">') %>
 
 <%- contentFor('content') %>
+<%- include('../partials/alerts') %>
 <div class="documents-page">
   <div class="page-header">
     <div>
@@ -22,14 +32,20 @@
     <div class="form-grid">
       <!-- Cột trái: Thông tin cơ bản -->
       <div class="form-section">
-        <h3>📋 Thông tin cơ bản</h3>
+        <div class="section-header">
+          <span class="section-icon">📋</span>
+          <div class="section-title-wrap">
+            <h3>Thông tin cơ bản</h3>
+            <p class="section-desc">Định danh và phân loại văn bản trong hệ thống</p>
+          </div>
+        </div>
         
         <div class="form-group">
           <label for="document_number" class="required">Số hiệu văn bản</label>
           <input type="text" name="document_number" id="document_number" 
                  value="<%= typeof formData !== 'undefined' ? (formData?.document_number || '') : '' %>" 
                  placeholder="VD: QC-QLTL-2025, 12/2025/NQ-HĐQT" required>
-          <small>Số hiệu phải duy nhất trong hệ thống</small>
+          <small><i class="fas fa-info-circle"></i> Số hiệu phải duy nhất trong hệ thống</small>
         </div>
 
         <div class="form-group">
@@ -39,76 +55,93 @@
                  placeholder="Nhập tiêu đề đầy đủ" required>
         </div>
 
-        <div class="form-group">
-          <label for="document_type" class="required">Loại văn bản</label>
-          <select name="document_type" id="document_type" required>
-            <option value="">-- Chọn loại --</option>
-            <option value="Luật">Luật</option>
-            <option value="Nghị định">Nghị định</option>
-            <option value="Thông tư">Thông tư</option>
-            <option value="Quyết định">Quyết định</option>
-            <option value="Quy định">Quy định</option>
-            <option value="Quy chế">Quy chế</option>
-            <option value="Nghị quyết">Nghị quyết</option>
-            <option value="Thông báo">Thông báo</option>
-            <option value="Hướng dẫn">Hướng dẫn</option>
-            <option value="Chỉ thị">Chỉ thị</option>
-          </select>
-        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="document_type" class="required">Loại văn bản</label>
+            <select name="document_type" id="document_type" required>
+              <option value="">-- Chọn loại --</option>
+              <option value="Luật">Luật</option>
+              <option value="Nghị định">Nghị định</option>
+              <option value="Thông tư">Thông tư</option>
+              <option value="Quyết định">Quyết định</option>
+              <option value="Quy định">Quy định</option>
+              <option value="Quy chế">Quy chế</option>
+              <option value="Nghị quyết">Nghị quyết</option>
+              <option value="Thông báo">Thông báo</option>
+              <option value="Hướng dẫn">Hướng dẫn</option>
+              <option value="Chỉ thị">Chỉ thị</option>
+            </select>
+          </div>
 
-        <div class="form-group">
-          <label for="issuing_authority" class="required">Cơ quan ban hành</label>
-          <input type="text" name="issuing_authority" id="issuing_authority" 
-                 value="<%= typeof formData !== 'undefined' ? (formData?.issuing_authority || '') : '' %>" 
-                 placeholder="VD: Khoa ANDT, Hội đồng Quản trị" required>
-        </div>
-
-        <div class="form-group">
-          <label for="subject">Lĩnh vực</label>
-          <input type="text" name="subject" id="subject" 
-                 value="<%= typeof formData !== 'undefined' ? (formData?.subject || '') : '' %>" 
-                 placeholder="VD: Quản lý tài liệu, Đào tạo, Nhân sự">
-          <small>Phân loại theo lĩnh vực áp dụng</small>
+          <div class="form-group">
+            <label for="issuing_authority" class="required">Cơ quan ban hành</label>
+            <input type="text" name="issuing_authority" id="issuing_authority" 
+                   value="<%= typeof formData !== 'undefined' ? (formData?.issuing_authority || '') : '' %>" 
+                   placeholder="VD: Khoa ANDT, Hội đồng Quản trị" required>
+          </div>
         </div>
 
         <div class="form-group">
           <label for="summary">Nội dung tóm tắt</label>
           <textarea name="summary" id="summary" rows="4" 
                     placeholder="Mô tả ngắn gọn nội dung chính của văn bản..."><%= typeof formData !== 'undefined' ? (formData?.summary || '') : '' %></textarea>
-          <small>Giúp người đọc hiểu nhanh nội dung trước khi mở file</small>
+          <small><i class="fas fa-lightbulb"></i> Giúp người đọc hiểu nhanh nội dung trước khi mở file</small>
         </div>
 
-        <div class="form-group">
-          <label for="keywords">Từ khóa</label>
-          <input type="text" name="keywords" id="keywords" 
-                 value="<%= typeof formData !== 'undefined' ? (formData?.keywords || '') : '' %>" 
-                 placeholder="VD: quy chế, tài liệu, lưu trữ">
-          <small>Phân cách bằng dấu phẩy, giúp tìm kiếm nhanh hơn</small>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="subject">Lĩnh vực</label>
+            <input type="text" name="subject" id="subject" 
+                   value="<%= typeof formData !== 'undefined' ? (formData?.subject || '') : '' %>" 
+                   placeholder="VD: Quản lý tài liệu, Đào tạo">
+            <small>Phân loại theo lĩnh vực áp dụng</small>
+          </div>
+
+          <div class="form-group">
+            <label for="keywords">Từ khóa</label>
+            <input type="text" name="keywords" id="keywords" 
+                   value="<%= typeof formData !== 'undefined' ? (formData?.keywords || '') : '' %>" 
+                   placeholder="VD: quy chế, tài liệu, lưu trữ">
+            <small>Phân cách bằng dấu phẩy</small>
+          </div>
         </div>
       </div>
 
       <!-- Cột phải: Thông tin pháp lý -->
       <div class="form-section">
-        <h3>⚖️ Thông tin pháp lý</h3>
-
-        <div class="form-group">
-          <label for="issue_date">Ngày ban hành</label>
-          <input type="date" name="issue_date" id="issue_date" 
-                 value="<%= typeof formData !== 'undefined' ? (formData?.issue_date || '') : '' %>">
+        <div class="section-header">
+          <span class="section-icon section-icon-legal">⚖️</span>
+          <div class="section-title-wrap">
+            <h3>Thông tin pháp lý</h3>
+            <p class="section-desc">Hiệu lực, trạng thái và thông tin ký ban hành</p>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="effective_date">Ngày có hiệu lực</label>
-          <input type="date" name="effective_date" id="effective_date" 
-                 value="<%= typeof formData !== 'undefined' ? (formData?.effective_date || '') : '' %>">
-          <small>Phải sau hoặc bằng ngày ban hành</small>
+        <div class="info-callout">
+          <i class="fas fa-calendar-check"></i>
+          <span>Điền đầy đủ thông tin để quản lý vòng đời văn bản hiệu quả</span>
         </div>
 
-        <div class="form-group">
-          <label for="expiry_date">Ngày hết hiệu lực</label>
-          <input type="date" name="expiry_date" id="expiry_date" 
-                 value="<%= typeof formData !== 'undefined' ? (formData?.expiry_date || '') : '' %>">
-          <small>Để trống nếu văn bản vô thời hạn</small>
+        <div class="form-row form-row-dates">
+          <div class="form-group">
+            <label for="issue_date">Ngày ban hành</label>
+            <input type="date" name="issue_date" id="issue_date" 
+                   value="<%= typeof formData !== 'undefined' ? (formData?.issue_date || '') : '' %>">
+          </div>
+
+          <div class="form-group">
+            <label for="effective_date">Ngày có hiệu lực</label>
+            <input type="date" name="effective_date" id="effective_date" 
+                   value="<%= typeof formData !== 'undefined' ? (formData?.effective_date || '') : '' %>">
+            <small>Phải sau hoặc bằng ngày ban hành</small>
+          </div>
+
+          <div class="form-group">
+            <label for="expiry_date">Ngày hết hiệu lực</label>
+            <input type="date" name="expiry_date" id="expiry_date" 
+                   value="<%= typeof formData !== 'undefined' ? (formData?.expiry_date || '') : '' %>">
+            <small>Để trống nếu vô thời hạn</small>
+          </div>
         </div>
 
         <div class="form-group">
@@ -122,18 +155,20 @@
           </select>
         </div>
 
-        <div class="form-group">
-          <label for="signer_name">Người ký</label>
-          <input type="text" name="signer_name" id="signer_name" 
-                 value="<%= typeof formData !== 'undefined' ? (formData?.signer_name || '') : '' %>" 
-                 placeholder="VD: Nguyễn Văn A">
-        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="signer_name">Người ký</label>
+            <input type="text" name="signer_name" id="signer_name" 
+                   value="<%= typeof formData !== 'undefined' ? (formData?.signer_name || '') : '' %>" 
+                   placeholder="VD: Nguyễn Văn A">
+          </div>
 
-        <div class="form-group">
-          <label for="signer_position">Chức vụ người ký</label>
-          <input type="text" name="signer_position" id="signer_position" 
-                 value="<%= typeof formData !== 'undefined' ? (formData?.signer_position || '') : '' %>" 
-                 placeholder="VD: Hiệu trưởng, Chủ tịch HĐQT">
+          <div class="form-group">
+            <label for="signer_position">Chức vụ người ký</label>
+            <input type="text" name="signer_position" id="signer_position" 
+                   value="<%= typeof formData !== 'undefined' ? (formData?.signer_position || '') : '' %>" 
+                   placeholder="VD: Hiệu trưởng, Chủ tịch HĐQT">
+          </div>
         </div>
 
         <div class="form-group">
@@ -153,15 +188,34 @@
     </div>
 
     <!-- File đính kèm -->
-    <div class="form-section full-width">
-      <h3>📎 File đính kèm</h3>
-      <div class="form-group">
-        <label for="attachments">Chọn file (PDF, DOCX, RAR, ZIP)</label>
-        <input type="file" name="attachments" id="attachments" multiple accept=".pdf,.doc,.docx,.rar,.zip,.7z">
-        <small>Có thể chọn nhiều file. Kích thước tối đa: 10MB/file.</small>
+    <div class="form-section full-width file-upload-section">
+      <div class="section-header">
+        <span class="section-icon section-icon-file">📎</span>
+        <div class="section-title-wrap">
+          <h3>File đính kèm</h3>
+          <p class="section-desc">Tải lên tài liệu gốc để lưu trữ và tra cứu</p>
+        </div>
       </div>
+
+      <label for="attachments" class="file-dropzone">
+        <div class="dropzone-icon">
+          <i class="fas fa-cloud-upload-alt"></i>
+        </div>
+        <div class="dropzone-content">
+          <strong>Kéo & thả file vào đây</strong>
+          <span>hoặc nhấn để chọn từ máy tính</span>
+          <div class="dropzone-formats">
+            <span class="format-badge">PDF</span>
+            <span class="format-badge">DOCX</span>
+            <span class="format-badge">RAR</span>
+            <span class="format-badge">ZIP</span>
+          </div>
+          <small>Tối đa 10MB mỗi file • Có thể chọn nhiều file cùng lúc</small>
+        </div>
+        <input type="file" name="attachments" id="attachments" multiple accept=".pdf,.doc,.docx,.rar,.zip,.7z">
+      </label>
       
-      <div id="file-preview" class="file-preview-list" style="margin-top: 1rem;"></div>
+      <div id="file-preview" class="file-preview-list"></div>
     </div>
 
     <!-- Buttons -->
@@ -174,88 +228,367 @@
       </a>
     </div>
   </form>
-<% contentFor('js', '<script src="/js/legal-documents-create.js"></script>') %>
+</div>
 
 <style>
-.file-preview-list {
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+/* Override and enhance document form styles */
+.documents-page .document-form {
+  background: #fff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  padding: 2rem !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+  max-width: 1200px !important;
+  margin: 0 auto !important;
 }
 
-.file-preview-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+.documents-page .form-grid {
+  display: grid !important;
+  gap: 2rem !important;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+  margin-bottom: 2rem !important;
 }
 
-.file-preview-item:hover {
-  background: #e9ecef;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.documents-page .form-section {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  padding: 1.75rem !important;
+  background: linear-gradient(180deg, #f8fafc, #ffffff) !important;
+  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.04) !important;
 }
 
-.file-preview-item.file-error {
-  background: #fee;
-  border-color: #fcc;
+.documents-page .form-section.full-width {
+  grid-column: 1 / -1 !important;
 }
 
-.file-preview-item i {
-  font-size: 1.5rem;
-  color: #6c757d;
-  min-width: 24px;
+.documents-page .section-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 1rem !important;
+  margin-bottom: 1.5rem !important;
+  padding-bottom: 1rem !important;
+  border-bottom: 2px solid #e5e7eb !important;
 }
 
-.file-preview-item .fa-file-pdf {
-  color: #dc2626;
+.documents-page .section-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  font-size: 1.5rem !important;
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3) !important;
+  flex-shrink: 0 !important;
 }
 
-.file-preview-item .fa-file-word {
-  color: #2563eb;
+.documents-page .section-icon-legal {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3) !important;
 }
 
-.file-preview-item .fa-file-archive {
-  color: #ca8a04;
+.documents-page .section-icon-file {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3) !important;
 }
 
-.file-preview-item .file-name {
-  flex: 1;
-  font-weight: 500;
-  word-break: break-word;
+.documents-page .section-title-wrap {
+  flex: 1 !important;
 }
 
-.file-preview-item .file-size {
-  color: #6c757d;
-  font-size: 0.875rem;
-  white-space: nowrap;
+.documents-page .section-title-wrap h3 {
+  margin: 0 !important;
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  line-height: 1.3 !important;
 }
 
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  margin-bottom: 2rem;
+.documents-page .section-desc {
+  margin: 0.35rem 0 0 !important;
+  color: #6b7280 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.4 !important;
 }
 
-.form-section.full-width {
-  grid-column: 1 / -1;
+.documents-page .info-callout {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  padding: 0.85rem 1rem !important;
+  border-radius: 10px !important;
+  background: #fef9c3 !important;
+  border: 1px solid #fde047 !important;
+  color: #854d0e !important;
+  font-size: 0.875rem !important;
+  margin-bottom: 1.25rem !important;
 }
 
-.form-section h3 {
-  margin: 0 0 1rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e5e7eb;
-  color: #1f2937;
+.documents-page .info-callout i {
+  font-size: 1.1rem !important;
 }
 
-@media (max-width: 768px) {
-  .form-grid {
-    grid-template-columns: 1fr;
+.documents-page .form-group {
+  margin-bottom: 1.25rem !important;
+}
+
+.documents-page .form-group label {
+  display: block !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  margin-bottom: 0.45rem !important;
+}
+
+.documents-page .form-group input,
+.documents-page .form-group select,
+.documents-page .form-group textarea {
+  width: 100% !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  padding: 0.75rem 0.9rem !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease !important;
+  background: #fff !important;
+}
+
+.documents-page .form-group input:focus,
+.documents-page .form-group select:focus,
+.documents-page .form-group textarea:focus {
+  outline: none !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12) !important;
+  transform: translateY(-1px) !important;
+}
+
+.documents-page .form-group textarea {
+  min-height: 100px !important;
+  resize: vertical !important;
+  line-height: 1.6 !important;
+}
+
+.documents-page .form-group small {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  margin-top: 0.35rem !important;
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
+}
+
+.documents-page .form-row {
+  display: grid !important;
+  gap: 1.25rem !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+}
+
+.documents-page .form-row-dates {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+}
+
+.documents-page .file-upload-section {
+  background: linear-gradient(180deg, #fefce8, #ffffff) !important;
+}
+
+.documents-page .file-dropzone {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 1rem !important;
+  padding: 3rem 2rem !important;
+  border: 2px dashed #94a3b8 !important;
+  border-radius: 16px !important;
+  background: rgba(248, 250, 252, 0.6) !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  text-align: center !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.documents-page .file-dropzone:hover {
+  border-color: #3b82f6 !important;
+  background: #eff6ff !important;
+  box-shadow: 0 12px 28px rgba(59, 130, 246, 0.2) !important;
+  transform: translateY(-2px) !important;
+}
+
+.documents-page .file-dropzone input {
+  opacity: 0 !important;
+  position: absolute !important;
+  inset: 0 !important;
+  cursor: pointer !important;
+  z-index: 1 !important;
+}
+
+.documents-page .dropzone-icon {
+  font-size: 3rem !important;
+  color: #3b82f6 !important;
+  animation: float 3s ease-in-out infinite !important;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.documents-page .dropzone-content {
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+.documents-page .dropzone-content strong {
+  display: block !important;
+  font-size: 1.1rem !important;
+  color: #1f2937 !important;
+  margin-bottom: 0.35rem !important;
+  font-weight: 700 !important;
+}
+
+.documents-page .dropzone-content span {
+  display: block !important;
+  color: #6b7280 !important;
+  font-size: 0.9rem !important;
+  margin-bottom: 0.85rem !important;
+}
+
+.documents-page .dropzone-formats {
+  display: flex !important;
+  gap: 0.5rem !important;
+  justify-content: center !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.documents-page .format-badge {
+  display: inline-block !important;
+  padding: 0.25rem 0.6rem !important;
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border-radius: 6px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+}
+
+.documents-page .dropzone-content small {
+  display: block !important;
+  color: #9ca3af !important;
+  font-size: 0.8rem !important;
+}
+
+.documents-page .file-preview-list {
+  margin-top: 1.25rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+}
+
+.documents-page .file-preview-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.85rem !important;
+  padding: 0.95rem 1.1rem !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.documents-page .file-preview-item:hover {
+  background: #eff6ff !important;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1) !important;
+  transform: translateX(4px) !important;
+}
+
+.documents-page .file-preview-item i {
+  font-size: 1.5rem !important;
+  color: #64748b !important;
+  min-width: 28px !important;
+}
+
+.documents-page .file-preview-item .fa-file-pdf {
+  color: #dc2626 !important;
+}
+
+.documents-page .file-preview-item .fa-file-word {
+  color: #2563eb !important;
+}
+
+.documents-page .file-preview-item .fa-file-archive {
+  color: #ca8a04 !important;
+}
+
+.documents-page .file-preview-item .file-name {
+  flex: 1 !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  word-break: break-word !important;
+  font-size: 0.9rem !important;
+}
+
+.documents-page .file-preview-item .file-size {
+  color: #6b7280 !important;
+  font-size: 0.8rem !important;
+  white-space: nowrap !important;
+  background: #e5e7eb !important;
+  padding: 0.2rem 0.5rem !important;
+  border-radius: 6px !important;
+}
+
+.documents-page .form-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 1rem !important;
+  margin-top: 2rem !important;
+  padding-top: 1.5rem !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+
+.documents-page .form-actions .btn {
+  min-width: 140px !important;
+  padding: 0.75rem 1.5rem !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.documents-page .form-actions .btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+@media (max-width: 980px) {
+  .documents-page .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .documents-page .form-actions {
+    flex-direction: column !important;
+  }
+  
+  .documents-page .form-actions .btn {
+    width: 100% !important;
+  }
+  
+  .documents-page .form-row {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .documents-page .section-icon {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 1.3rem !important;
+  }
+  
+  .documents-page .dropzone-icon {
+    font-size: 2.5rem !important;
+  }
+  
+  .documents-page .file-dropzone {
+    padding: 2rem 1.5rem !important;
   }
 }
 </style>
+
+<% contentFor('js', '<script src="/js/legal-documents-create.js"></script>') %>

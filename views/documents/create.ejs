@@ -2,6 +2,7 @@
 <link rel="stylesheet" href="/css/documents.css">
 
 <%- contentFor('content') %>
+<%- include('../partials/alerts') %>
 <div class="documents-page">
   <div class="page-header">
     <div>
@@ -18,6 +19,22 @@
       <%= error %>
     </div>
   <% } %>
+
+  <% const usersList = Array.isArray(users) ? users : []; %>
+  <% const organizationsList = Array.isArray(organizations) ? organizations : []; %>
+  <% const typesList = Array.isArray(types) ? types : []; %>
+  <% const assignedSelected = usersList.find(function(u){ return String(u.id) === String(formData && formData.assigned_to || ''); }); %>
+  <% const toOrgSelected = organizationsList.find(function(o){ return String(o.id) === String(formData && formData.to_org_id || ''); }); %>
+  <% const fromOrgSelected = organizationsList.find(function(o){ return String(o.id) === String(formData && formData.from_org_id || ''); }); %>
+  <% const typeSelected = typesList.find(function(t){ return String(t.id) === String(formData && formData.type_id || ''); }); %>
+  
+  <% const STATUS_LABELS = {
+    pending: 'Chờ xử lý',
+    processing: 'Đang xử lý',
+    completed: 'Hoàn tất',
+    approved: 'Đã duyệt',
+    archived: 'Đã lưu trữ'
+  }; %>
 
   <form method="post" action="/documents" class="document-form" enctype="multipart/form-data">
     <div class="form-grid">
@@ -50,14 +67,17 @@
 
         <div class="form-group">
           <label for="type_id">Loại văn bản</label>
-          <select name="type_id" id="type_id">
-            <option value="">-- Chọn loại --</option>
-            <% (types || []).forEach(function(type) { %>
-              <option value="<%= type.id %>" <%= (formData?.type_id == type.id) ? 'selected' : '' %>>
-                <%= type.name %>
-              </option>
+          <input type="hidden" name="type_id" id="type_id" value="<%= formData?.type_id || '' %>">
+          <input type="text" id="type_id_display" list="typeIdOptions"
+                 placeholder="Gõ để tìm loại văn bản"
+                 value="<%= typeSelected ? typeSelected.name : '' %>"
+                 autocomplete="off">
+          <datalist id="typeIdOptions">
+            <% typesList.forEach(function(type) { %>
+              <option value="<%= type.name %>" data-id="<%= type.id %>"></option>
             <% }) %>
-          </select>
+          </datalist>
+          <small>Tìm kiếm nhanh bằng cách nhập tên loại văn bản.</small>
         </div>
 
         <div class="form-group">
@@ -96,24 +116,50 @@
 
         <div class="form-group">
           <label for="priority">Độ ưu tiên</label>
-          <select name="priority" id="priority">
-            <option value="low" <%= (formData?.priority === 'low') ? 'selected' : '' %>>Thấp</option>
-            <option value="medium" <%= (formData?.priority === 'medium') ? 'selected' : '' %>>Bình thường</option>
-            <option value="high" <%= (formData?.priority === 'high') ? 'selected' : '' %>>Cao</option>
-            <option value="urgent" <%= (formData?.priority === 'urgent') ? 'selected' : '' %>>Khẩn cấp</option>
-          </select>
+          <input type="hidden" name="priority" id="priority" value="<%= formData?.priority || 'medium' %>">
+          <input type="text" id="priority_display" list="priorityOptions"
+                 placeholder="Chọn độ ưu tiên"
+                 value="<%= formData?.priority === 'low' ? 'Thấp' : formData?.priority === 'high' ? 'Cao' : formData?.priority === 'urgent' ? 'Khẩn cấp' : 'Bình thường' %>"
+                 autocomplete="off">
+          <datalist id="priorityOptions">
+            <option value="Thấp" data-id="low"></option>
+            <option value="Bình thường" data-id="medium"></option>
+            <option value="Cao" data-id="high"></option>
+            <option value="Khẩn cấp" data-id="urgent"></option>
+          </datalist>
+          <small>Nhập để chọn mức độ ưu tiên xử lý văn bản.</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="status">Trạng thái</label>
+          <input type="hidden" name="status" id="status" value="<%= formData?.status || 'pending' %>">
+          <input type="text" id="status_display" list="statusOptions"
+                 placeholder="Chọn trạng thái"
+                 value="<%= STATUS_LABELS[formData?.status] || 'Chờ xử lý' %>"
+                 autocomplete="off">
+          <datalist id="statusOptions">
+            <option value="Chờ xử lý" data-id="pending"></option>
+            <option value="Đang xử lý" data-id="processing"></option>
+            <option value="Hoàn tất" data-id="completed"></option>
+            <option value="Đã duyệt" data-id="approved"></option>
+            <option value="Đã lưu trữ" data-id="archived"></option>
+          </datalist>
+          <small>Trạng thái hiện tại của văn bản trong quy trình xử lý.</small>
         </div>
 
         <div class="form-group">
-          <label for="assigned_to">Người xử lý</label>
-          <select name="assigned_to" id="assigned_to">
-            <option value="">-- Chọn người xử lý --</option>
-            <% (users || []).forEach(function(user) { %>
-              <option value="<%= user.id %>" <%= (formData?.assigned_to == user.id) ? 'selected' : '' %>>
-                <%= user.full_name %>
-              </option>
+          <label for="assigned_to_display">Người xử lý</label>
+          <input type="hidden" name="assigned_to" id="assigned_to" value="<%= formData?.assigned_to || '' %>">
+          <input type="text" id="assigned_to_display" list="assignedToOptions"
+                 placeholder="Gõ để tìm nhanh người xử lý"
+                 value="<%= assignedSelected ? assignedSelected.full_name : '' %>"
+                 autocomplete="off">
+          <datalist id="assignedToOptions">
+            <% usersList.forEach(function(user) { %>
+              <option value="<%= user.full_name %>" data-id="<%= user.id %>"></option>
             <% }) %>
-          </select>
+          </datalist>
+          <small>Nhập vài ký tự để lọc nhanh danh sách nhân sự.</small>
         </div>
       </div>
 
@@ -122,26 +168,32 @@
 
         <div class="form-group" id="from_org_group">
           <label for="from_org_id">Cơ quan gửi</label>
-          <select name="from_org_id" id="from_org_id">
-            <option value="">-- Chọn cơ quan --</option>
-            <% (organizations || []).forEach(function(org) { %>
-              <option value="<%= org.id %>" <%= (formData?.from_org_id == org.id) ? 'selected' : '' %>>
-                <%= org.name %>
-              </option>
+          <input type="hidden" name="from_org_id" id="from_org_id" value="<%= formData?.from_org_id || '' %>">
+          <input type="text" id="from_org_display" list="fromOrgOptions"
+                 placeholder="Gõ để tìm cơ quan gửi"
+                 value="<%= fromOrgSelected ? fromOrgSelected.name : '' %>"
+                 autocomplete="off">
+          <datalist id="fromOrgOptions">
+            <% organizationsList.forEach(function(org) { %>
+              <option value="<%= org.name %>" data-id="<%= org.id %>"></option>
             <% }) %>
-          </select>
+          </datalist>
+          <small>Tìm kiếm nhanh bằng cách nhập tên cơ quan.</small>
         </div>
 
         <div class="form-group" id="to_org_group">
-          <label for="to_org_id">Cơ quan nhận</label>
-          <select name="to_org_id" id="to_org_id">
-            <option value="">-- Chọn cơ quan --</option>
-            <% (organizations || []).forEach(function(org) { %>
-              <option value="<%= org.id %>" <%= (formData?.to_org_id == org.id) ? 'selected' : '' %>>
-                <%= org.name %>
-              </option>
+          <label for="to_org_display">Cơ quan nhận</label>
+          <input type="hidden" name="to_org_id" id="to_org_id" value="<%= formData?.to_org_id || '' %>">
+          <input type="text" id="to_org_display" list="toOrgOptions"
+                 placeholder="Gõ để tìm cơ quan nhận"
+                 value="<%= toOrgSelected ? toOrgSelected.name : '' %>"
+                 autocomplete="off">
+          <datalist id="toOrgOptions">
+            <% organizationsList.forEach(function(org) { %>
+              <option value="<%= org.name %>" data-id="<%= org.id %>"></option>
             <% }) %>
-          </select>
+          </datalist>
+          <small>Tìm kiếm nhanh bằng cách nhập tên cơ quan.</small>
         </div>
 
         <div class="form-group">
@@ -165,30 +217,99 @@
 </div>
 
 <script>
-// Dynamic form behavior based on direction
-document.getElementById('direction').addEventListener('change', function() {
-  const direction = this.value;
-  const fromOrgGroup = document.getElementById('from_org_group');
-  const toOrgGroup = document.getElementById('to_org_group');
-  
-  if (direction === 'incoming') {
-    fromOrgGroup.style.display = 'block';
-    toOrgGroup.style.display = 'none';
-    document.getElementById('from_org_id').required = true;
-    document.getElementById('to_org_id').required = false;
-  } else if (direction === 'outgoing') {
-    fromOrgGroup.style.display = 'none';
-    toOrgGroup.style.display = 'block';
-    document.getElementById('from_org_id').required = false;
-    document.getElementById('to_org_id').required = true;
-  } else {
-    fromOrgGroup.style.display = 'block';
-    toOrgGroup.style.display = 'block';
-    document.getElementById('from_org_id').required = false;
-    document.getElementById('to_org_id').required = false;
+document.addEventListener('DOMContentLoaded', function() {
+  function bindDatalist(inputId, hiddenId, datalistId) {
+    var input = document.getElementById(inputId);
+    var hidden = document.getElementById(hiddenId);
+    var datalist = document.getElementById(datalistId);
+    if (!input || !hidden || !datalist) {
+      return;
+    }
+
+    function syncHidden() {
+      var value = input.value.trim();
+      var matchedOption = null;
+      for (var i = 0; i < datalist.options.length; i++) {
+        if (datalist.options[i].value === value) {
+          matchedOption = datalist.options[i];
+          break;
+        }
+      }
+
+      if (matchedOption) {
+        hidden.value = matchedOption.dataset.id || matchedOption.value;
+      } else {
+        hidden.value = '';
+      }
+    }
+
+    input.addEventListener('change', syncHidden);
+    input.addEventListener('blur', syncHidden);
+    input.addEventListener('input', function() {
+      if (!input.value.trim()) {
+        hidden.value = '';
+      }
+    });
+
+    syncHidden();
+  }
+
+  // Bind all datalist fields
+  bindDatalist('type_id_display', 'type_id', 'typeIdOptions');
+  bindDatalist('priority_display', 'priority', 'priorityOptions');
+  bindDatalist('status_display', 'status', 'statusOptions');
+  bindDatalist('assigned_to_display', 'assigned_to', 'assignedToOptions');
+  bindDatalist('from_org_display', 'from_org_id', 'fromOrgOptions');
+  bindDatalist('to_org_display', 'to_org_id', 'toOrgOptions');
+
+  var directionEl = document.getElementById('direction');
+  var fromOrgGroup = document.getElementById('from_org_group');
+  var toOrgGroup = document.getElementById('to_org_group');
+  var fromOrgInput = document.getElementById('from_org_display');
+  var toOrgInput = document.getElementById('to_org_display');
+
+  function toggleOrgFields() {
+    if (!directionEl) {
+      return;
+    }
+
+    var direction = directionEl.value;
+
+    if (direction === 'incoming') {
+      if (fromOrgGroup) fromOrgGroup.style.display = 'block';
+      if (toOrgGroup) toOrgGroup.style.display = 'none';
+      if (fromOrgInput) fromOrgInput.required = true;
+      if (toOrgInput) {
+        toOrgInput.required = false;
+        toOrgInput.value = '';
+      }
+      var toOrgHidden = document.getElementById('to_org_id');
+      if (toOrgHidden) {
+        toOrgHidden.value = '';
+      }
+    } else if (direction === 'outgoing') {
+      if (fromOrgGroup) fromOrgGroup.style.display = 'none';
+      if (toOrgGroup) toOrgGroup.style.display = 'block';
+      if (fromOrgInput) {
+        fromOrgInput.required = false;
+        fromOrgInput.value = '';
+      }
+      var fromOrgHidden = document.getElementById('from_org_id');
+      if (fromOrgHidden) {
+        fromOrgHidden.value = '';
+      }
+      if (toOrgInput) toOrgInput.required = true;
+    } else {
+      if (fromOrgGroup) fromOrgGroup.style.display = 'block';
+      if (toOrgGroup) toOrgGroup.style.display = 'block';
+      if (fromOrgInput) fromOrgInput.required = false;
+      if (toOrgInput) toOrgInput.required = false;
+    }
+  }
+
+  if (directionEl) {
+    directionEl.addEventListener('change', toggleOrgFields);
+    toggleOrgFields();
   }
 });
-
-// Trigger initial state
-document.getElementById('direction').dispatchEvent(new Event('change'));
 </script>

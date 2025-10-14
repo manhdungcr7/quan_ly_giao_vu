@@ -20,7 +20,11 @@ function requireAuth(req, res, next) {
 
 // Middleware kiểm tra quyền admin
 function requireAdmin(req, res, next) {
-    if (!req.session || !req.session.user || req.session.user.role_name !== 'admin') {
+    const sessionUser = req.session ? req.session.user : null;
+    const roleValue = sessionUser && (sessionUser.role || sessionUser.role_name || sessionUser.roleName);
+    const normalizedRole = roleValue ? roleValue.toString().trim().toLowerCase() : '';
+
+    if (!sessionUser || (normalizedRole !== CONSTANTS.ROLES.ADMIN && !normalizedRole.startsWith('admin'))) {
         const acceptsJson = req.xhr || (typeof req.headers.accept === 'string' && req.headers.accept.indexOf('json') > -1);
         if (acceptsJson) {
             return res.status(403).json({
@@ -130,9 +134,33 @@ function requireOwnership(getResourceOwnerId) {
 
 // Middleware thêm thông tin user vào res.locals để sử dụng trong views
 function addUserToLocals(req, res, next) {
+    const sessionUser = req.session ? req.session.user : null;
+    const rawRoleName = sessionUser && (sessionUser.role || sessionUser.role_name || sessionUser.roleName);
+    let normalizedRole = rawRoleName ? rawRoleName.toString().trim().toLowerCase() : '';
+
+    // Align legacy role labels like "Administrator" with the canonical admin role
+    if (normalizedRole && normalizedRole.startsWith('admin') && normalizedRole !== CONSTANTS.ROLES.ADMIN) {
+        normalizedRole = CONSTANTS.ROLES.ADMIN;
+    }
+
+    if (sessionUser) {
+        if (normalizedRole && sessionUser.role_name !== normalizedRole) {
+            req.session.user.role_name = normalizedRole;
+        }
+        if (normalizedRole && sessionUser.role !== normalizedRole) {
+            req.session.user.role = normalizedRole;
+        }
+        if (rawRoleName && !sessionUser.roleName) {
+            req.session.user.roleName = rawRoleName;
+        }
+        if (!sessionUser.role_label && normalizedRole && CONSTANTS.USER_ROLE_LABELS) {
+            req.session.user.role_label = CONSTANTS.USER_ROLE_LABELS[normalizedRole] || rawRoleName || 'Quản trị viên';
+        }
+    }
+
     res.locals.user = req.session ? req.session.user : null;
     res.locals.isAuthenticated = !!(req.session && req.session.user);
-    res.locals.isAdmin = !!(req.session && req.session.user && req.session.user.role_name === 'admin');
+    res.locals.isAdmin = normalizedRole === CONSTANTS.ROLES.ADMIN;
     next();
 }
 

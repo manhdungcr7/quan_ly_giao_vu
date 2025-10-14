@@ -41,6 +41,73 @@ class ExaminationController {
         sessions = sessions ? [sessions] : [];
       }
       console.log('📋 Sessions retrieved:', Array.isArray(sessions) ? sessions.length : 'not-array');
+
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const sevenDaysFromNow = new Date(startOfToday);
+      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+      const statusCounts = { scheduled: 0, in_progress: 0, completed: 0, other: 0 };
+      const unassignedSessions = [];
+      const upcomingSessions = [];
+      const overdueGrading = [];
+      const gradingDueSoon = [];
+
+      sessions.forEach((session) => {
+        const statusKey = session.status || 'other';
+        if (statusCounts[statusKey] !== undefined) {
+          statusCounts[statusKey] += 1;
+        } else {
+          statusCounts.other += 1;
+        }
+
+    const graderNotAssigned = !session.grader_id && !session.grader_manual_name && !session.grader2_id && !session.grader2_manual_name;
+        if (graderNotAssigned) {
+          unassignedSessions.push(session);
+        }
+
+        const examDate = session.exam_date ? new Date(session.exam_date) : null;
+        if (examDate && !Number.isNaN(examDate.getTime())) {
+          upcomingSessions.push({ ...session, examDate });
+        }
+
+        const gradingDeadline = session.grading_deadline ? new Date(session.grading_deadline) : null;
+        if (gradingDeadline && !Number.isNaN(gradingDeadline.getTime()) && session.status !== 'completed') {
+          const deadlineDate = new Date(gradingDeadline.getFullYear(), gradingDeadline.getMonth(), gradingDeadline.getDate());
+          if (deadlineDate < startOfToday) {
+            overdueGrading.push(session);
+          } else if (deadlineDate <= sevenDaysFromNow) {
+            gradingDueSoon.push(session);
+          }
+        }
+      });
+
+      upcomingSessions.sort((a, b) => a.examDate - b.examDate);
+      const nextUpcoming = upcomingSessions.find((item) => item.examDate >= startOfToday) || null;
+
+      const insights = {
+        totalSessions: sessions.length,
+        statusCounts,
+        unassignedCount: unassignedSessions.length,
+        nextUpcoming: nextUpcoming
+          ? {
+              id: nextUpcoming.id,
+              name: nextUpcoming.exam_name || nextUpcoming.subject_name,
+              classCode: nextUpcoming.class_code,
+              date: nextUpcoming.examDate,
+              time: nextUpcoming.exam_time,
+              status: nextUpcoming.status || 'scheduled'
+            }
+          : null,
+        overdueGradingCount: overdueGrading.length,
+        gradingDueSoonCount: gradingDueSoon.length
+      };
+
+      const alerts = {
+        overdueGrading,
+        gradingDueSoon,
+        unassignedSessions: unassignedSessions.slice(0, 5)
+      };
       
   // Load periods cho dropdown filter
   const periods = await this.db.query('SELECT id, name FROM examination_periods ORDER BY created_at DESC');
@@ -59,7 +126,7 @@ class ExaminationController {
         user: req.session.user,
         sessions: sessions || [],
         periods: periods || [],
-  graders: graders || [],
+        graders: graders || [],
         filters: {
           period_id: filters.period_id || '',
           status: filters.status || '',
@@ -67,7 +134,9 @@ class ExaminationController {
           grader: graderQuery || ''
         },
         isAuthenticated: !!req.session.user,
-        appName: 'Quản lý Giáo vụ'
+        appName: 'Quản lý Giáo vụ',
+        insights,
+        alerts
       });
       
       console.log('📋 Render completed successfully');
@@ -107,7 +176,7 @@ class ExaminationController {
         periods: periods || [],
         subjects: subjects || [],
         classes: classes || [],
-        graders: graders || [],
+  graders: graders || [],
         isAuthenticated: !!req.session.user,
         appName: 'Quản lý Giáo vụ'
       });
@@ -189,7 +258,14 @@ class ExaminationController {
       }
 
       await this.resolveGraderInput(data);
+
+      const supportsSecondary = await ExaminationSession.supportsSecondaryGrader();
+      if (!supportsSecondary) {
+        delete data.grader2_id;
+        delete data.grader2_manual_name;
+      }
       delete data.grader_name;
+      delete data.grader2_name;
 
       // Normalize and sanitize payload before create
       if (data.exam_date === '') data.exam_date = null;
@@ -202,7 +278,7 @@ class ExaminationController {
       // Whitelist fields for create (create ignores extra fields but keep it clean)
       const allowed = [
         'period_id','subject_id','class_id','exam_code','exam_name','exam_date','exam_time','duration',
-        'room','building','student_count','expected_copies','grader_id','grader_manual_name','grading_deadline','link','exam_type','status','notes'
+        'room','building','student_count','expected_copies','grader_id','grader_manual_name','grader2_id','grader2_manual_name','grading_deadline','link','exam_type','status','notes'
       ];
       const createData = {};
       for (const k of allowed) {
@@ -375,18 +451,25 @@ class ExaminationController {
       if (data.student_count !== undefined) data.student_count = data.student_count === '' ? 0 : Number(data.student_count);
       if (data.expected_copies !== undefined) data.expected_copies = data.expected_copies === '' ? null : Number(data.expected_copies);
 
-  await this.resolveGraderInput(data);
+      await this.resolveGraderInput(data);
+
+      const supportsSecondary = await ExaminationSession.supportsSecondaryGrader();
+      if (!supportsSecondary) {
+        delete data.grader2_id;
+        delete data.grader2_manual_name;
+      }
 
       // Remove helper fields (names) so dynamic update doesn't try to set non-existent columns
       delete data.period_name;
       delete data.subject_name;
       delete data.class_name;
       delete data.grader_name;
+      delete data.grader2_name;
 
       // Whitelist fields for update to avoid unexpected keys
       const allowed = new Set([
         'period_id','subject_id','class_id','exam_code','exam_name','exam_date','exam_time','duration',
-        'room','building','student_count','expected_copies','grader_id','grader_manual_name','grading_deadline','link','exam_type','status','notes'
+        'room','building','student_count','expected_copies','grader_id','grader_manual_name','grader2_id','grader2_manual_name','grading_deadline','link','exam_type','status','notes'
       ]);
       const sanitized = {};
       for (const [k,v] of Object.entries(data)) {
@@ -414,55 +497,63 @@ class ExaminationController {
       return;
     }
 
-    if (data.grader_id === '') {
-      data.grader_id = null;
-    }
+    const resolveGrader = async (idKey, nameKey, manualKey) => {
+      if (data[idKey] === '') {
+        data[idKey] = null;
+      }
 
-    const trimmedName = (data.grader_name || '').trim();
-    let resolvedId = null;
+      const trimmedName = (data[nameKey] || '').trim();
+      let resolvedId = null;
 
-    if (data.grader_id !== undefined && data.grader_id !== null) {
-      const numericId = Number(data.grader_id);
-      if (!Number.isNaN(numericId) && numericId > 0) {
-        resolvedId = numericId;
+      if (data[idKey] !== undefined && data[idKey] !== null) {
+        const numericId = Number(data[idKey]);
+        if (!Number.isNaN(numericId) && numericId > 0) {
+          resolvedId = numericId;
+        } else {
+          data[idKey] = null;
+        }
+      }
+
+      const emailMatch = trimmedName ? trimmedName.match(/\(([^)]+)\)\s*$/) : null;
+      const email = emailMatch ? emailMatch[1].trim() : null;
+      const nameOnly = trimmedName ? trimmedName.replace(/\(([^)]+)\)\s*$/, '').trim() : '';
+
+      if (!resolvedId && email) {
+        const byEmail = await this.db.query(
+          'SELECT id FROM users WHERE email = ? LIMIT 1',
+          [email]
+        );
+        if (byEmail.length) {
+          resolvedId = byEmail[0].id;
+        }
+      }
+
+      if (!resolvedId && nameOnly) {
+        const byName = await this.db.query(
+          'SELECT id FROM users WHERE full_name = ? LIMIT 1',
+          [nameOnly]
+        );
+        if (byName.length) {
+          resolvedId = byName[0].id;
+        }
+      }
+
+      if (resolvedId) {
+        data[idKey] = resolvedId;
+        data[manualKey] = null;
+      } else if (trimmedName) {
+        data[idKey] = null;
+        data[manualKey] = trimmedName.substring(0, 120);
       } else {
-        data.grader_id = null;
+        data[idKey] = null;
+        data[manualKey] = null;
       }
-    }
+    };
 
-    const emailMatch = trimmedName ? trimmedName.match(/\(([^)]+)\)\s*$/) : null;
-    const email = emailMatch ? emailMatch[1].trim() : null;
-    const nameOnly = trimmedName ? trimmedName.replace(/\(([^)]+)\)\s*$/, '').trim() : '';
+    await resolveGrader('grader_id', 'grader_name', 'grader_manual_name');
 
-    if (!resolvedId && email) {
-      const byEmail = await this.db.query(
-        'SELECT id FROM users WHERE email = ? LIMIT 1',
-        [email]
-      );
-      if (byEmail.length) {
-        resolvedId = byEmail[0].id;
-      }
-    }
-
-    if (!resolvedId && nameOnly) {
-      const byName = await this.db.query(
-        'SELECT id FROM users WHERE full_name = ? LIMIT 1',
-        [nameOnly]
-      );
-      if (byName.length) {
-        resolvedId = byName[0].id;
-      }
-    }
-
-    if (resolvedId) {
-      data.grader_id = resolvedId;
-      data.grader_manual_name = null;
-    } else if (trimmedName) {
-      data.grader_id = null;
-      data.grader_manual_name = trimmedName.substring(0, 120);
-    } else {
-      data.grader_id = null;
-      data.grader_manual_name = null;
+    if (await ExaminationSession.supportsSecondaryGrader()) {
+      await resolveGrader('grader2_id', 'grader2_name', 'grader2_manual_name');
     }
   }
 
@@ -595,7 +686,8 @@ class ExaminationController {
       const periods = await this.db.query('SELECT * FROM examination_periods WHERE id = ?', [session.period_id]);
       const subjects = await this.db.query('SELECT * FROM subjects WHERE id = ?', [session.subject_id]);
       const classes = session.class_id ? await this.db.query('SELECT * FROM classes WHERE id = ?', [session.class_id]) : [];
-      const graders = session.grader_id ? await this.db.query('SELECT id, full_name, email FROM users WHERE id = ?', [session.grader_id]) : [];
+  const graders = session.grader_id ? await this.db.query('SELECT id, full_name, email FROM users WHERE id = ?', [session.grader_id]) : [];
+  const grader2 = session.grader2_id ? await this.db.query('SELECT id, full_name, email FROM users WHERE id = ?', [session.grader2_id]) : [];
 
       res.json({
         success: true,
@@ -605,7 +697,11 @@ class ExaminationController {
           subject_name: subjects[0]?.name,
           class_name: classes[0]?.name,
           grader_name: graders[0]?.full_name,
-          grader_manual_name: session.grader_manual_name
+          grader_email: graders[0]?.email,
+          grader_manual_name: session.grader_manual_name,
+          grader2_name: grader2[0]?.full_name,
+          grader2_email: grader2[0]?.email,
+          grader2_manual_name: session.grader2_manual_name
         }
       });
     } catch (error) {
@@ -624,6 +720,17 @@ class ExaminationController {
   async getSessionFiles(req, res) {
     try {
       const sessionId = req.params.id;
+      let hasFilesTable = await ExaminationSession.tableExists('examination_files');
+      if (!hasFilesTable) {
+        hasFilesTable = await ExaminationSession.tableExists('examination_files', { forceRefresh: true });
+      }
+
+      if (!hasFilesTable) {
+        return res.json({
+          success: true,
+          files: []
+        });
+      }
       
       const files = await this.db.query(
         `SELECT * FROM examination_files 
@@ -654,6 +761,18 @@ class ExaminationController {
       const sessionId = req.params.id;
       const file = req.file;
       const description = req.body.description || '';
+
+      let hasFilesTable = await ExaminationSession.tableExists('examination_files');
+      if (!hasFilesTable) {
+        hasFilesTable = await ExaminationSession.tableExists('examination_files', { forceRefresh: true });
+      }
+
+      if (!hasFilesTable) {
+        return res.status(503).json({
+          success: false,
+          message: 'Chức năng lưu tài liệu khảo thí chưa sẵn sàng (thiếu bảng examination_files). Hãy áp dụng migration tương ứng hoặc khôi phục backup.'
+        });
+      }
 
       if (!file) {
         return res.status(400).json({
@@ -726,6 +845,17 @@ class ExaminationController {
     try {
       const fileId = req.params.fileId;
 
+      let hasFilesTable = await ExaminationSession.tableExists('examination_files');
+      if (!hasFilesTable) {
+        hasFilesTable = await ExaminationSession.tableExists('examination_files', { forceRefresh: true });
+      }
+      if (!hasFilesTable) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy tài liệu (bảng examination_files chưa tồn tại).'
+        });
+      }
+
       // Get file info
       const files = await this.db.query(
         'SELECT * FROM examination_files WHERE id = ?',
@@ -776,6 +906,17 @@ class ExaminationController {
     try {
       const fileId = req.params.fileId;
 
+      let hasFilesTable = await ExaminationSession.tableExists('examination_files');
+      if (!hasFilesTable) {
+        hasFilesTable = await ExaminationSession.tableExists('examination_files', { forceRefresh: true });
+      }
+      if (!hasFilesTable) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không thể đánh dấu tài liệu chính khi bảng examination_files chưa tồn tại.'
+        });
+      }
+
       // Get file to check session_id
       const files = await this.db.query(
         'SELECT session_id FROM examination_files WHERE id = ?',
@@ -823,6 +964,16 @@ class ExaminationController {
   async downloadFile(req, res) {
     try {
       const fileId = req.params.fileId;
+
+      let hasFilesTable = await ExaminationSession.tableExists('examination_files');
+      if (!hasFilesTable) {
+        hasFilesTable = await ExaminationSession.tableExists('examination_files', { forceRefresh: true });
+      }
+      if (!hasFilesTable) {
+        return res.status(404).render('error', {
+          message: 'Không tìm thấy tài liệu để tải xuống. Hãy tạo bảng examination_files trước.'
+        });
+      }
 
       const files = await this.db.query(
         'SELECT * FROM examination_files WHERE id = ?',

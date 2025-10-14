@@ -1,45 +1,95 @@
+<% 
+// Define breadcrumb for this page
+breadcrumb = [
+  { label: 'Trang chủ', url: '/', icon: 'fa-home' },
+  { label: 'Văn bản pháp lý', url: '/legal-documents', icon: 'fa-balance-scale' }
+];
+%>
+
 <%- contentFor('css') %>
 <link rel="stylesheet" href="/css/documents.css">
 
 <%- contentFor('content') %>
+<%- include('../partials/alerts') %>
+<% const statusFilter = filters.status || ''; %>
 <div class="documents-page">
-  <!-- Page Header -->
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">📜 Văn bản pháp lý</h1>
-      <p style="color: #64748b; margin-top: 0.5rem;">Quản lý văn bản pháp lý, quy định và nghị định</p>
+  <section class="documents-toolbar" aria-label="Điều hướng văn bản pháp lý">
+    <div class="documents-toolbar__cluster">
+      <div class="documents-toolbar__badge" aria-hidden="true">
+        <i class="fas fa-scale-balanced"></i>
+      </div>
+      <div class="documents-toolbar__meta">
+        <span class="documents-toolbar__eyebrow">Văn bản pháp lý</span>
+        <span class="documents-toolbar__title">Quản lý &amp; tra cứu nhanh</span>
+      </div>
+      <div class="documents-toolbar__tabs" role="tablist">
+        <a href="/legal-documents" class="documents-tab <%= statusFilter === '' ? 'documents-tab--active' : '' %>" role="tab" aria-selected="<%= statusFilter === '' ? 'true' : 'false' %>">
+          <i class="fas fa-layer-group"></i>
+          <span>Tất cả</span>
+        </a>
+        <a href="/legal-documents?status=<%= encodeURIComponent('Còn hiệu lực') %>" class="documents-tab <%= statusFilter === 'Còn hiệu lực' ? 'documents-tab--active' : '' %>" role="tab" aria-selected="<%= statusFilter === 'Còn hiệu lực' ? 'true' : 'false' %>">
+          <i class="fas fa-shield-check"></i>
+          <span>Còn hiệu lực</span>
+        </a>
+        <a href="/legal-documents?status=<%= encodeURIComponent('Dự thảo') %>" class="documents-tab <%= statusFilter === 'Dự thảo' ? 'documents-tab--active' : '' %>" role="tab" aria-selected="<%= statusFilter === 'Dự thảo' ? 'true' : 'false' %>">
+          <i class="fas fa-pen-nib"></i>
+          <span>Dự thảo</span>
+        </a>
+        <a href="/legal-documents?status=<%= encodeURIComponent('Hết hiệu lực') %>" class="documents-tab <%= statusFilter === 'Hết hiệu lực' ? 'documents-tab--active' : '' %>" role="tab" aria-selected="<%= statusFilter === 'Hết hiệu lực' ? 'true' : 'false' %>">
+          <i class="fas fa-hourglass-end"></i>
+          <span>Hết hiệu lực</span>
+        </a>
+        <a href="/legal-documents?status=<%= encodeURIComponent('Bị thay thế') %>" class="documents-tab <%= statusFilter === 'Bị thay thế' ? 'documents-tab--active' : '' %>" role="tab" aria-selected="<%= statusFilter === 'Bị thay thế' ? 'true' : 'false' %>">
+          <i class="fas fa-repeat"></i>
+          <span>Bị thay thế</span>
+        </a>
+      </div>
     </div>
-    <div class="page-actions">
-      <a href="/legal-documents/create" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Thêm văn bản mới
+    <div class="documents-toolbar__actions">
+      <div class="documents-toolbar__stat">
+        <span class="documents-toolbar__stat-label">Tổng</span>
+        <span class="documents-toolbar__stat-value"><%= stats.total %></span>
+      </div>
+      <a href="/legal-documents/create" class="documents-toolbar__cta">
+        <i class="fas fa-plus"></i>
+        <span>Thêm văn bản</span>
       </a>
     </div>
-  </div>
+  </section>
 
-  <!-- Statistics Cards -->
-  <div class="stats-cards">
-    <div class="stat-card stat-card--completed">
-      <div class="stat-value"><%= stats.total %></div>
-      <div class="stat-label">Tổng số</div>
+  <div class="documents-kpis">
+    <div class="documents-kpi documents-kpi--completed">
+      <span class="documents-kpi__value"><%= stats.total %></span>
+      <span class="documents-kpi__label">Tổng số</span>
     </div>
-    <div class="stat-card stat-card--processing">
-      <div class="stat-value"><%= stats.valid %></div>
-      <div class="stat-label">Còn hiệu lực</div>
+    <div class="documents-kpi documents-kpi--processing">
+      <span class="documents-kpi__value"><%= stats.valid %></span>
+      <span class="documents-kpi__label">Còn hiệu lực</span>
     </div>
-    <div class="stat-card stat-card--pending">
-      <div class="stat-value"><%= stats.expired %></div>
-      <div class="stat-label">Hết hiệu lực</div>
+    <div class="documents-kpi documents-kpi--pending">
+      <span class="documents-kpi__value"><%= stats.expired %></span>
+      <span class="documents-kpi__label">Hết hiệu lực</span>
     </div>
-    <div class="stat-card stat-card--overdue">
-      <div class="stat-value"><%= stats.replaced %></div>
-      <div class="stat-label">Bị thay thế</div>
+    <div class="documents-kpi documents-kpi--overdue">
+      <span class="documents-kpi__value"><%= stats.replaced %></span>
+      <span class="documents-kpi__label">Bị thay thế</span>
     </div>
   </div>
 
   <!-- Filters -->
-  <div class="filters">
+  <div class="filters filters--legal">
+    <div class="filters__intro">
+      <div class="filters__intro-text">
+        <span class="filters__intro-label">Bộ lọc nâng cao</span>
+        <p>Thu hẹp danh sách theo loại văn bản, trạng thái hoặc khoảng thời gian.</p>
+      </div>
+      <div class="filters__intro-chip">
+        <i class="fas fa-sliders-h"></i>
+        <span><%= statusFilter || 'Tất cả trạng thái' %></span>
+      </div>
+    </div>
     <div class="filter-group">
-      <label for="search">Tìm kiếm</label>
+      <label for="search">Từ khóa</label>
       <input type="text" id="search" name="search" placeholder="Số hiệu, tiêu đề, cơ quan..." value="<%= filters.search %>">
     </div>
     <div class="filter-group">

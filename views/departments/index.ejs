@@ -1,0 +1,289 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/academic-years.css">
+<link rel="stylesheet" href="/css/departments.css">
+
+<%
+  const departmentList = Array.isArray(departments) ? departments : [];
+  const parentOptionsList = Array.isArray(parentOptions) ? parentOptions : [];
+  const headOptionsList = Array.isArray(headOptions) ? headOptions : [];
+  const statsData = stats || { total: 0, active: 0, inactive: 0, topLevel: 0, headAssigned: 0, childUnits: 0 };
+  const statusLabels = { active: 'Đang hoạt động', inactive: 'Tạm dừng' };
+%>
+
+<div class="academic-layout department-layout">
+  <div class="academic-main">
+    <section class="page-header">
+      <div class="page-header__intro">
+        <h1>Quản lý Khoa</h1>
+        <p>Theo dõi cơ cấu tổ chức, phân cấp đơn vị và người phụ trách từng khoa, bộ môn.</p>
+      </div>
+      <div class="page-header__actions">
+        <button class="btn btn-primary" type="button" data-open-panel>
+          <i class="fa fa-plus" aria-hidden="true"></i>
+          <span>Thêm khoa</span>
+        </button>
+      </div>
+    </section>
+
+    <% if (departmentList.length) { %>
+    <section class="metrics-grid">
+      <article class="metric-card">
+        <span class="metric-label">Tổng số đơn vị</span>
+        <strong class="metric-value"><%= statsData.total %></strong>
+        <span class="metric-subtext">Bao gồm khoa và các bộ môn trực thuộc.</span>
+      </article>
+      <article class="metric-card metric-card--accent">
+        <span class="metric-label">Đang hoạt động</span>
+        <strong class="metric-value"><%= statsData.active %></strong>
+        <span class="metric-subtext">Đơn vị sẵn sàng phối hợp nghiệp vụ.</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Khoa cấp 1</span>
+        <strong class="metric-value"><%= statsData.topLevel %></strong>
+        <span class="metric-subtext">Đơn vị gốc không có cấp trên.</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Có trưởng đơn vị</span>
+        <strong class="metric-value"><%= statsData.headAssigned %></strong>
+        <span class="metric-subtext">Đã phân công người phụ trách chính.</span>
+      </article>
+    </section>
+    <% } %>
+
+    <section class="card">
+      <header class="card__header">
+        <div class="card__title">
+          <h2>Cơ cấu đơn vị</h2>
+          <p>Danh mục khoa, bộ môn và thông tin người phụ trách liên hệ.</p>
+        </div>
+        <% if (departmentList.length) { %>
+        <div class="table-toolbar">
+          <div class="filter-group" role="radiogroup" aria-label="Lọc theo trạng thái">
+            <button class="filter-chip is-active" type="button" data-status-filter="all">Tất cả (<%= statsData.total %>)</button>
+            <button class="filter-chip" type="button" data-status-filter="active">Đang hoạt động (<%= statsData.active %>)</button>
+            <button class="filter-chip" type="button" data-status-filter="inactive">Tạm dừng (<%= statsData.inactive %>)</button>
+          </div>
+          <div class="filter-group" role="radiogroup" aria-label="Lọc theo cấp">
+            <button class="filter-chip is-active" type="button" data-level-filter="all">Mọi cấp</button>
+            <button class="filter-chip" type="button" data-level-filter="root">Khoa cấp 1 (<%= statsData.topLevel %>)</button>
+            <button class="filter-chip" type="button" data-level-filter="child">Đơn vị trực thuộc (<%= statsData.childUnits %>)</button>
+          </div>
+          <div class="toolbar-aside">
+            <div class="search-group">
+              <i class="fa fa-search" aria-hidden="true"></i>
+              <input type="search" placeholder="Tìm theo tên, mã hoặc người phụ trách" aria-label="Tìm kiếm khoa" data-search-input>
+            </div>
+            <div class="results-count" data-results-count><%= departmentList.length %> đơn vị</div>
+          </div>
+        </div>
+        <% } %>
+      </header>
+
+      <div class="card__body">
+        <% if (departmentList.length) { %>
+        <div class="table-region">
+          <div class="table-wrapper">
+            <table class="table" data-department-table>
+              <thead>
+                <tr>
+                  <th>Mã</th>
+                  <th>Đơn vị</th>
+                  <th>Cấp trên</th>
+                  <th>Trưởng đơn vị</th>
+                  <th>Trạng thái</th>
+                  <th>Đơn vị trực thuộc</th>
+                  <th>Ghi chú</th>
+                  <th class="table__actions">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% departmentList.forEach(function(unit){
+                  const statusKey = unit.is_active ? 'active' : 'inactive';
+                  const searchTokens = [unit.name || '', unit.code || '', unit.parent_name || '', unit.head_name || '']
+                    .join(' ')
+                    .toLowerCase();
+                  const parentLabel = unit.parent_name ? `${unit.parent_name}${unit.parent_code ? ' (' + unit.parent_code + ')' : ''}` : '';
+                  const headLabel = unit.head_name ? `${unit.head_name}${unit.head_email ? ' <' + unit.head_email + '>' : ''}` : '';
+                %>
+                <tr
+                  data-department-row
+                  data-id="<%= unit.id %>"
+                  data-name="<%= unit.name %>"
+                  data-code="<%= unit.code %>"
+                  data-status="<%= statusKey %>"
+                  data-level="<%= unit.level %>"
+                  data-parent-id="<%= unit.parent_id || '' %>"
+                  data-parent-label="<%= encodeURIComponent(parentLabel) %>"
+                  data-head-id="<%= unit.head_id || '' %>"
+                  data-head-label="<%= encodeURIComponent(headLabel) %>"
+                  data-description="<%= encodeURIComponent(unit.description || '') %>"
+                  data-child-count="<%= unit.child_count %>"
+                  data-search-text="<%= searchTokens %>"
+                >
+                  <td>
+                    <div class="cell-title">
+                      <span class="code-pill"><%= unit.code %></span>
+                      <span class="cell-subtext">ID: <%= unit.id %></span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="cell-stacked">
+                      <strong><%= unit.name %></strong>
+                      <% if (unit.level === 'root') { %>
+                        <span class="cell-badge">Khoa cấp 1</span>
+                      <% } else { %>
+                        <span class="cell-badge cell-badge--muted">Trực thuộc</span>
+                      <% } %>
+                    </div>
+                  </td>
+                  <td>
+                    <% if (unit.parent_name) { %>
+                      <div class="cell-stacked">
+                        <strong><%= unit.parent_name %></strong>
+                        <span class="cell-inline"><i class="fa fa-tag" aria-hidden="true"></i><%= unit.parent_code || 'N/A' %></span>
+                      </div>
+                    <% } else { %>
+                      <span class="cell-muted">Không có</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (unit.head_name) { %>
+                      <div class="cell-stacked">
+                        <strong><%= unit.head_name %></strong>
+                        <span class="cell-inline"><i class="fa fa-envelope" aria-hidden="true"></i><%= unit.head_email || 'Chưa cập nhật' %></span>
+                      </div>
+                    <% } else { %>
+                      <span class="cell-muted">Chưa phân công</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <span class="status-badge status-badge--<%= statusKey %>">
+                      <span class="status-dot"></span>
+                      <%= statusLabels[statusKey] || 'Không xác định' %>
+                    </span>
+                  </td>
+                  <td>
+                    <% if (unit.child_count > 0) { %>
+                      <span class="cell-inline"><i class="fa fa-network-wired" aria-hidden="true"></i><%= unit.child_count %> đơn vị</span>
+                    <% } else { %>
+                      <span class="cell-muted">Không có</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <span class="cell-notes"><%= unit.description || '—' %></span>
+                  </td>
+                  <td class="table__actions">
+                    <div class="action-stack">
+                      <button class="action-button" type="button" data-edit-department>
+                        <i class="fa fa-pen" aria-hidden="true"></i>
+                        <span>Chỉnh sửa</span>
+                      </button>
+                      <form class="inline-form" method="post" action="/departments/<%= unit.id %>/toggle">
+                        <input type="hidden" name="is_active" value="<%= unit.is_active ? 0 : 1 %>">
+                        <button class="action-button" type="submit">
+                          <i class="fa <%= unit.is_active ? 'fa-pause-circle' : 'fa-play-circle' %>" aria-hidden="true"></i>
+                          <span><%= unit.is_active ? 'Tạm dừng' : 'Kích hoạt' %></span>
+                        </button>
+                      </form>
+                      <form class="inline-form" method="post" action="/departments/<%= unit.id %>/delete" data-delete-form>
+                        <button class="action-button action-button--danger" type="submit">
+                          <i class="fa fa-trash" aria-hidden="true"></i>
+                          <span>Xóa</span>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-empty" data-empty-state hidden>
+            <i class="fa fa-magnifying-glass" aria-hidden="true"></i>
+            <p>Không tìm thấy đơn vị nào khớp bộ lọc hiện tại.</p>
+          </div>
+        </div>
+        <% } else { %>
+        <div class="empty-state">
+          <i class="fa fa-building" aria-hidden="true"></i>
+          <h3>Chưa có dữ liệu khoa</h3>
+          <p>Sử dụng biểu mẫu bên phải để thêm khoa hoặc bộ môn đầu tiên.</p>
+          <button class="btn btn-primary" type="button" data-open-panel>
+            <i class="fa fa-plus" aria-hidden="true"></i>
+            <span>Thêm khoa</span>
+          </button>
+        </div>
+        <% } %>
+      </div>
+    </section>
+  </div>
+
+  <aside class="form-panel" data-department-panel hidden tabindex="-1">
+    <div class="form-panel__header">
+      <div>
+        <h2 data-panel-title>Thêm khoa</h2>
+        <p data-panel-description>Tạo đơn vị mới và gán cấp trên, người phụ trách.</p>
+      </div>
+      <button class="form-panel__close" type="button" data-close-panel aria-label="Đóng panel">
+        <i class="fa fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+    <form class="form-panel__body" method="post" action="/departments" data-base-action="/departments">
+      <input type="hidden" name="department_id" id="department_id">
+      <div class="form-group">
+        <label for="department_name" class="required">Tên khoa / đơn vị</label>
+        <input id="department_name" name="name" type="text" placeholder="VD: Khoa An ninh điều tra" required>
+      </div>
+      <div class="form-group">
+        <label for="department_code">Mã đơn vị</label>
+        <input id="department_code" name="code" type="text" placeholder="VD: KANDI" maxlength="12">
+        <small>Mặc định hệ thống sẽ tự tạo từ tên nếu bỏ trống.</small>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="department_status">Trạng thái</label>
+          <select id="department_status" name="is_active">
+            <option value="1">Đang hoạt động</option>
+            <option value="0">Tạm dừng</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="department_parent">Cấp trên</label>
+          <select id="department_parent" name="parent_id">
+            <option value="">Không có (Khoa cấp 1)</option>
+            <% parentOptionsList.forEach(function(option){ %>
+              <option value="<%= option.id %>"><%= option.name %> (<%= option.code %>)</option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="department_head">Trưởng đơn vị</label>
+        <select id="department_head" name="head_id">
+          <option value="">Chưa phân công</option>
+          <% headOptionsList.forEach(function(head){ %>
+            <option value="<%= head.id %>"><%= head.full_name %><%= head.email ? ' (' + head.email + ')' : '' %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="department_description">Ghi chú</label>
+        <textarea id="department_description" name="description" rows="3" placeholder="Thông tin bổ sung cho khoa (tùy chọn)"></textarea>
+      </div>
+      <div class="form-hint">
+        <i class="fa fa-circle-info" aria-hidden="true"></i>
+        <p>Đảm bảo mã đơn vị là duy nhất để phục vụ tích hợp với các phân hệ khác.</p>
+      </div>
+      <footer class="form-panel__footer">
+        <button class="btn btn-secondary" type="button" data-reset-form>Đặt lại</button>
+        <button class="btn btn-secondary" type="button" data-close-panel>Hủy</button>
+        <button class="btn btn-primary" type="submit" data-submit-label>Lưu khoa</button>
+      </footer>
+    </form>
+  </aside>
+</div>
+
+<div class="form-panel__backdrop" data-panel-backdrop hidden></div>
+
+<%- contentFor('js') %>
+<script src="/js/departments.js"></script>

@@ -15,6 +15,8 @@ const ReportController = require('../controllers/ReportController');
 const ReminderController = require('../controllers/ReminderController');
 const ResearchController = require('../controllers/ResearchController');
 const ResearchManagementController = require('../controllers/ResearchManagementController');
+const AcademicYearController = require('../controllers/AcademicYearController');
+const DepartmentController = require('../controllers/DepartmentController');
 
 // Import middleware
 const { requireAuth, requireAdmin } = require('../middleware/auth');
@@ -35,6 +37,8 @@ const reportController = new ReportController();
 const reminderController = new ReminderController();
 const researchController = new ResearchController();
 const researchManagementController = new ResearchManagementController();
+const academicYearController = new AcademicYearController();
+const departmentController = new DepartmentController();
 
 const modulePlaceholder = (moduleConfig) => (req, res) => {
     res.render('modules/placeholder', {
@@ -168,6 +172,37 @@ const moduleRoutes = [
     }
 ];
 
+// Academic year management
+router.get('/academic-years', requireAuth, requireAdmin, (req, res) => {
+    academicYearController.index(req, res);
+});
+router.post('/academic-years', requireAuth, requireAdmin, (req, res) => {
+    academicYearController.store(req, res);
+});
+router.post('/academic-years/:id/status', requireAuth, requireAdmin, (req, res) => {
+    academicYearController.updateStatus(req, res);
+});
+router.post('/academic-years/:id/delete', requireAuth, requireAdmin, (req, res) => {
+    academicYearController.destroy(req, res);
+});
+
+// Department management
+router.get('/departments', requireAuth, requireAdmin, (req, res) => {
+    departmentController.index(req, res);
+});
+router.post('/departments', requireAuth, requireAdmin, (req, res) => {
+    departmentController.store(req, res);
+});
+router.post('/departments/:id', requireAuth, requireAdmin, (req, res) => {
+    departmentController.update(req, res);
+});
+router.post('/departments/:id/toggle', requireAuth, requireAdmin, (req, res) => {
+    departmentController.toggleStatus(req, res);
+});
+router.post('/departments/:id/delete', requireAuth, requireAdmin, (req, res) => {
+    departmentController.destroy(req, res);
+});
+
 // Document management routes (must be before moduleRoutes loop to override any placeholder)
 router.get('/documents', requireAuth, (req, res) => {
     res.redirect('/documents/incoming');
@@ -236,6 +271,8 @@ router.post('/workbook/entry', requireAuth, (req, res) => workbookController.sav
 router.get('/workbook/entry', requireAuth, (req, res) => workbookController.getEntry(req, res));
 router.post('/workbook/:id/status', requireAuth, (req, res) => workbookController.updateStatus(req, res));
 router.put('/workbook/:id/status', requireAuth, (req, res) => workbookController.updateStatus(req, res));
+router.get('/workbook/approvers/options', requireAuth, (req, res) => workbookController.listApproverOptions(req, res));
+router.get('/workbook/pending-approvals', requireAuth, (req, res) => workbookController.listPendingApprovals(req, res));
 
 // Quick notes APIs
 router.put('/workbook/:id/notes', requireAuth, (req, res) => workbookController.updateQuickNotes(req, res));
@@ -337,6 +374,14 @@ router.post('/users',
         userController.store(req, res);
     }
 );
+
+router.post('/users/:id/approve', requireAuth, requireAdmin, (req, res) => {
+    userController.approve(req, res);
+});
+
+router.post('/users/:id/reject', requireAuth, requireAdmin, (req, res) => {
+    userController.reject(req, res);
+});
 
 router.get('/users/:id', requireAuth, (req, res) => {
     userController.show(req, res);

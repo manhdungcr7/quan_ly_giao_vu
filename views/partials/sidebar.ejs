@@ -1,4 +1,6 @@
 <nav class="sidebar-nav">
+    <% const userRoleName = user && (user.role_name || user.roleName || user.role); %>
+    <% const isAdminView = (typeof isAdmin === 'boolean' ? isAdmin : false) || (userRoleName && userRoleName.toString().toLowerCase().includes('admin')); %>
     <div class="sidebar-section">
         <p class="section-label">TỔNG QUAN</p>
         <a class="sidebar-link <%= currentPath === '/dashboard' ? 'active' : '' %>" href="/dashboard">
@@ -9,6 +11,12 @@
 
     <div class="sidebar-section">
         <p class="section-label">QUẢN LÝ HÀNH CHÍNH</p>
+        <% if (isAdminView) { %>
+        <a class="sidebar-link <%= currentPath.startsWith('/users') ? 'active' : '' %>" href="/users">
+            <i class="fa fa-user-shield"></i>
+            <span>Quản lý người dùng</span>
+        </a>
+        <% } %>
         <a class="sidebar-link <%= currentPath.startsWith('/documents') ? 'active' : '' %>" href="/documents">
             <i class="fa fa-file-text"></i>
             <span>Quản lý văn bản</span>
@@ -25,6 +33,16 @@
             <i class="fa fa-building"></i>
             <span>Quản lý tài sản</span>
         </a>
+        <% if (isAdminView) { %>
+        <a class="sidebar-link <%= currentPath.startsWith('/departments') ? 'active' : '' %>" href="/departments">
+            <i class="fa fa-sitemap"></i>
+            <span>Quản lý khoa</span>
+        </a>
+        <a class="sidebar-link <%= currentPath.startsWith('/academic-years') ? 'active' : '' %>" href="/academic-years">
+            <i class="fa fa-calendar"></i>
+            <span>Quản lý năm học</span>
+        </a>
+        <% } %>
     </div>
 
     <div class="sidebar-section">

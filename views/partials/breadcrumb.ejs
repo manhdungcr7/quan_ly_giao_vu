@@ -1,0 +1,33 @@
+<%
+const defaultBreadcrumb = [
+  { label: 'Trang chủ', url: '/dashboard', icon: 'fa-house-chimney' }
+];
+
+let breadcrumbItems;
+try {
+  breadcrumbItems = Array.isArray(breadcrumb) && breadcrumb.length ? breadcrumb : defaultBreadcrumb;
+} catch (error) {
+  breadcrumbItems = defaultBreadcrumb;
+}
+
+if (breadcrumbItems && breadcrumbItems.length) {
+%>
+<nav class="breadcrumb-pro" aria-label="Đường dẫn" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;">
+  <% breadcrumbItems.forEach((item, idx) => {
+       const isCurrent = idx === breadcrumbItems.length - 1;
+       const icon = item.icon || 'fa-layer-group';
+  %>
+    <div class="crumb <%= isCurrent ? 'is-current' : '' %>" style="display:flex;align-items:center;gap:8px;">
+      <i class="fas <%= icon %>"></i>
+      <% if (isCurrent) { %>
+        <span><%= item.label %></span>
+      <% } else { %>
+        <a href="<%= item.url || '#' %>">
+          <span><%= item.label %></span>
+        </a>
+        <span class="crumb-sep"><i class="fas fa-chevron-right"></i></span>
+      <% } %>
+    </div>
+  <% }); %>
+</nav>
+<% } %>

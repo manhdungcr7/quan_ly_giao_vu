@@ -69,7 +69,7 @@ class BaseModel {
             let sql = `SELECT * FROM ${this.tableName}`;
             const params = [];
 
-            if (Object.keys(where).length > 0) {
+            if (where && Object.keys(where).length > 0) {
                 const conditions = [];
                 for (const [key, value] of Object.entries(where)) {
                     conditions.push(`${key} = ?`);
@@ -145,7 +145,7 @@ class BaseModel {
             let sql = `SELECT COUNT(*) as total FROM ${this.tableName}`;
             const params = [];
 
-            if (Object.keys(where).length > 0) {
+            if (where && Object.keys(where).length > 0) {
                 const conditions = [];
                 for (const [key, value] of Object.entries(where)) {
                     conditions.push(`${key} = ?`);

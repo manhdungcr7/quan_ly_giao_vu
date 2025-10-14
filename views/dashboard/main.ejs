@@ -12,13 +12,14 @@
 </head>
 <body class="app-auth">
     <div class="app-layout">
+        <% const userRoleName = user && (user.role_name || user.roleName); %>
+        <% const isAdminView = userRoleName && userRoleName.toString().toLowerCase() === 'admin'; %>
         <!-- Sidebar Navigation -->
         <aside class="app-sidebar" id="appSidebar">
             <div class="sidebar-brand">
                 <div class="sidebar-brand__logo">🏛️</div>
                 <div class="sidebar-brand__text">
-                    <div class="brand-title">KA Management</div>
-                    <div class="brand-subtitle">Nội bộ</div>
+                    <div class="brand-title">quản lý giáo vụ Khoa</div>
                 </div>
             </div>
 
@@ -33,6 +34,12 @@
 
                 <div class="sidebar-section">
                     <p class="section-label">QUẢN LÝ HÀNH CHÍNH</p>
+                    <% if (isAdminView) { %>
+                    <a class="sidebar-link <%= currentPath.startsWith('/users') ? 'active' : '' %>" href="/users">
+                        <i class="fa fa-user-shield">🛡️</i>
+                        <span>Quản lý người dùng</span>
+                    </a>
+                    <% } %>
                     <a class="sidebar-link <%= currentPath.startsWith('/documents') ? 'active' : '' %>" href="/documents">
                         <i class="fa fa-file-text">📄</i>
                         <span>Quản lý văn bản</span>
@@ -121,11 +128,16 @@
                             <div class="topbar-user__avatar"><%= (user && (user.fullName || user.full_name || user.username) || '?').charAt(0).toUpperCase() %></div>
                             <div class="topbar-user__meta">
                                 <div class="topbar-user__name"><%= (user && (user.fullName || user.full_name || user.username)) || 'Admin' %></div>
-                                <div class="topbar-user__role"><%= (user && (user.roleName || user.role_name)) || 'Quản trị viên' %></div>
+                                <div class="topbar-user__role"><%= (user && (user.role_label || user.roleName || user.role_name)) || 'Quản trị viên' %></div>
                             </div>
                             <span class="topbar-user__chevron" aria-hidden="true">⌄</span>
                         </button>
                         <div class="topbar-user__menu" data-user-menu-dropdown hidden>
+                            <% if (isAdminView) { %>
+                            <a class="topbar-user__menu-item" href="/users">
+                                <span>🛡️ Quản lý người dùng</span>
+                            </a>
+                            <% } %>
                             <a class="topbar-user__menu-item" href="<%= (user && user.id) ? ('/users/' + user.id) : '#' %>">
                                 <span>👤 Hồ sơ cá nhân</span>
                             </a>
@@ -154,6 +166,7 @@
                 
                 <% 
                 const notificationItems = [
+                    ...((notifications && notifications.pendingWorkbooks) || []),
                     ...((notifications && notifications.upcomingDeadlines) || []),
                     ...((notifications && notifications.overdueDocuments) || [])
                 ].slice(0, 4);
@@ -191,7 +204,7 @@
                                     </select>
                                 </form>
                             <% } %>
-                            <span class="status-chip status-chip--online">Trực tuyến</span>
+                            <span class="status-chip status-chip--offline">Ngoại tuyến</span>
                         </div>
                     </header>
 
@@ -319,12 +332,21 @@
                                         <% notificationItems.forEach(function(item){ %>
                                             <div class="notification-card">
                                                 <div class="notification-card__badge <%= item.badgeColor || (item.status === 'overdue' ? 'is-danger' : '') %>">
+                                                    <% if (item.badge) { %>
+                                                        <span><%= item.badge %></span>
+                                                    <% } %>
                                                 </div>
                                                 <div class="notification-card__body">
                                                     <h4><%= item.title || item.document_number || 'Thông báo' %></h4>
                                                     <p><%= item.content_summary || 'Tài liệu sắp đến hạn xử lý, vui lòng kiểm tra.' %></p>
                                                     <% if (item.processing_deadline) { %>
                                                         <span class="notification-card__meta">Hạn: <%= item.processing_deadline %></span>
+                                                    <% } %>
+                                                    <% if (item.approval_requested_at && item.type === 'workbook') { %>
+                                                        <span class="notification-card__meta">Gửi duyệt: <%= item.approval_requested_at %></span>
+                                                    <% } %>
+                                                    <% if (item.link) { %>
+                                                        <a class="notification-card__link" href="<%= item.link %>">Xem chi tiết</a>
                                                     <% } %>
                                                 </div>
                                             </div>

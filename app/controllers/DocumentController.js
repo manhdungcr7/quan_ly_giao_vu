@@ -3,10 +3,116 @@ const db = require('../../config/database');
 const path = require('path');
 const fs = require('fs');
 const config = require('../../config/app');
+const crypto = require('crypto');
 
 class DocumentController {
     constructor() {
         this.documentModel = new Document();
+    }
+
+    normalizeLabel(value) {
+        return typeof value === 'string' ? value.trim() : '';
+    }
+
+    stripDiacritics(value) {
+        return this.normalizeLabel(value)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .toUpperCase();
+    }
+
+    isPositiveInteger(value) {
+        return /^\d+$/.test(String(value || '').trim());
+    }
+
+    async ensureUniqueCode(table, column, base, fallbackPrefix = 'GEN') {
+        let candidate = (base && base.slice(0, 8)) || fallbackPrefix;
+        if (!candidate) {
+            candidate = fallbackPrefix;
+        }
+
+        candidate = candidate.slice(0, 8);
+        let suffix = 0;
+
+        while (true) {
+            const code = suffix === 0 ? candidate : `${candidate.slice(0, Math.max(0, 8 - suffix.toString().length))}${suffix}`;
+            const existing = await db.findOne(`SELECT id FROM ${table} WHERE ${column} = ? LIMIT 1`, [code]);
+            if (!existing) {
+                return code;
+            }
+            suffix += 1;
+            if (suffix > 999) {
+                return `${candidate.slice(0, 5)}${crypto.randomBytes(2).toString('hex').toUpperCase()}`.slice(0, 8);
+            }
+        }
+    }
+
+    async resolveDocumentType(rawValue, labelValue) {
+        const raw = this.normalizeLabel(rawValue);
+        if (this.isPositiveInteger(raw)) {
+            return parseInt(raw, 10);
+        }
+
+        const label = this.normalizeLabel(labelValue || raw);
+        if (!label) {
+            return null;
+        }
+
+        const existing = await db.findOne('SELECT id FROM document_types WHERE LOWER(name) = LOWER(?) LIMIT 1', [label]);
+        if (existing) {
+            return existing.id;
+        }
+
+        const baseCode = this.stripDiacritics(label) || 'DOCTYPE';
+        const uniqueCode = await this.ensureUniqueCode('document_types', 'code', baseCode, 'DOCTYPE');
+        const insertResult = await db.insert(
+            'INSERT INTO document_types (name, code, is_active, created_at) VALUES (?, ?, 1, NOW())',
+            [label, uniqueCode]
+        );
+
+        return insertResult?.insertId || null;
+    }
+
+    async resolveOrganization(rawValue, labelValue) {
+        const raw = this.normalizeLabel(rawValue);
+        if (this.isPositiveInteger(raw)) {
+            return parseInt(raw, 10);
+        }
+
+        const label = this.normalizeLabel(labelValue || raw);
+        if (!label) {
+            return null;
+        }
+
+        const existing = await db.findOne('SELECT id FROM organizations WHERE LOWER(name) = LOWER(?) LIMIT 1', [label]);
+        if (existing) {
+            return existing.id;
+        }
+
+        const baseCode = this.stripDiacritics(label) || 'ORG';
+        const uniqueCode = await this.ensureUniqueCode('organizations', 'code', baseCode, 'ORG');
+        const insertResult = await db.insert(
+            'INSERT INTO organizations (name, code, is_active, created_at) VALUES (?, ?, 1, NOW())',
+            [label, uniqueCode]
+        );
+
+        return insertResult?.insertId || null;
+    }
+
+    async resolveUserReference(rawValue, labelValue) {
+        const raw = this.normalizeLabel(rawValue);
+        if (this.isPositiveInteger(raw)) {
+            return parseInt(raw, 10);
+        }
+
+        const label = this.normalizeLabel(labelValue || raw);
+        if (!label) {
+            return null;
+        }
+
+        const existing = await db.findOne('SELECT id FROM users WHERE LOWER(full_name) = LOWER(?) LIMIT 1', [label]);
+        return existing ? existing.id : null;
     }
 
     async getDirectionStats(direction) {
@@ -35,10 +141,47 @@ class DocumentController {
         }
     }
 
-    async getSimpleDocuments(direction, page = 1, limit = 20) {
+    async getSimpleDocuments(direction, page = 1, limit = 20, filters = {}) {
         try {
             const offset = (page - 1) * limit;
-            const sql = `SELECT d.id, d.document_number, d.title, d.status, d.priority, d.processing_deadline, d.chi_dao,
+            
+            // Build WHERE conditions based on filters
+            const whereClauses = ['d.direction = ?'];
+            const params = [direction];
+            
+            // Search in document_number, title, content_summary
+            if (filters.search && filters.search.trim()) {
+                whereClauses.push('(d.document_number LIKE ? OR d.title LIKE ? OR d.content_summary LIKE ?)');
+                const searchTerm = `%${filters.search.trim()}%`;
+                params.push(searchTerm, searchTerm, searchTerm);
+            }
+            
+            // Filter by status
+            if (filters.status && filters.status.trim()) {
+                whereClauses.push('d.status = ?');
+                params.push(filters.status.trim());
+            }
+            
+            // Filter by document type
+            if (filters.type_id && filters.type_id.trim()) {
+                whereClauses.push('d.type_id = ?');
+                params.push(parseInt(filters.type_id));
+            }
+            
+            // Filter by date range
+            if (filters.from_date && filters.from_date.trim()) {
+                whereClauses.push('d.issue_date >= ?');
+                params.push(filters.from_date.trim());
+            }
+            
+            if (filters.to_date && filters.to_date.trim()) {
+                whereClauses.push('d.issue_date <= ?');
+                params.push(filters.to_date.trim());
+            }
+            
+            const whereClause = whereClauses.join(' AND ');
+            
+            const sql = `SELECT d.id, d.document_number, d.title, d.status, d.priority, d.processing_deadline, d.issue_date, d.chi_dao,
                        dt.name AS document_type_name,
                        org_from.name AS from_organization_name,
                        org_to.name AS to_organization_name,
@@ -48,12 +191,16 @@ class DocumentController {
                 LEFT JOIN organizations org_from ON d.from_org_id = org_from.id
                 LEFT JOIN organizations org_to ON d.to_org_id = org_to.id
                 LEFT JOIN users u_assigned ON d.assigned_to = u_assigned.id
-                WHERE d.direction = ?
+                WHERE ${whereClause}
                 ORDER BY d.created_at DESC
                 LIMIT ${limit} OFFSET ${offset}`;
-            const documents = await db.findMany(sql, [direction]);
-            const countResult = await db.findOne('SELECT COUNT(*) as total FROM documents WHERE direction = ?', [direction]);
+            
+            const documents = await db.findMany(sql, params);
+            
+            const countSql = `SELECT COUNT(*) as total FROM documents d WHERE ${whereClause}`;
+            const countResult = await db.findOne(countSql, params);
             const total = countResult.total;
+            
             return {
                 data: documents,
                 pagination: {
@@ -75,8 +222,17 @@ class DocumentController {
         try {
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
+            
+            // Extract filter parameters from query
+            const filters = {
+                search: req.query.search || '',
+                status: req.query.status || '',
+                type_id: req.query.type_id || '',
+                from_date: req.query.from_date || '',
+                to_date: req.query.to_date || ''
+            };
 
-            const result = await this.getSimpleDocuments(direction, page, limit);
+            const result = await this.getSimpleDocuments(direction, page, limit, filters);
             const stats = await this.getDirectionStats(direction);
             const master = await this.loadMasterData();
 
@@ -86,7 +242,7 @@ class DocumentController {
                 direction,
                 documents: result.data,
                 pagination: result.pagination,
-                filters: req.query, // original query for form repopulation
+                filters: filters, // pass filters to template for form repopulation
                 stats,
                 types: master.types,
                 success: req.flash('success'),
@@ -143,9 +299,12 @@ class DocumentController {
         }
         try {
             const {
-                direction, document_number, title, type_id, content_summary,
+                direction, document_number, title, type_id, type_label, content_summary,
                 issue_date, received_date, processing_deadline, priority,
-                assigned_to, from_org_id, to_org_id, chi_dao
+                status, assigned_to, assigned_to_label,
+                from_org_id, from_org_label,
+                to_org_id, to_org_label,
+                chi_dao
             } = req.body;
 
             // Validate required fields
@@ -163,21 +322,29 @@ class DocumentController {
                 return res.redirect('/documents/create');
             }
 
+            const resolvedTypeId = await this.resolveDocumentType(type_id, type_label);
+            const resolvedAssignedTo = await this.resolveUserReference(assigned_to, assigned_to_label);
+            const resolvedFromOrg = await this.resolveOrganization(from_org_id, from_org_label);
+            const resolvedToOrg = await this.resolveOrganization(to_org_id, to_org_label);
+
+            const allowedStatuses = ['draft', 'pending', 'processing', 'completed', 'approved', 'archived'];
+            const normalizedStatus = allowedStatuses.includes(status) ? status : 'pending';
+
             // Prepare document data - handle empty dates properly
             const documentData = {
                 direction,
                 document_number: document_number.trim(),
                 title: title.trim(),
-                type_id: type_id || null,
+                type_id: resolvedTypeId || null,
                 content_summary: content_summary?.trim() || null,
                 issue_date: issue_date && issue_date.trim() ? issue_date : null,
                 received_date: received_date && received_date.trim() ? received_date : null,
                 processing_deadline: processing_deadline && processing_deadline.trim() ? processing_deadline : null,
                 priority: priority || 'medium',
-                status: 'pending',
-                assigned_to: assigned_to || null,
-                from_org_id: from_org_id || null,
-                to_org_id: to_org_id || null,
+                status: normalizedStatus,
+                assigned_to: resolvedAssignedTo || null,
+                from_org_id: resolvedFromOrg || null,
+                to_org_id: resolvedToOrg || null,
                 chi_dao: req.body.chi_dao?.trim() || null,
                 created_by: req.session.user.id,
                 created_at: new Date()
@@ -337,21 +504,15 @@ class DocumentController {
 
         } catch (error) {
             console.error('Error in DocumentController show:', error);
-            req.flash('error', 'Không thể tải thông tin văn bản');
+            req.flash('error', 'Không thể tải chi tiết văn bản');
             res.redirect('/documents');
         }
     }
-
     // Hiển thị form sửa văn bản
     async edit(req, res) {
         try {
             const id = req.params.id;
             const document = await db.findOne('SELECT * FROM documents WHERE id = ?', [id]);
-            
-            if (!document) {
-                req.flash('error', 'Không tìm thấy văn bản');
-                return res.redirect('/documents');
-            }
 
             const master = await this.loadMasterData();
             const users = await db.findMany('SELECT id, full_name FROM users WHERE is_active = 1 ORDER BY full_name');
@@ -376,44 +537,61 @@ class DocumentController {
 
     // Cập nhật văn bản
     async update(req, res) {
+        const documentId = req.params?.id;
+
         try {
-            const id = req.params.id;
+            if (!documentId) {
+                req.flash('error', 'Thiếu mã văn bản để cập nhật');
+                return res.redirect('/documents');
+            }
+
             const {
-                direction, document_number, title, type_id, content_summary,
+                direction, document_number, title, type_id, type_label, content_summary,
                 issue_date, received_date, processing_deadline, priority,
-                assigned_to, from_org_id, to_org_id, chi_dao
+                assigned_to, assigned_to_label,
+                from_org_id, from_org_label,
+                to_org_id, to_org_label,
+                chi_dao, status
             } = req.body;
 
             // Validate required fields
             if (!direction || !document_number || !title) {
                 req.flash('error', 'Vui lòng nhập đầy đủ thông tin bắt buộc');
-                return res.redirect(`/documents/${id}/edit`);
+                return res.redirect(`/documents/${documentId}/edit`);
             }
 
             // Check if document number already exists (exclude current document)
-            const existingDoc = await db.findOne('SELECT id FROM documents WHERE document_number = ? AND id != ?', [document_number, id]);
+            const existingDoc = await db.findOne('SELECT id FROM documents WHERE document_number = ? AND id != ?', [document_number, documentId]);
             if (existingDoc) {
                 req.flash('error', 'Số hiệu văn bản đã tồn tại trong hệ thống');
-                return res.redirect(`/documents/${id}/edit`);
+                return res.redirect(`/documents/${documentId}/edit`);
             }
 
             // Prepare update data
+            const allowedStatuses = ['draft', 'pending', 'processing', 'completed', 'approved', 'archived'];
+            const normalizedStatus = allowedStatuses.includes(status) ? status : 'pending';
+
+            const resolvedTypeId = await this.resolveDocumentType(type_id, type_label);
+            const resolvedAssignedTo = await this.resolveUserReference(assigned_to, assigned_to_label);
+            const resolvedFromOrg = await this.resolveOrganization(from_org_id, from_org_label);
+            const resolvedToOrg = await this.resolveOrganization(to_org_id, to_org_label);
+
             const updateSQL = `
                 UPDATE documents SET 
                     direction = ?, document_number = ?, title = ?, type_id = ?,
                     content_summary = ?, issue_date = ?, received_date = ?,
-                    processing_deadline = ?, priority = ?, assigned_to = ?,
+                    processing_deadline = ?, priority = ?, status = ?, assigned_to = ?,
                     from_org_id = ?, to_org_id = ?, chi_dao = ?, updated_at = NOW()
                 WHERE id = ?
             `;
 
             await db.query(updateSQL, [
-                direction, document_number.trim(), title.trim(), type_id || null,
+                direction, document_number.trim(), title.trim(), resolvedTypeId || null,
                 content_summary?.trim() || null, 
                 issue_date || null, received_date || null,
-                processing_deadline || null, priority || 'medium',
-                assigned_to || null, from_org_id || null, to_org_id || null,
-                chi_dao?.trim() || null, id
+                processing_deadline || null, priority || 'medium', normalizedStatus,
+                resolvedAssignedTo || null, resolvedFromOrg || null, resolvedToOrg || null,
+                chi_dao?.trim() || null, documentId
             ]);
 
             // Save new files metadata if any
@@ -440,12 +618,16 @@ class DocumentController {
             }
 
             req.flash('success', 'Cập nhật văn bản thành công');
-            res.redirect(`/documents/${id}`);
+            res.redirect(`/documents/${documentId}`);
 
         } catch (error) {
             console.error('Error in DocumentController update:', error);
             req.flash('error', 'Không thể cập nhật văn bản');
-            res.redirect(`/documents/${id}/edit`);
+            if (documentId) {
+                res.redirect(`/documents/${documentId}/edit`);
+            } else {
+                res.redirect('/documents');
+            }
         }
     }
 

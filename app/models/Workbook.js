@@ -4,6 +4,13 @@ class Workbook extends BaseModel {
   static tableName = 'workbooks';
   static db = require('../../config/database');
 
+  static async findById(id) {
+    const query = `SELECT * FROM ${Workbook.tableName} WHERE id = ? LIMIT 1`;
+    const result = await Workbook.db.query(query, [id]);
+    const rows = Array.isArray(result[0]) ? result[0] : result;
+    return Array.isArray(rows) && rows.length ? rows[0] : null;
+  }
+
   static async findByUser(userId, options = {}) {
     const { weekStart, weekEnd } = options;
     
@@ -62,8 +69,10 @@ class Workbook extends BaseModel {
   static async create(data) {
     const query = `
       INSERT INTO ${Workbook.tableName}
-      (user_id, week_start, week_end, status, quick_notes, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+      (user_id, week_start, week_end, status, quick_notes, approver_id,
+       approval_requested_at, approval_decision_at, approval_note,
+       created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `;
     
     const result = await Workbook.db.query(query, [
@@ -71,7 +80,11 @@ class Workbook extends BaseModel {
       data.week_start,
       data.week_end,
       data.status || 'draft',
-      data.quick_notes || null
+      data.quick_notes || null,
+      data.approver_id || null,
+      data.approval_requested_at || null,
+      data.approval_decision_at || null,
+      data.approval_note || null
     ]);
     
     const insertResult = Array.isArray(result) ? result[0] : result;
@@ -101,16 +114,64 @@ class Workbook extends BaseModel {
     return notes || '';
   }
 
-  static async updateStatus(id, status) {
+  static async updateStatus(id, status, extraUpdates = {}) {
+    const setClauses = ['status = ?', 'updated_at = NOW()'];
+    const params = [status];
+
+    if (Object.prototype.hasOwnProperty.call(extraUpdates, 'approver_id')) {
+      setClauses.push('approver_id = ?');
+      params.push(extraUpdates.approver_id);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(extraUpdates, 'approval_requested_at')) {
+      setClauses.push('approval_requested_at = ?');
+      params.push(extraUpdates.approval_requested_at);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(extraUpdates, 'approval_decision_at')) {
+      setClauses.push('approval_decision_at = ?');
+      params.push(extraUpdates.approval_decision_at);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(extraUpdates, 'approval_note')) {
+      setClauses.push('approval_note = ?');
+      params.push(extraUpdates.approval_note);
+    }
+
     const query = `
       UPDATE ${Workbook.tableName}
-      SET status = ?,
-          updated_at = NOW()
+      SET ${setClauses.join(', ')}
       WHERE id = ?
     `;
-    
-    await Workbook.db.query(query, [status, id]);
+
+    params.push(id);
+
+    await Workbook.db.query(query, params);
     return true;
+  }
+
+  static async getPendingApprovalsForApprover(approverId, limit = 10) {
+    if (!approverId) {
+      return [];
+    }
+
+    const limitNumber = Number.isFinite(Number(limit)) ? Number(limit) : 10;
+    const limitValue = Math.max(1, Math.min(50, Math.floor(limitNumber)));
+
+    const query = `
+      SELECT w.*, u.full_name AS owner_name,
+             r.name AS owner_role
+      FROM ${Workbook.tableName} w
+      INNER JOIN users u ON w.user_id = u.id
+      LEFT JOIN roles r ON u.role_id = r.id
+      WHERE w.approver_id = ?
+        AND w.status = 'submitted'
+      ORDER BY w.approval_requested_at DESC
+      LIMIT ${limitValue}
+    `;
+
+    const result = await Workbook.db.query(query, [approverId]);
+    return Array.isArray(result[0]) ? result[0] : result;
   }
 
   static async delete(id) {

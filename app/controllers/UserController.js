@@ -1,28 +1,77 @@
 const User = require('../models/User');
+const Role = require('../models/Role');
 const CONSTANTS = require('../../config/constants');
 
 class UserController {
     constructor() {
         this.userModel = new User();
+        this.roleModel = new Role();
     }
 
     // Hiển thị danh sách user
     async index(req, res) {
         try {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 20;
-            const search = req.query.search || '';
+            const successFlash = req.flash('success') || [];
+            const errorFlash = req.flash('error') || [];
 
-            const result = await this.userModel.getUsersWithRole(page, limit, search);
+            const page = parseInt(req.query.page, 10) || 1;
+            const limit = parseInt(req.query.limit, 10) || 20;
+            const search = req.query.search ? req.query.search.trim() : '';
+            const statusFilter = req.query.status ? req.query.status.trim() : '';
+            const approvalFilter = req.query.approval_status ? req.query.approval_status.trim() : '';
+            const rawRoleFilter = req.query.role ? req.query.role.trim() : '';
+
+            const roles = await this.roleModel.getActiveRoles();
+
+            let roleIdFilter = null;
+            let roleNameFilter = '';
+
+            if (rawRoleFilter) {
+                const matchedRole = roles.find(role => String(role.id) === rawRoleFilter || role.name === rawRoleFilter);
+                if (matchedRole) {
+                    roleIdFilter = matchedRole.id;
+                } else if (!Number.isNaN(Number(rawRoleFilter))) {
+                    roleIdFilter = Number(rawRoleFilter);
+                } else {
+                    roleNameFilter = rawRoleFilter;
+                }
+            }
+
+            const filters = {
+                status: ['active', 'inactive'].includes(statusFilter) ? statusFilter : '',
+                approvalStatus: Object.values(CONSTANTS.USER_APPROVAL_STATUS).includes(approvalFilter) ? approvalFilter : '',
+                roleId: roleIdFilter,
+                roleName: roleNameFilter
+            };
+
+            const result = await this.userModel.getUsersWithRole(page, limit, search, filters);
+
+            let pendingCount = 0;
+            if (!filters.approvalStatus || filters.approvalStatus === CONSTANTS.USER_APPROVAL_STATUS.PENDING) {
+                const pendingFilters = {
+                    ...filters,
+                    approvalStatus: CONSTANTS.USER_APPROVAL_STATUS.PENDING
+                };
+                pendingCount = await this.userModel.countByFilters(search, pendingFilters);
+            }
 
             res.render('users/index', {
                 title: 'Quản lý người dùng',
                 user: req.session.user,
                 users: result.data,
                 pagination: result.pagination,
-                search: search,
-                success: req.flash('success'),
-                error: req.flash('error')
+                search,
+                filters: {
+                    status: filters.status,
+                    approval: filters.approvalStatus,
+                    role: rawRoleFilter
+                },
+                roleOptions: roles,
+                approvalStatuses: CONSTANTS.USER_APPROVAL_STATUS,
+                roleLabels: CONSTANTS.USER_ROLE_LABELS,
+                pendingCount,
+                success: successFlash.length ? successFlash : res.locals.success,
+                error: errorFlash.length ? errorFlash : res.locals.error
             });
 
         } catch (error) {
@@ -48,8 +97,8 @@ class UserController {
                 title: 'Tạo người dùng mới',
                 user: req.session.user,
                 roles: roles,
-                error: req.flash('error'),
-                success: req.flash('success')
+                error: res.locals.error,
+                success: res.locals.success
             });
 
         } catch (error) {
@@ -107,7 +156,11 @@ class UserController {
                 password,
                 full_name,
                 role_id: parseInt(role_id),
-                phone: phone || null
+                phone: phone || null,
+                approval_status: CONSTANTS.USER_APPROVAL_STATUS.APPROVED,
+                is_active: true,
+                approved_by: req.session.user.id,
+                approved_at: new Date()
             };
 
             const result = await this.userModel.create(userData);
@@ -141,8 +194,8 @@ class UserController {
                 title: 'Chi tiết người dùng',
                 user: req.session.user,
                 userDetail: user,
-                success: req.flash('success'),
-                error: req.flash('error')
+                success: res.locals.success,
+                error: res.locals.error
             });
 
         } catch (error) {
@@ -180,8 +233,8 @@ class UserController {
                 user: req.session.user,
                 userDetail: user,
                 roles: roles,
-                error: req.flash('error'),
-                success: req.flash('success')
+                error: res.locals.error,
+                success: res.locals.success
             });
 
         } catch (error) {
@@ -286,6 +339,109 @@ class UserController {
         }
     }
 
+    async approve(req, res) {
+        try {
+            if (req.session.user.role_name !== CONSTANTS.ROLES.ADMIN) {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.UNAUTHORIZED);
+                return res.redirect('/users');
+            }
+
+            const userId = parseInt(req.params.id, 10);
+            const roleId = parseInt(req.body.role_id, 10);
+
+            if (!Number.isInteger(userId) || userId <= 0) {
+                req.flash('error', 'Tài khoản không hợp lệ');
+                return res.redirect('/users');
+            }
+
+            if (!Number.isInteger(roleId) || roleId <= 0) {
+                req.flash('error', 'Vui lòng chọn vai trò trước khi phê duyệt.');
+                return res.redirect('/users');
+            }
+
+            if (req.session.user.id === userId) {
+                req.flash('error', 'Không thể thay đổi trạng thái phê duyệt của chính mình.');
+                return res.redirect('/users');
+            }
+
+            const [targetUser, targetRole] = await Promise.all([
+                this.userModel.findById(userId),
+                this.roleModel.findById(roleId)
+            ]);
+
+            if (!targetUser) {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.NOT_FOUND);
+                return res.redirect('/users');
+            }
+
+            if (!targetRole || targetRole.is_active === 0) {
+                req.flash('error', 'Vai trò không hợp lệ hoặc đã bị vô hiệu hóa.');
+                return res.redirect('/users');
+            }
+
+            if (targetUser.approval_status === CONSTANTS.USER_APPROVAL_STATUS.APPROVED) {
+                req.flash('info', 'Tài khoản này đã được phê duyệt trước đó.');
+                return res.redirect('/users');
+            }
+
+            await this.userModel.approveUser(userId, req.session.user.id, roleId);
+
+            req.flash('success', 'Đã phê duyệt tài khoản và cấp quyền truy cập.');
+            res.redirect('/users');
+        } catch (error) {
+            console.error('Error in UserController approve:', error);
+            req.flash('error', CONSTANTS.MESSAGES.ERROR.SERVER_ERROR);
+            res.redirect('/users');
+        }
+    }
+
+    async reject(req, res) {
+        try {
+            if (req.session.user.role_name !== CONSTANTS.ROLES.ADMIN) {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.UNAUTHORIZED);
+                return res.redirect('/users');
+            }
+
+            const userId = parseInt(req.params.id, 10);
+            if (!Number.isInteger(userId) || userId <= 0) {
+                req.flash('error', 'Tài khoản không hợp lệ');
+                return res.redirect('/users');
+            }
+
+            if (req.session.user.id === userId) {
+                req.flash('error', 'Không thể thay đổi trạng thái phê duyệt của chính mình.');
+                return res.redirect('/users');
+            }
+
+            const reason = req.body.reason ? req.body.reason.trim() : '';
+            const targetUser = await this.userModel.findById(userId);
+
+            if (!targetUser) {
+                req.flash('error', CONSTANTS.MESSAGES.ERROR.NOT_FOUND);
+                return res.redirect('/users');
+            }
+
+            if (targetUser.approval_status === CONSTANTS.USER_APPROVAL_STATUS.REJECTED) {
+                req.flash('info', 'Tài khoản này đã bị từ chối trước đó.');
+                return res.redirect('/users');
+            }
+
+            if (targetUser.approval_status === CONSTANTS.USER_APPROVAL_STATUS.APPROVED) {
+                req.flash('error', 'Tài khoản đã được phê duyệt, vui lòng vô hiệu hóa nếu cần khóa truy cập.');
+                return res.redirect('/users');
+            }
+
+            await this.userModel.rejectUser(userId, req.session.user.id, reason);
+
+            req.flash('success', 'Đã từ chối yêu cầu kích hoạt tài khoản.');
+            res.redirect('/users');
+        } catch (error) {
+            console.error('Error in UserController reject:', error);
+            req.flash('error', CONSTANTS.MESSAGES.ERROR.SERVER_ERROR);
+            res.redirect('/users');
+        }
+    }
+
     // Reset password user
     async resetPassword(req, res) {
         try {
@@ -332,9 +488,9 @@ class UserController {
             let sql = `
                 SELECT id, username, full_name, email
                 FROM users 
-                WHERE is_active = 1
+                WHERE is_active = 1 AND approval_status = ?
             `;
-            const params = [];
+            const params = [CONSTANTS.USER_APPROVAL_STATUS.APPROVED];
 
             if (search) {
                 sql += ' AND (username LIKE ? OR full_name LIKE ? OR email LIKE ?)';

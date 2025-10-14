@@ -26,9 +26,11 @@
                 <% if (isAdmin) { %>
                     <p class="text-muted mb-0">Thêm thành viên vào hệ thống và chỉ định vai trò phù hợp.</p>
                 <% } else { %>
-                    <p class="text-muted mb-0">Điền đầy đủ thông tin để bắt đầu sử dụng nền tảng quản lý giáo vụ.</p>
+                    <p class="text-muted mb-0">Điền đầy đủ thông tin, quản trị viên sẽ phê duyệt tài khoản trước khi bạn đăng nhập.</p>
                 <% } %>
             </div>
+
+            <%- include('../partials/alerts') %>
 
             <form action="/auth/register" method="POST" class="needs-validation" novalidate>
                 <div class="row g-4">
@@ -36,21 +38,21 @@
                         <label for="full_name" class="form-label fw-semibold">Họ và tên</label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-id-card text-secondary"></i></span>
-                            <input type="text" class="form-control border-start-0" id="full_name" name="full_name" placeholder="Nguyễn Văn A" required>
+                            <input type="text" class="form-control border-start-0" id="full_name" name="full_name" placeholder="Nguyễn Văn A" value="<%= formData && formData.full_name ? formData.full_name : '' %>" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <label for="username" class="form-label fw-semibold">Tên đăng nhập</label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-user text-secondary"></i></span>
-                            <input type="text" class="form-control border-start-0" id="username" name="username" placeholder="tối thiểu 4 ký tự" minlength="4" required>
+                            <input type="text" class="form-control border-start-0" id="username" name="username" placeholder="tối thiểu 4 ký tự" minlength="4" value="<%= formData && formData.username ? formData.username : '' %>" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <label for="email" class="form-label fw-semibold">Email</label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-secondary"></i></span>
-                            <input type="email" class="form-control border-start-0" id="email" name="email" placeholder="email@domain.com" required>
+                            <input type="email" class="form-control border-start-0" id="email" name="email" placeholder="email@domain.com" value="<%= formData && formData.email ? formData.email : '' %>" required>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -60,16 +62,17 @@
                             <% if (isAdmin && roles && roles.length) { %>
                                 <select class="form-select border-start-0" id="role_id" name="role_id">
                                     <% roles.forEach(r => { %>
-                                        <option value="<%= r.id %>" <%= defaultRole && defaultRole.id === r.id ? 'selected' : '' %>><%= r.name %></option>
+                                        <option value="<%= r.id %>" <%= (formData && +formData.role_id === r.id) || (defaultRole && defaultRole.id === r.id && (!formData || !formData.role_id)) ? 'selected' : '' %>><%= r.name %></option>
                                     <% }) %>
                                 </select>
                             <% } else { %>
                                 <input type="text" class="form-control border-start-0" value="<%= defaultRole ? defaultRole.name : 'staff' %>" readonly>
-                                <input type="hidden" name="role_id" value="<%= defaultRole && defaultRole.id ? defaultRole.id : 2 %>">
+                                <input type="hidden" name="role_id" value="<%= formData && formData.role_id ? formData.role_id : (defaultRole && defaultRole.id ? defaultRole.id : 2) %>">
                             <% } %>
                         </div>
                         <% if (!isAdmin) { %>
                             <small class="text-muted d-block mt-2"><i class="fas fa-info-circle me-1"></i>Bạn sẽ sở hữu quyền truy cập chuẩn dành cho nhân viên.</small>
+                            <small class="text-muted d-block"><i class="fas fa-shield-alt me-1"></i>Tài khoản sẽ được kích hoạt sau khi quản trị viên phê duyệt.</small>
                         <% } %>
                     </div>
                     <div class="col-md-6">

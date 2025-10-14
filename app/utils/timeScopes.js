@@ -201,39 +201,88 @@ function resolveScope(scopeConfig, options = {}) {
 }
 
 function buildScopeOptions(referenceDate = new Date(), options = {}) {
+  const providedYearRecords = Array.isArray(options.yearRecords) ? options.yearRecords : null;
+  const includeInactiveYears = options.includeInactiveYears || false;
   const academicYearsToGenerate = options.academicYears || 3;
   const calendarYearsToGenerate = options.calendarYears || 3;
   const academicYears = [];
   const semesters = [];
 
-  let currentAcademicYearCode = getCurrentAcademicYearCode(referenceDate);
-  let [startYear] = currentAcademicYearCode.split('-').map(Number);
+  const ensureDate = (value, fallbackDate) => {
+    if (!value) {
+      return fallbackDate instanceof Date ? fallbackDate : new Date(fallbackDate);
+    }
+    const candidate = new Date(value);
+    return Number.isNaN(candidate.getTime()) ? (fallbackDate instanceof Date ? fallbackDate : new Date(fallbackDate)) : candidate;
+  };
 
-  for (let i = 0; i < academicYearsToGenerate; i += 1) {
-    const code = `${startYear - i}-${startYear - i + 1}`;
-    const range = getAcademicYearRange(code, { referenceDate });
-    academicYears.push({
-      mode: 'academic_year',
-      value: `academic_year|${range.code}`,
-      label: range.label,
-      startDate: range.startDate,
-      endDate: range.endDate
-    });
+  if (providedYearRecords && providedYearRecords.length) {
+    providedYearRecords.forEach((record) => {
+      const normalizedCode = normalizeAcademicYearCode(record.year_code || record.code);
+      if (!normalizedCode) {
+        return;
+      }
+      if (!includeInactiveYears && record.status && record.status !== 'active') {
+        return;
+      }
 
-    SEMESTER_DEFINITIONS.forEach((definition) => {
-      const semesterRange = getSemesterRange({
-        academicYearCode: range.code,
-        semesterCode: definition.code,
-        referenceDate
+      const fallbackRange = getAcademicYearRange(normalizedCode, { referenceDate });
+      const startDate = startOfDay(ensureDate(record.start_date, fallbackRange.startDate));
+      const endDate = endOfDay(ensureDate(record.end_date, fallbackRange.endDate));
+
+      academicYears.push({
+        mode: 'academic_year',
+        value: `academic_year|${normalizedCode}`,
+        label: record.display_name || `Năm học ${normalizedCode}`,
+        startDate,
+        endDate
       });
-      semesters.push({
-        mode: 'semester',
-        value: `semester|${range.code}|${definition.code}`,
-        label: semesterRange.label,
-        startDate: semesterRange.startDate,
-        endDate: semesterRange.endDate
+
+      SEMESTER_DEFINITIONS.forEach((definition) => {
+        const semesterRange = getSemesterRange({
+          academicYearCode: normalizedCode,
+          semesterCode: definition.code,
+          referenceDate
+        });
+        semesters.push({
+          mode: 'semester',
+          value: `semester|${normalizedCode}|${definition.code}`,
+          label: `${definition.label} · ${record.display_name || `Năm học ${normalizedCode}`}`,
+          startDate: semesterRange.startDate,
+          endDate: semesterRange.endDate
+        });
       });
     });
+  } else {
+    let currentAcademicYearCode = getCurrentAcademicYearCode(referenceDate);
+    let [startYear] = currentAcademicYearCode.split('-').map(Number);
+
+    for (let i = 0; i < academicYearsToGenerate; i += 1) {
+      const code = `${startYear - i}-${startYear - i + 1}`;
+      const range = getAcademicYearRange(code, { referenceDate });
+      academicYears.push({
+        mode: 'academic_year',
+        value: `academic_year|${range.code}`,
+        label: range.label,
+        startDate: range.startDate,
+        endDate: range.endDate
+      });
+
+      SEMESTER_DEFINITIONS.forEach((definition) => {
+        const semesterRange = getSemesterRange({
+          academicYearCode: range.code,
+          semesterCode: definition.code,
+          referenceDate
+        });
+        semesters.push({
+          mode: 'semester',
+          value: `semester|${range.code}|${definition.code}`,
+          label: semesterRange.label,
+          startDate: semesterRange.startDate,
+          endDate: semesterRange.endDate
+        });
+      });
+    }
   }
 
   const calendarYears = [];

@@ -8,25 +8,52 @@ class ExaminationSession extends BaseModel {
    * Lấy tất cả ca thi với filter (dùng view mới có grader info)
    */
   static async findAll(filters = {}) {
+    const hasFilesTable = await this.tableExists('examination_files');
+    const fileCountSelect = hasFilesTable
+      ? `(SELECT COUNT(*) FROM examination_files ef WHERE ef.session_id = es.id AND ef.status = 'active')`
+      : '0';
+
+    const supportsSecondaryGrader = await this.supportsSecondaryGrader();
+
+    const selectFields = [
+      'es.*',
+      'ep.name as period_name',
+      's.code as subject_code',
+      's.name as subject_name',
+      'c.code as class_code',
+      'c.name as class_name',
+      'u.full_name as grader_name',
+      'u.email as grader_email',
+      'es.grader_manual_name',
+      'DATEDIFF(es.grading_deadline, CURDATE()) as days_until_deadline',
+      `${fileCountSelect} as file_count`
+    ];
+
+    if (supportsSecondaryGrader) {
+      selectFields.push(
+        'es.grader2_id',
+        'es.grader2_manual_name',
+        'u2.full_name as grader2_name',
+        'u2.email as grader2_email'
+      );
+    } else {
+      selectFields.push(
+        'NULL as grader2_id',
+        'NULL as grader2_manual_name',
+        'NULL as grader2_name',
+        'NULL as grader2_email'
+      );
+    }
+
     let query = `
       SELECT 
-        es.*,
-        ep.name as period_name,
-        s.code as subject_code,
-        s.name as subject_name,
-    c.code as class_code,
-    c.name as class_name,
-    u.full_name as grader_name,
-    u.email as grader_email,
-    es.grader_manual_name,
-        DATEDIFF(es.grading_deadline, CURDATE()) as days_until_deadline,
-        (SELECT COUNT(*) FROM examination_files ef 
-         WHERE ef.session_id = es.id AND ef.status = 'active') as file_count
+        ${selectFields.join(',\n        ')}
       FROM ${this.tableName} es
       LEFT JOIN examination_periods ep ON es.period_id = ep.id
       LEFT JOIN subjects s ON es.subject_id = s.id
       LEFT JOIN classes c ON es.class_id = c.id
       LEFT JOIN users u ON es.grader_id = u.id
+      ${supportsSecondaryGrader ? 'LEFT JOIN users u2 ON es.grader2_id = u2.id' : ''}
       WHERE 1=1
     `;
     
@@ -48,8 +75,13 @@ class ExaminationSession extends BaseModel {
     }
 
     if (filters.grader) {
-      query += ' AND ((u.full_name LIKE ?) OR (es.grader_manual_name LIKE ?))';
-      params.push(`%${filters.grader}%`, `%${filters.grader}%`);
+      if (supportsSecondaryGrader) {
+        query += ' AND ((u.full_name LIKE ?) OR (es.grader_manual_name LIKE ?) OR (u2.full_name LIKE ?) OR (es.grader2_manual_name LIKE ?))';
+        params.push(`%${filters.grader}%`, `%${filters.grader}%`, `%${filters.grader}%`, `%${filters.grader}%`);
+      } else {
+        query += ' AND ((u.full_name LIKE ?) OR (es.grader_manual_name LIKE ?))';
+        params.push(`%${filters.grader}%`, `%${filters.grader}%`);
+      }
     }
     
     query += ' ORDER BY es.exam_date DESC, es.exam_time ASC';
@@ -62,22 +94,45 @@ class ExaminationSession extends BaseModel {
    * Lấy một ca thi theo ID (với thông tin grader)
    */
   static async findById(id) {
+    const supportsSecondaryGrader = await this.supportsSecondaryGrader();
+
+    const selectFields = [
+      'es.*',
+      'ep.name as period_name',
+      's.code as subject_code',
+      's.name as subject_name',
+      'c.code as class_code',
+      'c.name as class_name',
+      'u.full_name as grader_name',
+      'u.email as grader_email',
+      'es.grader_manual_name'
+    ];
+
+    if (supportsSecondaryGrader) {
+      selectFields.push(
+        'es.grader2_id',
+        'es.grader2_manual_name',
+        'u2.full_name as grader2_name',
+        'u2.email as grader2_email'
+      );
+    } else {
+      selectFields.push(
+        'NULL as grader2_id',
+        'NULL as grader2_manual_name',
+        'NULL as grader2_name',
+        'NULL as grader2_email'
+      );
+    }
+
     const query = `
       SELECT 
-        es.*,
-        ep.name as period_name,
-        s.code as subject_code,
-    s.name as subject_name,
-    c.code as class_code,
-    c.name as class_name,
-    u.full_name as grader_name,
-    u.email as grader_email,
-    es.grader_manual_name
+        ${selectFields.join(',\n        ')}
       FROM ${this.tableName} es
       LEFT JOIN examination_periods ep ON es.period_id = ep.id
       LEFT JOIN subjects s ON es.subject_id = s.id
       LEFT JOIN classes c ON es.class_id = c.id
       LEFT JOIN users u ON es.grader_id = u.id
+      ${supportsSecondaryGrader ? 'LEFT JOIN users u2 ON es.grader2_id = u2.id' : ''}
       WHERE es.id = ?
     `;
     
@@ -89,15 +144,14 @@ class ExaminationSession extends BaseModel {
    * Tạo ca thi mới (hỗ trợ grader_id và grading_deadline)
    */
   static async create(data) {
-    const query = `
-      INSERT INTO ${this.tableName} 
-      (period_id, subject_id, class_id, exam_code, exam_name, 
-       exam_date, exam_time, duration, room, building, student_count, 
-       expected_copies, grader_id, grader_manual_name, grading_deadline, link, exam_type, status, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    
-    const insertResult = await this.db.insert(query, [
+    const supportsSecondaryGrader = await this.supportsSecondaryGrader();
+
+    const columns = [
+      'period_id','subject_id','class_id','exam_code','exam_name',
+      'exam_date','exam_time','duration','room','building','student_count',
+      'expected_copies','grader_id','grader_manual_name','grading_deadline','link','exam_type','status','notes'
+    ];
+    const values = [
       data.period_id,
       data.subject_id,
       data.class_id || null,
@@ -117,7 +171,20 @@ class ExaminationSession extends BaseModel {
       data.exam_type || 'offline',
       data.status || 'scheduled',
       data.notes || null
-    ]);
+    ];
+
+    if (supportsSecondaryGrader) {
+      columns.push('grader2_id', 'grader2_manual_name');
+      values.push(data.grader2_id || null, data.grader2_manual_name || null);
+    }
+
+    const placeholders = columns.map(() => '?').join(', ');
+    const query = `
+      INSERT INTO ${this.tableName} (${columns.join(', ')})
+      VALUES (${placeholders})
+    `;
+    
+    const insertResult = await this.db.insert(query, values);
     
     return insertResult.insertId;
   }
@@ -150,6 +217,87 @@ class ExaminationSession extends BaseModel {
   static async delete(id) {
     const query = `DELETE FROM ${this.tableName} WHERE id = ?`;
     await this.db.delete(query, [id]);
+  }
+
+  /**
+   * Kiểm tra bảng có tồn tại hay không (có cache nhẹ tránh query lặp lại)
+   */
+  static async tableExists(tableName, options = {}) {
+    const { forceRefresh = false } = options;
+
+    if (!this._tableExistCache) {
+      this._tableExistCache = new Map();
+    }
+
+    const now = Date.now();
+    let cacheEntry = this._tableExistCache.get(tableName);
+    if (typeof cacheEntry === 'boolean') {
+      cacheEntry = { exists: cacheEntry, checkedAt: 0 };
+    }
+    const positiveTtl = 5 * 60 * 1000; // cache positive lookups for 5 minutes
+    const negativeTtl = 30 * 1000; // retry missing tables every 30 seconds
+
+    if (!forceRefresh && cacheEntry) {
+      const ttl = cacheEntry.exists ? positiveTtl : negativeTtl;
+      if (now - cacheEntry.checkedAt < ttl) {
+        return cacheEntry.exists;
+      }
+    }
+
+    const result = await this.db.query(
+      'SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? LIMIT 1',
+      [tableName]
+    );
+    const exists = Array.isArray(result) && result.length > 0;
+    this._tableExistCache.set(tableName, { exists, checkedAt: now });
+    return exists;
+  }
+
+  static async columnExists(tableName, columnName, options = {}) {
+    const { forceRefresh = false } = options;
+
+    if (!this._columnExistCache) {
+      this._columnExistCache = new Map();
+    }
+
+    const cacheKey = `${tableName}.${columnName}`;
+    let cacheEntry = this._columnExistCache.get(cacheKey);
+    if (typeof cacheEntry === 'boolean') {
+      cacheEntry = { exists: cacheEntry, checkedAt: 0 };
+    }
+
+    const now = Date.now();
+    const positiveTtl = 5 * 60 * 1000;
+    const negativeTtl = 30 * 1000;
+
+    if (!forceRefresh && cacheEntry) {
+      const ttl = cacheEntry.exists ? positiveTtl : negativeTtl;
+      if (now - cacheEntry.checkedAt < ttl) {
+        return cacheEntry.exists;
+      }
+    }
+
+    const result = await this.db.query(
+      `SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1`,
+      [tableName, columnName]
+    );
+    const exists = Array.isArray(result) && result.length > 0;
+    this._columnExistCache.set(cacheKey, { exists, checkedAt: now });
+    return exists;
+  }
+
+  static async supportsSecondaryGrader(options = {}) {
+    if (options.forceRefresh && this._supportsSecondaryGrader !== undefined) {
+      delete this._supportsSecondaryGrader;
+    }
+
+    if (this._supportsSecondaryGrader === undefined) {
+      const hasId = await this.columnExists(this.tableName, 'grader2_id');
+      const hasManual = await this.columnExists(this.tableName, 'grader2_manual_name');
+      this._supportsSecondaryGrader = hasId && hasManual;
+    }
+
+    return this._supportsSecondaryGrader;
   }
 
   /**

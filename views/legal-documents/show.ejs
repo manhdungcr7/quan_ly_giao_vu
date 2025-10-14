@@ -1,7 +1,17 @@
+<% 
+// Define breadcrumb for this page
+breadcrumb = [
+  { label: 'Trang chủ', url: '/', icon: 'fa-home' },
+  { label: 'Văn bản pháp lý', url: '/legal-documents', icon: 'fa-balance-scale' },
+  { label: 'Chi tiết văn bản', url: `/legal-documents/${document.id}`, icon: 'fa-file-alt' }
+];
+%>
+
 <%- contentFor('css') %>
 <link rel="stylesheet" href="/css/documents.css">
 
 <%- contentFor('content') %>
+<%- include('../partials/alerts') %>
 <div class="documents-page">
   <div class="page-header">
     <div>

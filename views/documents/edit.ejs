@@ -2,6 +2,25 @@
 <link rel="stylesheet" href="/css/documents.css">
 
 <%- contentFor('content') %>
+<% const STATUS_LABELS = {
+  pending: 'Chờ xử lý',
+  processing: 'Đang xử lý',
+  completed: 'Hoàn tất',
+  approved: 'Đã duyệt',
+  archived: 'Đã lưu trữ',
+  draft: 'Bản nháp'
+}; %>
+<% const DIRECTION_OPTIONS = [
+  { id: 'incoming', label: 'Văn bản đến' },
+  { id: 'outgoing', label: 'Văn bản đi' }
+]; %>
+<% const PRIORITY_OPTIONS = [
+  { id: 'low', label: 'Thấp' },
+  { id: 'medium', label: 'Bình thường' },
+  { id: 'high', label: 'Cao' },
+  { id: 'urgent', label: 'Khẩn cấp' }
+]; %>
+<%- include('../partials/alerts') %>
 <div class="documents-page">
   <div class="page-header">
     <div>
@@ -25,12 +44,14 @@
         <h3>Thông tin cơ bản</h3>
         
         <div class="form-group">
-          <label for="direction" class="required">Loại văn bản</label>
-          <select name="direction" id="direction" required>
-            <option value="">-- Chọn loại --</option>
-            <option value="incoming" <%= (document.direction === 'incoming') ? 'selected' : '' %>>Văn bản đến</option>
-            <option value="outgoing" <%= (document.direction === 'outgoing') ? 'selected' : '' %>>Văn bản đi</option>
-          </select>
+          <label for="direction_display" class="required">Loại văn bản</label>
+          <input type="hidden" name="direction" id="direction" value="<%= document.direction || '' %>">
+          <input type="text" id="direction_display" list="directionOptions" placeholder="Chọn loại" autocomplete="off" value="<%= (DIRECTION_OPTIONS.find(function(opt){return opt.id === document.direction;}) || {}).label || '' %>">
+          <datalist id="directionOptions">
+            <% DIRECTION_OPTIONS.forEach(function(opt){ %>
+              <option value="<%= opt.label %>" data-id="<%= opt.id %>"></option>
+            <% }) %>
+          </datalist>
         </div>
 
         <div class="form-group">
@@ -49,15 +70,15 @@
         </div>
 
         <div class="form-group">
-          <label for="type_id">Loại văn bản</label>
-          <select name="type_id" id="type_id">
-            <option value="">-- Chọn loại --</option>
+          <label for="type_display">Loại văn bản</label>
+          <input type="hidden" name="type_id" id="type_id" value="<%= document.type_id || '' %>">
+          <% const currentType = (types || []).find(function(type){ return String(type.id) === String(document.type_id); }); %>
+          <input type="text" name="type_label" id="type_display" list="typeOptions" placeholder="Nhập để tìm nhanh" autocomplete="off" value="<%= currentType ? currentType.name : '' %>">
+          <datalist id="typeOptions">
             <% (types || []).forEach(function(type) { %>
-              <option value="<%= type.id %>" <%= (document.type_id == type.id) ? 'selected' : '' %>>
-                <%= type.name %>
-              </option>
+              <option value="<%= type.name %>" data-id="<%= type.id %>"></option>
             <% }) %>
-          </select>
+          </datalist>
         </div>
 
         <div class="form-group">
@@ -95,25 +116,44 @@
         </div>
 
         <div class="form-group">
-          <label for="priority">Độ ưu tiên</label>
-          <select name="priority" id="priority">
-            <option value="low" <%= (document.priority === 'low') ? 'selected' : '' %>>Thấp</option>
-            <option value="medium" <%= (document.priority === 'medium') ? 'selected' : '' %>>Bình thường</option>
-            <option value="high" <%= (document.priority === 'high') ? 'selected' : '' %>>Cao</option>
-            <option value="urgent" <%= (document.priority === 'urgent') ? 'selected' : '' %>>Khẩn cấp</option>
-          </select>
+          <label for="priority_display">Độ ưu tiên</label>
+          <input type="hidden" name="priority" id="priority" value="<%= document.priority || 'medium' %>">
+          <input type="text" id="priority_display" list="priorityOptions" placeholder="Chọn độ ưu tiên" autocomplete="off" value="<%= (PRIORITY_OPTIONS.find(function(opt){return opt.id === (document.priority || 'medium');}) || {}).label || '' %>">
+          <datalist id="priorityOptions">
+            <% PRIORITY_OPTIONS.forEach(function(opt){ %>
+              <option value="<%= opt.label %>" data-id="<%= opt.id %>"></option>
+            <% }) %>
+          </datalist>
         </div>
 
         <div class="form-group">
-          <label for="assigned_to">Người xử lý</label>
-          <select name="assigned_to" id="assigned_to">
-            <option value="">-- Chọn người xử lý --</option>
+          <label for="status_display">Trạng thái</label>
+          <input type="hidden" name="status" id="status" value="<%= document.status || 'pending' %>">
+          <input type="text" id="status_display" list="statusOptions"
+                 placeholder="Chọn trạng thái"
+                 value="<%= STATUS_LABELS[document.status] || STATUS_LABELS.pending %>"
+                 autocomplete="off">
+          <datalist id="statusOptions">
+            <option value="<%= STATUS_LABELS.pending %>" data-id="pending"></option>
+            <option value="<%= STATUS_LABELS.processing %>" data-id="processing"></option>
+            <option value="<%= STATUS_LABELS.completed %>" data-id="completed"></option>
+            <option value="<%= STATUS_LABELS.approved %>" data-id="approved"></option>
+            <option value="<%= STATUS_LABELS.archived %>" data-id="archived"></option>
+            <option value="<%= STATUS_LABELS.draft %>" data-id="draft"></option>
+          </datalist>
+          <small>Trạng thái hiện tại của văn bản trong quy trình xử lý.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="assigned_to_display">Người xử lý</label>
+          <input type="hidden" name="assigned_to" id="assigned_to" value="<%= document.assigned_to || '' %>">
+          <% const currentAssignee = (users || []).find(function(user){ return String(user.id) === String(document.assigned_to); }); %>
+          <input type="text" name="assigned_to_label" id="assigned_to_display" list="assignedToOptions" placeholder="Nhập tên để tìm" autocomplete="off" value="<%= currentAssignee ? currentAssignee.full_name : '' %>">
+          <datalist id="assignedToOptions">
             <% (users || []).forEach(function(user) { %>
-              <option value="<%= user.id %>" <%= (document.assigned_to == user.id) ? 'selected' : '' %>>
-                <%= user.full_name %>
-              </option>
+              <option value="<%= user.full_name %>" data-id="<%= user.id %>"></option>
             <% }) %>
-          </select>
+          </datalist>
         </div>
       </div>
 
@@ -121,27 +161,27 @@
         <h3>Cơ quan liên quan</h3>
 
         <div class="form-group" id="from_org_group">
-          <label for="from_org_id">Cơ quan gửi</label>
-          <select name="from_org_id" id="from_org_id">
-            <option value="">-- Chọn cơ quan --</option>
+          <label for="from_org_display">Cơ quan gửi</label>
+          <input type="hidden" name="from_org_id" id="from_org_id" value="<%= document.from_org_id || '' %>">
+          <% const currentFromOrg = (organizations || []).find(function(org){ return String(org.id) === String(document.from_org_id); }); %>
+          <input type="text" name="from_org_label" id="from_org_display" list="fromOrgOptions" placeholder="Nhập để tìm cơ quan" autocomplete="off" value="<%= currentFromOrg ? currentFromOrg.name : '' %>">
+          <datalist id="fromOrgOptions">
             <% (organizations || []).forEach(function(org) { %>
-              <option value="<%= org.id %>" <%= (document.from_org_id == org.id) ? 'selected' : '' %>>
-                <%= org.name %>
-              </option>
+              <option value="<%= org.name %>" data-id="<%= org.id %>"></option>
             <% }) %>
-          </select>
+          </datalist>
         </div>
 
         <div class="form-group" id="to_org_group">
-          <label for="to_org_id">Cơ quan nhận</label>
-          <select name="to_org_id" id="to_org_id">
-            <option value="">-- Chọn cơ quan --</option>
+          <label for="to_org_display">Cơ quan nhận</label>
+          <input type="hidden" name="to_org_id" id="to_org_id" value="<%= document.to_org_id || '' %>">
+          <% const currentToOrg = (organizations || []).find(function(org){ return String(org.id) === String(document.to_org_id); }); %>
+          <input type="text" name="to_org_label" id="to_org_display" list="toOrgOptions" placeholder="Nhập để tìm cơ quan" autocomplete="off" value="<%= currentToOrg ? currentToOrg.name : '' %>">
+          <datalist id="toOrgOptions">
             <% (organizations || []).forEach(function(org) { %>
-              <option value="<%= org.id %>" <%= (document.to_org_id == org.id) ? 'selected' : '' %>>
-                <%= org.name %>
-              </option>
+              <option value="<%= org.name %>" data-id="<%= org.id %>"></option>
             <% }) %>
-          </select>
+          </datalist>
         </div>
 
         <div class="form-group">
@@ -165,30 +205,155 @@
 </div>
 
 <script>
-// Dynamic form behavior based on direction
-document.getElementById('direction').addEventListener('change', function() {
-  const direction = this.value;
+(function() {
+  function bindDatalist(displayId, hiddenId, datalistId, options) {
+    const config = options || {};
+    const displayEl = document.getElementById(displayId);
+    const hiddenEl = document.getElementById(hiddenId);
+    const datalistEl = document.getElementById(datalistId);
+
+    if (!displayEl || !hiddenEl || !datalistEl) {
+      return;
+    }
+
+    if (config.required) {
+      displayEl.setAttribute('required', 'required');
+    }
+
+    const findOptionByValue = function(value) {
+      for (let i = 0; i < datalistEl.options.length; i++) {
+        const option = datalistEl.options[i];
+        if (option.dataset && option.dataset.id === value) {
+          return option;
+        }
+      }
+      return null;
+    };
+
+    const findOptionByLabel = function(label) {
+      for (let i = 0; i < datalistEl.options.length; i++) {
+        const option = datalistEl.options[i];
+        if (option.value === label) {
+          return option;
+        }
+      }
+      return null;
+    };
+
+    const syncDisplayedFromHidden = function() {
+      if (!hiddenEl.value) {
+        return;
+      }
+      const matched = findOptionByValue(hiddenEl.value);
+      if (matched && matched.value) {
+        displayEl.value = matched.value;
+      }
+    };
+
+    const syncHiddenFromDisplay = function(triggerCallback) {
+      const label = displayEl.value.trim();
+      const matched = findOptionByLabel(label);
+      if (matched) {
+        hiddenEl.value = matched.dataset && matched.dataset.id ? matched.dataset.id : matched.value;
+      } else if (config.allowFreeText === true) {
+        hiddenEl.value = label;
+      } else {
+        hiddenEl.value = '';
+      }
+
+      if (!matched && config.allowFreeText !== true && label) {
+        displayEl.classList.add('input-unmatched');
+        displayEl.setCustomValidity('Vui lòng chọn giá trị từ gợi ý');
+      } else {
+        displayEl.classList.remove('input-unmatched');
+        displayEl.setCustomValidity('');
+      }
+
+      if (typeof config.onChange === 'function' && triggerCallback !== false) {
+        config.onChange(hiddenEl.value, matched ? matched.value : label);
+      }
+    };
+
+    displayEl.addEventListener('change', function() { syncHiddenFromDisplay(true); });
+    displayEl.addEventListener('blur', function() { syncHiddenFromDisplay(true); });
+    displayEl.addEventListener('input', function() {
+      if (!displayEl.value.trim()) {
+        hiddenEl.value = '';
+        displayEl.classList.remove('input-unmatched');
+        displayEl.setCustomValidity('');
+        if (typeof config.onChange === 'function') {
+          config.onChange('', '');
+        }
+      }
+    });
+
+    syncDisplayedFromHidden();
+    syncHiddenFromDisplay(false);
+    if (typeof config.onChange === 'function') {
+      config.onChange(hiddenEl.value, displayEl.value);
+    }
+  }
+
   const fromOrgGroup = document.getElementById('from_org_group');
   const toOrgGroup = document.getElementById('to_org_group');
-  
-  if (direction === 'incoming') {
-    fromOrgGroup.style.display = 'block';
-    toOrgGroup.style.display = 'none';
-    document.getElementById('from_org_id').required = true;
-    document.getElementById('to_org_id').required = false;
-  } else if (direction === 'outgoing') {
-    fromOrgGroup.style.display = 'none';
-    toOrgGroup.style.display = 'block';
-    document.getElementById('from_org_id').required = false;
-    document.getElementById('to_org_id').required = true;
-  } else {
-    fromOrgGroup.style.display = 'block';
-    toOrgGroup.style.display = 'block';
-    document.getElementById('from_org_id').required = false;
-    document.getElementById('to_org_id').required = false;
-  }
-});
+  const fromOrgHidden = document.getElementById('from_org_id');
+  const toOrgHidden = document.getElementById('to_org_id');
+  const fromOrgDisplay = document.getElementById('from_org_display');
+  const toOrgDisplay = document.getElementById('to_org_display');
 
-// Trigger initial state
-document.getElementById('direction').dispatchEvent(new Event('change'));
+  function applyDirectionRules(currentDirection) {
+    if (!fromOrgGroup || !toOrgGroup || !fromOrgHidden || !toOrgHidden) {
+      return;
+    }
+
+    if (currentDirection === 'incoming') {
+      fromOrgGroup.style.display = 'block';
+      toOrgGroup.style.display = 'none';
+      fromOrgHidden.required = false;
+      toOrgHidden.required = false;
+      if (fromOrgDisplay) {
+        fromOrgDisplay.setAttribute('required', 'required');
+      }
+      if (toOrgDisplay) {
+        toOrgDisplay.removeAttribute('required');
+      }
+    } else if (currentDirection === 'outgoing') {
+      fromOrgGroup.style.display = 'none';
+      toOrgGroup.style.display = 'block';
+      fromOrgHidden.required = false;
+      toOrgHidden.required = false;
+      if (fromOrgDisplay) {
+        fromOrgDisplay.removeAttribute('required');
+      }
+      if (toOrgDisplay) {
+        toOrgDisplay.setAttribute('required', 'required');
+      }
+    } else {
+      fromOrgGroup.style.display = 'block';
+      toOrgGroup.style.display = 'block';
+      fromOrgHidden.required = false;
+      toOrgHidden.required = false;
+      if (fromOrgDisplay) {
+        fromOrgDisplay.removeAttribute('required');
+      }
+      if (toOrgDisplay) {
+        toOrgDisplay.removeAttribute('required');
+      }
+    }
+  }
+
+  bindDatalist('direction_display', 'direction', 'directionOptions', {
+    required: true,
+    onChange: function(value) {
+      applyDirectionRules(value);
+    }
+  });
+
+  bindDatalist('status_display', 'status', 'statusOptions');
+  bindDatalist('type_display', 'type_id', 'typeOptions', { allowFreeText: true });
+  bindDatalist('priority_display', 'priority', 'priorityOptions');
+  bindDatalist('assigned_to_display', 'assigned_to', 'assignedToOptions', { allowFreeText: true });
+  bindDatalist('from_org_display', 'from_org_id', 'fromOrgOptions', { allowFreeText: true });
+  bindDatalist('to_org_display', 'to_org_id', 'toOrgOptions', { allowFreeText: true });
+})();
 </script>

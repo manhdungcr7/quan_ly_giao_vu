@@ -92,7 +92,14 @@ UPLOAD_MAX_SIZE=10485760
 UPLOAD_ALLOWED_TYPES=jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx
 ```
 
-### Bước 5: Chạy ứng dụng
+### Bước 5: Khởi tạo dữ liệu người dùng
+
+```bash
+npm run seed:roles
+npm run seed:admin
+```
+
+### Bước 6: Chạy ứng dụng
 
 Development mode:
 ```bash
@@ -175,10 +182,12 @@ Chi tiết schema xem tại `database/schema_optimized.sql`
 
 ## Phân quyền
 
-Hệ thống có 3 loại vai trò:
-- **admin**: Toàn quyền quản trị
-- **staff**: Cán bộ, quyền hạn trung bình
-- **user**: Người dùng thông thường, quyền hạn cơ bản
+Hệ thống có 3 loại vai trò chính:
+- **admin**: Toàn quyền quản trị hệ thống.
+- **faculty_lead**: Lãnh đạo khoa, có quyền phê duyệt và điều phối (giới hạn tối đa 5 tài khoản đang hoạt động).
+- **lecturer**: Giảng viên, quản lý lớp học và tài liệu giảng dạy.
+
+> ⚠️  Số lượng tài khoản **faculty_lead** đang hoạt động bị giới hạn tối đa 5 người. Khi đạt giới hạn, cần vô hiệu hóa một tài khoản hiện có trước khi tạo mới.
 
 ## Logging
 

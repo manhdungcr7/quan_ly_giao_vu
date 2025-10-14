@@ -21,9 +21,28 @@ const cors = require('cors');
 const config = require('./config/app');
 const db = require('./config/database');
 
+const normalizeOrigin = (value) => {
+    if (!value || typeof value !== 'string') return null;
+    return value.replace(/\/+$/, '');
+};
+
+const buildAppOriginSources = () => {
+    const sources = new Set();
+    const base = normalizeOrigin(config.app.url);
+
+    if (base) {
+        sources.add(base);
+    }
+
+    return Array.from(sources).filter(Boolean);
+};
+
+const appOriginSources = buildAppOriginSources();
+
 // Import middleware
 const { addUserToLocals, notFound, errorHandler } = require('./app/middleware/auth');
 const { handleUploadError } = require('./app/middleware/upload');
+const { buildBreadcrumb } = require('./app/utils/breadcrumb');
 
 // Import routes
 const authRoutes = require('./app/routes/auth');
@@ -59,19 +78,23 @@ app.use((req, res, next) => {
 });
 
 // Security middleware
+const cspDirectives = {
+    "default-src": ["'self'"],
+    "style-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+    "font-src": ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://fonts.gstatic.com", "data:"],
+    "script-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
+    "script-src-attr": ["'unsafe-inline'", "'unsafe-hashes'"],
+    "img-src": ["'self'", "data:", "https:", "http:"],
+    "connect-src": ["'self'"].concat(appOriginSources),
+    "form-action": ["'self'"].concat(appOriginSources)
+};
+
 app.use(helmet({
     contentSecurityPolicy: {
         useDefaults: true,
-        directives: {
-            "default-src": ["'self'"],
-            "style-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
-            "font-src": ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://fonts.gstatic.com", "data:"],
-            "script-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-            "script-src-attr": ["'unsafe-inline'", "'unsafe-hashes'"],
-            "img-src": ["'self'", "data:", "https:"],
-            "connect-src": ["'self'"],
-        }
+        directives: cspDirectives
     },
+    crossOriginOpenerPolicy: false,
     hsts: config.server.env === 'production' ? undefined : false
 }));
 
@@ -79,17 +102,29 @@ app.use(helmet({
 app.use(compression());
 
 // CORS middleware
+const corsOrigins = appOriginSources.length ? appOriginSources : (config.app.url ? [normalizeOrigin(config.app.url)] : []);
+
 app.use(cors({
-    origin: config.app.url,
+    origin: corsOrigins.length ? corsOrigins : true,
     credentials: true
 }));
 
 // Favicon routes (handle both .ico and .svg) - BEFORE rate limiter
 app.get('/favicon.ico', (req, res) => {
+    res.set({
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=86400, immutable'
+    });
     res.redirect(301, '/favicon.svg');
 });
 app.get('/favicon.svg', (req, res) => {
-    res.setHeader('Content-Type', 'image/svg+xml');
+    res.set({
+        'Content-Type': 'image/svg+xml',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=86400, immutable'
+    });
     res.sendFile(path.join(__dirname, 'public', 'favicon.svg'));
 });
 
@@ -138,6 +173,8 @@ app.use(addUserToLocals);
 app.use((req, res, next) => {
     res.locals.appName = config.app.name;
     res.locals.appUrl = config.app.url;
+    res.locals.supportsHttps = false;
+    res.locals.httpFallbackUrl = config.app.url.replace(/^https:\/\//, 'http://');
     res.locals.currentPath = req.path;
     res.locals.currentUrl = req.url;
     res.locals.moment = require('moment');
@@ -150,6 +187,10 @@ app.use((req, res, next) => {
     res.locals.error = req.flash('error') || [];
     res.locals.info = req.flash('info') || [];
     res.locals.warning = req.flash('warning') || [];
+    
+    if (!res.locals.breadcrumb) {
+        res.locals.breadcrumb = buildBreadcrumb(req.path);
+    }
     
     next();
 });
@@ -185,18 +226,20 @@ const HOST = config.server.host;
 let serverInstance = null;
 
 function startServer(port, attempt = 0) {
-    serverInstance = app.listen(port, HOST, () => {
+    const displayHost = HOST === '0.0.0.0' ? '127.0.0.1' : HOST;
+
+    const onListening = () => {
         if (attempt === 0) {
             console.log('🚀 Server starting...');
         } else {
             console.log(`� Server restarted on fallback port after ${attempt} attempt(s).`);
         }
         console.log(`�📊 Environment: ${config.server.env}`);
-        console.log(`🌐 Server running at: http://${HOST}:${port}`);
         console.log(`📁 Upload path: ${config.upload.uploadPath}`);
+        console.log(`🌐 HTTP URL: http://${displayHost}:${port}`);
+
         console.log('✅ Server started successfully!');
 
-        // Test database connection
         db.testConnection().then(isConnected => {
             if (isConnected) {
                 console.log('✅ Database connection verified');
@@ -204,7 +247,9 @@ function startServer(port, attempt = 0) {
                 console.log('❌ Database connection failed');
             }
         });
-    });
+    };
+
+    serverInstance = app.listen(port, HOST, onListening);
 
     serverInstance.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {

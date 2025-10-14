@@ -20,6 +20,7 @@
                 <h3 class="fw-bold text-primary mb-1">Đăng nhập hệ thống</h3>
                 <p class="text-muted mb-0">Chào mừng trở lại! Vui lòng nhập thông tin để tiếp tục.</p>
             </div>
+            <%- include('../partials/alerts') %>
             <form action="/auth/login" method="POST" class="needs-validation" novalidate>
                 <div class="mb-3">
                     <label for="username" class="form-label fw-semibold">Tên đăng nhập</label>

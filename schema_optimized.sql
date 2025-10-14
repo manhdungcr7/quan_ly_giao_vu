@@ -18,6 +18,20 @@ USE quan_ly_giao_vu;
 -- 1. REFERENCE TABLES (Lookup tables)
 -- =====================================================
 
+CREATE TABLE academic_years (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    year_code VARCHAR(9) NOT NULL UNIQUE,
+    display_name VARCHAR(32) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    status ENUM('active','inactive','planned') DEFAULT 'active',
+    notes TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_start_date (start_date)
+) ENGINE=InnoDB;
+
 -- Roles table for user permissions
 CREATE TABLE roles (
     id MEDIUMINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -126,17 +140,24 @@ CREATE TABLE users (
     avatar VARCHAR(255) NULL,
     phone VARCHAR(15) NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    approval_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+    approved_by INT UNSIGNED NULL,
+    approved_at DATETIME NULL,
+    rejected_reason VARCHAR(255) NULL,
     last_login DATETIME NULL,
     email_verified_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE RESTRICT,
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
     
     INDEX idx_username (username),
     INDEX idx_email (email),
     INDEX idx_role (role_id),
     INDEX idx_active (is_active),
+    INDEX idx_approval_status (approval_status),
+    INDEX idx_approved_by (approved_by),
     INDEX idx_last_login (last_login)
 ) ENGINE=InnoDB;
 
@@ -852,7 +873,11 @@ INSERT INTO roles (name, description, permissions) VALUES
 ('admin', 'System Administrator', '["all"]'),
 ('staff', 'Staff Member', '["read", "write_own"]'),
 ('lecturer', 'Lecturer', '["read", "write_own", "teach"]'),
-('viewer', 'Read Only', '["read"]');
+('viewer', 'Read Only', '["read"]'),
+('guest', 'Guest account with limited permissions', '["read"]'),
+('department_head', 'Trưởng khoa', '["read", "write_own", "approve_department"]'),
+('deputy_department_head', 'Phó trưởng khoa', '["read", "write_own", "assist_department"]'),
+('board', 'Ban giám hiệu', '["read", "write_own", "approve_all"]');
 
 -- Insert default departments
 INSERT INTO departments (name, code, description) VALUES

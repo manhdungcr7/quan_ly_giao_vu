@@ -19,8 +19,8 @@ const config = {
     server: {
         port: process.env.PORT || 3000,
         host: process.env.HOST || 'localhost',
-        env: process.env.NODE_ENV || 'development',
-        enableDevHttps: process.env.ENABLE_DEV_HTTPS !== 'false'
+    env: process.env.NODE_ENV || 'development',
+    sslEnabled: false
     },
 
     // Database configuration
@@ -56,7 +56,7 @@ const config = {
         const rawPath = process.env.UPLOAD_PATH || './public/uploads';
         const absolutePath = path.isAbsolute(rawPath) ? rawPath : path.resolve(__dirname, '..', rawPath);
         return {
-            maxFileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB
+            maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 50 * 1024 * 1024, // default 50MB if not set
             uploadPath: absolutePath,
             // Danh sách MIME types mở rộng (cần song song với kiểm tra extension phía dưới)
             allowedTypes: [
@@ -78,7 +78,7 @@ const config = {
 
     // Application settings
     app: {
-        name: process.env.APP_NAME || 'Hệ thống Quản lý Giáo vụ',
+        name: process.env.APP_NAME || 'quản lý giáo vụ Khoa',
         url: process.env.APP_URL || 'http://localhost:3000',
         timezone: process.env.TIMEZONE || 'Asia/Ho_Chi_Minh'
     },
