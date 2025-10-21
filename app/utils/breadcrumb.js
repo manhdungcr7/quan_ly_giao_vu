@@ -29,8 +29,8 @@ const segmentLabels = {
     icon: 'fa-bell'
   },
   research: {
-    label: 'Nghiên cứu khoa học',
-    icon: 'fa-flask'
+    label: 'Tổng quan nghiên cứu',
+    icon: 'fa-chart-line'
   },
   assets: {
     label: 'Quản lý tài sản',

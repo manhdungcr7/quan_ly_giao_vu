@@ -1,0 +1,739 @@
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/staff.css?v=2024100701">
+<style>
+.staff-profile {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.08);
+}
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.profile-title {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.profile-name {
+  margin: 0;
+  font-size: 1.75rem;
+  color: #0f172a;
+}
+.profile-position {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+}
+.profile-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.profile-status[data-tone="success"] { background: rgba(34, 197, 94, 0.15); color: #047857; }
+.profile-status[data-tone="warning"] { background: rgba(251, 191, 36, 0.18); color: #b45309; }
+.profile-status[data-tone="danger"] { background: rgba(239, 68, 68, 0.16); color: #b91c1c; }
+.profile-status[data-tone="muted"] { background: rgba(148, 163, 184, 0.2); color: #475569; }
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #0f172a;
+  text-decoration: none;
+  font-weight: 600;
+}
+.profile-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 2rem;
+}
+@media (max-width: 960px) {
+  .profile-grid { grid-template-columns: 1fr; }
+  .profile-header { flex-direction: column; align-items: flex-start; }
+}
+.profile-card {
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.profile-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #1e293b;
+}
+.profile-info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+.profile-info-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.profile-info-label {
+  font-size: 0.85rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.profile-info-value {
+  font-size: 1rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+.timeline-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+.timeline-item {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.25rem;
+}
+.timeline-item h4 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #1e293b;
+}
+.timeline-item p {
+  margin: 0;
+  color: #475569;
+}
+.documents-section {
+  margin-top: 2.5rem;
+}
+.document-list {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.75rem;
+}
+.document-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.document-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.document-actions a {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+.upload-form {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px dashed #94a3b8;
+  border-radius: 14px;
+  background: rgba(148, 163, 184, 0.12);
+  display: grid;
+  gap: 0.75rem;
+}
+.upload-form label {
+  font-weight: 600;
+  color: #1e293b;
+}
+.upload-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.upload-actions button {
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.upload-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.2rem;
+  border-radius: 10px;
+  background: #e2e8f0;
+  color: #0f172a;
+  text-decoration: none;
+  font-weight: 600;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.profile-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+.btn-profile-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.35rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #4f46e5, #2563eb);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-profile-edit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.28);
+}
+.profile-edit {
+  display: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 1.6rem;
+  background: #f8fafc;
+  margin-bottom: 2rem;
+}
+.profile-edit.is-visible {
+  display: block;
+}
+.profile-edit__title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.profile-edit__title h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #1e293b;
+}
+.profile-edit__summary {
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  color: #1d4ed8;
+  margin-bottom: 1.25rem;
+}
+.profile-edit__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.form-field label {
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.9rem;
+}
+.form-field .required {
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
+.form-field input,
+.form-field select,
+.form-field textarea {
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5f5;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.form-field textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+.form-field.is-wide {
+  grid-column: span 2;
+}
+@media (max-width: 720px) {
+  .form-field.is-wide {
+    grid-column: span 1;
+  }
+}
+.field-error {
+  color: #dc2626;
+  font-size: 0.85rem;
+}
+.form-error-summary {
+  border: 1px solid rgba(239, 68, 68, 0.38);
+  background: rgba(254, 226, 226, 0.8);
+  color: #991b1b;
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.25rem;
+}
+.form-error-summary ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+.profile-edit__actions {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.profile-edit__actions button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.75rem 1.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.profile-edit__actions .btn-save {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: #fff;
+}
+.profile-edit__actions .btn-cancel {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.profile-edit__actions .btn-cancel:hover {
+  background: #cbd5f5;
+}
+</style>
+
+<div class="staff-profile">
+  <%- include('../partials/alerts') %>
+  <% const hasValidationErrors = validationErrors && Object.keys(validationErrors).length; %>
+
+  <div class="profile-actions">
+    <button
+      type="button"
+      class="btn-profile-edit"
+      data-toggle="edit-profile"
+      aria-expanded="<%= showEditForm ? 'true' : 'false' %>"
+    >
+      <i class="fa-solid fa-pen-to-square"></i>
+      <span><%= showEditForm ? 'Đóng form chỉnh sửa' : 'Chỉnh sửa hồ sơ' %></span>
+    </button>
+    <a class="btn-back" href="/staff"><i class="fa-solid fa-arrow-left"></i> Quay lại danh sách</a>
+  </div>
+
+  <section
+    class="profile-edit <%= showEditForm ? 'is-visible' : '' %>"
+    id="profile-edit-panel"
+    data-open="<%= showEditForm ? 'true' : 'false' %>"
+  >
+    <form method="POST" action="/staff/<%= staff.id %>/profile/update">
+      <div class="profile-edit__title">
+        <h2>Chỉnh sửa hồ sơ cán bộ</h2>
+      </div>
+      <p class="profile-edit__summary">
+        Cập nhật thông tin liên hệ, đơn vị công tác và các mốc nghề nghiệp. Những thay đổi sẽ áp dụng ngay khi lưu.
+      </p>
+      <% if (hasValidationErrors) { %>
+        <div class="form-error-summary">
+          <strong>Vui lòng kiểm tra lại:</strong>
+          <ul>
+            <% Object.values(validationErrors).forEach(function(message){ %>
+              <li><%= message %></li>
+            <% }); %>
+          </ul>
+        </div>
+      <% } %>
+
+      <div class="profile-edit__grid">
+        <div class="form-field">
+          <label for="staff_code">Mã cán bộ<span class="required">*</span></label>
+          <input type="text" id="staff_code" name="staff_code" value="<%= formData.staff_code || '' %>" required>
+          <% if (validationErrors && validationErrors.staff_code) { %>
+            <div class="field-error"><%= validationErrors.staff_code %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="full_name">Họ và tên<span class="required">*</span></label>
+          <input type="text" id="full_name" name="full_name" value="<%= formData.full_name || '' %>" required>
+          <% if (validationErrors && validationErrors.full_name) { %>
+            <div class="field-error"><%= validationErrors.full_name %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="email">Email công vụ<span class="required">*</span></label>
+          <input type="email" id="email" name="email" value="<%= formData.email || '' %>" required>
+          <% if (validationErrors && validationErrors.email) { %>
+            <div class="field-error"><%= validationErrors.email %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="phone">Số điện thoại</label>
+          <input type="tel" id="phone" name="phone" value="<%= formData.phone || '' %>">
+        </div>
+
+        <div class="form-field">
+          <label for="department_id">Phòng/Bộ môn<span class="required">*</span></label>
+          <select id="department_id" name="department_id" required>
+            <option value="">-- Chọn phòng ban --</option>
+            <% (Array.isArray(departmentOptions) ? departmentOptions : []).forEach(function(dept){ %>
+              <option value="<%= dept.id %>" <%= String(formData.department_id || '') === String(dept.id) ? 'selected' : '' %>><%= dept.name %></option>
+            <% }); %>
+          </select>
+          <% if (validationErrors && validationErrors.department_id) { %>
+            <div class="field-error"><%= validationErrors.department_id %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="position_id">Chức vụ</label>
+          <select id="position_id" name="position_id">
+            <option value="">-- Chọn chức vụ --</option>
+            <% (Array.isArray(positionOptions) ? positionOptions : []).forEach(function(pos){ %>
+              <option value="<%= pos.id %>" <%= String(formData.position_id || '') === String(pos.id) ? 'selected' : '' %>><%= pos.name %></option>
+            <% }); %>
+          </select>
+          <% if (validationErrors && validationErrors.position_id) { %>
+            <div class="field-error"><%= validationErrors.position_id %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="employment_type">Loại hình công tác<span class="required">*</span></label>
+          <select id="employment_type" name="employment_type" required>
+            <% (Array.isArray(employmentOptions) ? employmentOptions : []).forEach(function(opt){ %>
+              <option value="<%= opt.value %>" <%= formData.employment_type === opt.value ? 'selected' : '' %>><%= opt.label %></option>
+            <% }); %>
+          </select>
+          <% if (validationErrors && validationErrors.employment_type) { %>
+            <div class="field-error"><%= validationErrors.employment_type %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="status">Trạng thái làm việc<span class="required">*</span></label>
+          <select id="status" name="status" required>
+            <% (Array.isArray(statusOptions) ? statusOptions : []).forEach(function(opt){ %>
+              <option value="<%= opt.value %>" <%= formData.status === opt.value ? 'selected' : '' %>><%= opt.label %></option>
+            <% }); %>
+          </select>
+          <% if (validationErrors && validationErrors.status) { %>
+            <div class="field-error"><%= validationErrors.status %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="hire_date">Ngày vào ngành<span class="required">*</span></label>
+          <input type="date" id="hire_date" name="hire_date" value="<%= helpers.formatDateInput(formData.hire_date) || formData.hire_date || '' %>" required>
+          <% if (validationErrors && validationErrors.hire_date) { %>
+            <div class="field-error"><%= validationErrors.hire_date %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="t04_start_date">Ngày công tác tại T04</label>
+          <input type="date" id="t04_start_date" name="t04_start_date" value="<%= helpers.formatDateInput(formData.t04_start_date) || formData.t04_start_date || '' %>">
+          <% if (validationErrors && validationErrors.t04_start_date) { %>
+            <div class="field-error"><%= validationErrors.t04_start_date %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="faculty_start_date">Ngày công tác tại Khoa</label>
+          <input type="date" id="faculty_start_date" name="faculty_start_date" value="<%= helpers.formatDateInput(formData.faculty_start_date) || formData.faculty_start_date || '' %>">
+          <% if (validationErrors && validationErrors.faculty_start_date) { %>
+            <div class="field-error"><%= validationErrors.faculty_start_date %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="birth_date">Ngày sinh</label>
+          <input type="date" id="birth_date" name="birth_date" value="<%= helpers.formatDateInput(formData.birth_date) || formData.birth_date || '' %>">
+          <% if (validationErrors && validationErrors.birth_date) { %>
+            <div class="field-error"><%= validationErrors.birth_date %></div>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <label for="gender">Giới tính</label>
+          <select id="gender" name="gender">
+            <% (Array.isArray(genderOptions) ? genderOptions : []).forEach(function(opt){ %>
+              <option value="<%= opt.value %>" <%= String(formData.gender || '') === String(opt.value) ? 'selected' : '' %>><%= opt.label %></option>
+            <% }); %>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="salary">Lương (VND)</label>
+          <input type="number" min="0" step="100000" id="salary" name="salary" value="<%= formData.salary || '' %>">
+        </div>
+
+        <div class="form-field">
+          <label for="years_experience">Thâm niên (năm)</label>
+          <input type="number" min="0" max="60" id="years_experience" name="years_experience" value="<%= formData.years_experience || '' %>">
+        </div>
+
+        <div class="form-field">
+          <label for="academic_rank">Học hàm</label>
+          <input type="text" id="academic_rank" name="academic_rank" value="<%= formData.academic_rank || '' %>">
+        </div>
+
+        <div class="form-field">
+          <label for="academic_degree">Học vị</label>
+          <input type="text" id="academic_degree" name="academic_degree" value="<%= formData.academic_degree || '' %>">
+        </div>
+
+        <div class="form-field is-wide">
+          <label for="language_skills">Ngoại ngữ (mỗi mục cách nhau bằng dấu phẩy)</label>
+          <textarea id="language_skills" name="language_skills" rows="3"><%= formData.language_skills || '' %></textarea>
+        </div>
+
+        <div class="form-field is-wide">
+          <label for="it_skills">Kỹ năng CNTT (mỗi mục cách nhau bằng dấu phẩy)</label>
+          <textarea id="it_skills" name="it_skills" rows="3"><%= formData.it_skills || '' %></textarea>
+        </div>
+
+        <div class="form-field is-wide">
+          <label for="address">Địa chỉ</label>
+          <textarea id="address" name="address" rows="3"><%= formData.address || '' %></textarea>
+        </div>
+
+        <div class="form-field is-wide">
+          <label for="notes">Ghi chú nội bộ</label>
+          <textarea id="notes" name="notes" rows="3"><%= formData.notes || '' %></textarea>
+        </div>
+
+        <div class="form-field">
+          <label for="party_card_number">Số thẻ Đảng</label>
+          <input type="text" id="party_card_number" name="party_card_number" value="<%= formData.party_card_number || '' %>">
+        </div>
+
+        <div class="form-field">
+          <label for="service_number">Số quân nhân</label>
+          <input type="text" id="service_number" name="service_number" value="<%= formData.service_number || '' %>">
+        </div>
+
+        <div class="form-field">
+          <label for="party_join_date">Ngày vào Đảng</label>
+          <input type="date" id="party_join_date" name="party_join_date" value="<%= helpers.formatDateInput(formData.party_join_date) || formData.party_join_date || '' %>">
+          <% if (validationErrors && validationErrors.party_join_date) { %>
+            <div class="field-error"><%= validationErrors.party_join_date %></div>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="profile-edit__actions">
+        <button type="submit" class="btn-save">
+          <i class="fa-solid fa-floppy-disk"></i>
+          Lưu thay đổi
+        </button>
+        <button type="button" class="btn-cancel" data-close-edit>
+          <i class="fa-solid fa-xmark"></i>
+          Huỷ bỏ
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <header class="profile-header">
+    <div class="profile-title">
+      <div class="profile-avatar"><%= staff.initials %></div>
+      <div>
+        <h1 class="profile-name"><%= staff.name %></h1>
+        <p class="profile-position">
+          <%= staff.position || 'Chưa phân công' %> · <%= staff.department || 'Chưa cập nhật đơn vị' %>
+        </p>
+        <div class="badge">
+          <i class="fa-solid fa-id-card"></i>
+          <span>Mã cán bộ: <strong><%= staff.staffCode %></strong></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="profile-grid">
+    <aside class="profile-card">
+      <h3>Thông tin liên hệ</h3>
+      <ul class="profile-info-list">
+        <li>
+          <span class="profile-info-label">Email</span>
+          <span class="profile-info-value"><%= staff.email %></span>
+        </li>
+        <li>
+          <span class="profile-info-label">Số điện thoại</span>
+          <span class="profile-info-value"><%= staff.phone %></span>
+        </li>
+        <li>
+          <span class="profile-info-label">Loại công tác</span>
+          <span class="profile-info-value"><%= staff.employmentType || 'Chưa cập nhật' %></span>
+        </li>
+        <li>
+          <span class="profile-info-label">Trạng thái</span>
+          <span class="profile-status" data-tone="<%= staff.statusMeta?.tone || 'muted' %>">
+            <i class="fa-solid fa-circle"></i>
+            <%= staff.statusMeta?.label || 'Không xác định' %>
+          </span>
+        </li>
+      </ul>
+
+      <h3>Kỹ năng</h3>
+      <ul class="profile-info-list">
+        <li>
+          <span class="profile-info-label">Ngoại ngữ</span>
+          <span class="profile-info-value"><%= staff.languages && staff.languages.length ? staff.languages.join(', ') : 'Chưa cập nhật' %></span>
+        </li>
+        <li>
+          <span class="profile-info-label">Kỹ năng CNTT</span>
+          <span class="profile-info-value"><%= staff.itSkills && staff.itSkills.length ? staff.itSkills.join(', ') : 'Chưa cập nhật' %></span>
+        </li>
+      </ul>
+    </aside>
+
+    <section class="timeline-grid">
+      <article class="timeline-item">
+        <h4>Thông tin nghề nghiệp</h4>
+        <p><strong>Ngày vào ngành:</strong> <%= helpers.formatDate(staff.sectorJoinDate || staff.hireDate) || 'Chưa cập nhật' %></p>
+        <p><strong>Ngày công tác T04:</strong> <%= helpers.formatDate(staff.t04StartDate) || 'Chưa cập nhật' %></p>
+        <p><strong>Ngày công tác tại Khoa:</strong> <%= helpers.formatDate(staff.facultyStartDate) || 'Chưa cập nhật' %></p>
+        <p><strong>Thâm niên:</strong> <%= staff.yearsExperience %> năm</p>
+      </article>
+
+      <article class="timeline-item">
+        <h4>Học hàm / Học vị</h4>
+        <p><strong>Học vị:</strong> <%= staff.academicDegree || 'Chưa cập nhật' %></p>
+        <p><strong>Học hàm:</strong> <%= staff.academicRank || 'Chưa cập nhật' %></p>
+        <p><strong>Số thẻ Đảng:</strong> <%= staff.partyCardNumber || 'Chưa cập nhật' %></p>
+        <p><strong>Số quân nhân:</strong> <%= staff.serviceNumber || 'Chưa cập nhật' %></p>
+        <p><strong>Ngày vào Đảng:</strong> <%= helpers.formatDate(staff.partyJoinDate) || 'Chưa cập nhật' %></p>
+      </article>
+
+      <article class="timeline-item">
+        <h4>Địa chỉ & ghi chú</h4>
+        <p><strong>Địa chỉ:</strong> <%= staffRaw.address || 'Chưa cập nhật' %></p>
+        <p><strong>Ghi chú:</strong> <%= staffRaw.notes || '—' %></p>
+      </article>
+    </section>
+  </div>
+
+  <section class="documents-section">
+    <h2>Tài liệu hồ sơ</h2>
+    <% if (documents && documents.length) { %>
+      <ul class="document-list">
+        <% documents.forEach(function(doc) { %>
+          <li class="document-item">
+            <div class="document-meta">
+              <strong><%= doc.file_name || doc.originalName %></strong>
+              <span>Kích thước: <%= doc.sizeLabel || doc.file_size %></span>
+              <span>Tải lên: <%= helpers.formatDate(doc.uploaded_at) || 'Không rõ' %></span>
+            </div>
+            <div class="document-actions">
+              <% if (doc.url) { %>
+                <a href="<%= doc.url %>" target="_blank" rel="noopener">Tải xuống</a>
+              <% } %>
+            </div>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p>Chưa có tài liệu hồ sơ được đính kèm.</p>
+    <% } %>
+
+    <form class="upload-form" method="POST" action="/staff/<%= staff.id %>/profile/files" enctype="multipart/form-data">
+      <label for="profile_files">Tải thêm tài liệu hồ sơ</label>
+      <input type="file" id="profile_files" name="profile_files" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip,.rar,.7z">
+      <small>Hỗ trợ tối đa 5 tập tin, dung lượng mỗi file ≤ 50MB.</small>
+      <div class="upload-actions">
+        <button type="submit"><i class="fa-solid fa-upload"></i> Tải lên</button>
+        <a href="/staff"><i class="fa-solid fa-users"></i> Về danh sách cán bộ</a>
+      </div>
+    </form>
+  </section>
+</div>
+
+<%- contentFor('js') %>
+<script>
+  (function () {
+    const toggleButton = document.querySelector('[data-toggle="edit-profile"]');
+    const panel = document.getElementById('profile-edit-panel');
+    if (!toggleButton || !panel) {
+      return;
+    }
+
+    const closeButtons = panel.querySelectorAll('[data-close-edit]');
+
+    const setOpenState = (isOpen) => {
+      panel.dataset.open = isOpen ? 'true' : 'false';
+      panel.classList.toggle('is-visible', isOpen);
+      toggleButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      const label = toggleButton.querySelector('span');
+      if (label) {
+        label.textContent = isOpen ? 'Đóng form chỉnh sửa' : 'Chỉnh sửa hồ sơ';
+      }
+      if (isOpen) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    toggleButton.addEventListener('click', () => {
+      const shouldOpen = panel.dataset.open !== 'true';
+      setOpenState(shouldOpen);
+    });
+
+    closeButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setOpenState(false);
+      });
+    });
+
+    if (panel.dataset.open === 'true') {
+      panel.classList.add('is-visible');
+    }
+  })();
+</script>

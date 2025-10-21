@@ -3,7 +3,7 @@ const router = express.Router();
 
 // Import controllers
 const AuthController = require('../controllers/AuthController');
-const { redirectIfAuthenticated } = require('../middleware/auth');
+const { redirectIfAuthenticated, requireAuth } = require('../middleware/auth');
 const { loginValidationRules, checkValidationResult } = require('../middleware/validation');
 
 // Initialize controllers
@@ -45,12 +45,12 @@ router.post('/logout', (req, res) => {
 });
 
 // GET /auth/change-password - Hiển thị form đổi mật khẩu
-router.get('/change-password', (req, res) => {
+router.get('/change-password', requireAuth, (req, res) => {
     authController.showChangePassword(req, res);
 });
 
 // POST /auth/change-password - Xử lý đổi mật khẩu
-router.post('/change-password', (req, res) => {
+router.post('/change-password', requireAuth, (req, res) => {
     authController.changePassword(req, res);
 });
 

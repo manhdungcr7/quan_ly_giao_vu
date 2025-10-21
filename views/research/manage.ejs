@@ -1,5 +1,5 @@
 <%- contentFor('css') %>
-<link rel="stylesheet" href="/css/research-manage.css?v=20241009">
+<link rel="stylesheet" href="/css/research-manage.css?v=20251020">
 
 <%- contentFor('js') %>
 <script src="/js/research-manage.js?v=20241009" defer></script>
@@ -47,13 +47,13 @@
 <section class="research-manage-page">
   <header class="manage-hero">
     <div>
-      <span class="hero-eyebrow">Điều hành nghiên cứu</span>
-      <h1>Quản lý danh mục nghiên cứu khoa học</h1>
-      <p>Thêm mới, chỉnh sửa và theo dõi đề tài nghiên cứu của giảng viên, sinh viên cùng các sản phẩm khoa học liên quan.</p>
+      <span class="hero-eyebrow">Quản trị dữ liệu</span>
+      <h1>Quản lý dữ liệu nghiên cứu khoa học</h1>
+      <p>Thêm mới, chỉnh sửa và xóa dữ liệu đề tài nghiên cứu của giảng viên, sinh viên cùng các sản phẩm khoa học liên quan.</p>
       <div class="hero-actions">
         <a href="/research" class="btn btn-outline">
           <i class="fa-solid fa-chart-line"></i>
-          Xem bảng điều khiển nghiên cứu
+          Xem tổng quan nghiên cứu
         </a>
         <button type="button" class="btn btn-soft" data-reset-target="#projectForm" data-reset-label="Thêm mới đề tài">
           <i class="fa-solid fa-plus"></i>
@@ -207,7 +207,7 @@
                   <div><%= formatDate(project.start_date) || '---' %> → <%= formatDate(project.end_date) || '---' %></div>
                 </td>
                 <td class="actions">
-                  <button type="button" class="btn-icon" data-action="edit-project"
+                  <button type="button" class="btn-icon" title="Chỉnh sửa đề tài" data-action="edit-project"
                     data-id="<%= project.id %>"
                     data-project_code="<%= project.project_code || '' %>"
                     data-title="<%= project.title %>"
@@ -221,13 +221,11 @@
                     data-description="<%= project.description || '' %>"
                     data-objectives="<%= project.objectives || '' %>"
                     data-results_summary="<%= project.results_summary || '' %>">
-                    <i class="fa-solid fa-pen"></i>
-                    <span class="sr-only">Chỉnh sửa</span>
+                    <i class="fa-solid fa-pen-to-square"></i>
                   </button>
                   <form action="/research/projects/<%= project.id %>/delete" method="post" data-confirm="Bạn chắc chắn muốn xoá đề tài này?">
-                    <button type="submit" class="btn-icon btn-icon--danger">
-                      <i class="fa-solid fa-trash"></i>
-                      <span class="sr-only">Xoá</span>
+                    <button type="submit" class="btn-icon btn-icon--danger" title="Xóa đề tài">
+                      <i class="fa-solid fa-trash-can"></i>
                     </button>
                   </form>
                 </td>
@@ -366,7 +364,7 @@
                 </td>
                 <td><%= formatDate(project.start_date) || '---' %> → <%= formatDate(project.end_date) || '---' %></td>
                 <td class="actions">
-                  <button type="button" class="btn-icon" data-action="edit-student-project"
+                  <button type="button" class="btn-icon" title="Chỉnh sửa đề tài sinh viên" data-action="edit-student-project"
                     data-id="<%= project.id %>"
                     data-project_code="<%= project.project_code || '' %>"
                     data-title="<%= project.title %>"
@@ -382,13 +380,11 @@
                     data-summary="<%= project.summary || '' %>"
                     data-achievements="<%= project.achievements || '' %>"
                     data-reference_url="<%= project.reference_url || '' %>">
-                    <i class="fa-solid fa-pen"></i>
-                    <span class="sr-only">Chỉnh sửa</span>
+                    <i class="fa-solid fa-pen-to-square"></i>
                   </button>
                   <form action="/research/student-projects/<%= project.id %>/delete" method="post" data-confirm="Xoá đề tài sinh viên này?">
-                    <button type="submit" class="btn-icon btn-icon--danger">
-                      <i class="fa-solid fa-trash"></i>
-                      <span class="sr-only">Xoá</span>
+                    <button type="submit" class="btn-icon btn-icon--danger" title="Xóa đề tài sinh viên">
+                      <i class="fa-solid fa-trash-can"></i>
                     </button>
                   </form>
                 </td>
@@ -489,7 +485,7 @@
                 <td><%= output.project_title || 'Độc lập' %></td>
                 <td><%= formatDate(output.publish_date) || '---' %></td>
                 <td class="actions">
-                  <button type="button" class="btn-icon" data-action="edit-student-output"
+                  <button type="button" class="btn-icon" title="Chỉnh sửa kết quả" data-action="edit-student-output"
                     data-id="<%= output.id %>"
                     data-project_id="<%= output.project_id || '' %>"
                     data-type="<%= output.type || 'other' %>"
@@ -498,13 +494,11 @@
                     data-lead_author="<%= output.lead_author || '' %>"
                     data-description="<%= output.description || '' %>"
                     data-reference_url="<%= output.reference_url || '' %>">
-                    <i class="fa-solid fa-pen"></i>
-                    <span class="sr-only">Chỉnh sửa</span>
+                    <i class="fa-solid fa-pen-to-square"></i>
                   </button>
                   <form action="/research/student-outputs/<%= output.id %>/delete" method="post" data-confirm="Xoá kết quả này?">
-                    <button type="submit" class="btn-icon btn-icon--danger">
-                      <i class="fa-solid fa-trash"></i>
-                      <span class="sr-only">Xoá</span>
+                    <button type="submit" class="btn-icon btn-icon--danger" title="Xóa kết quả">
+                      <i class="fa-solid fa-trash-can"></i>
                     </button>
                   </form>
                 </td>

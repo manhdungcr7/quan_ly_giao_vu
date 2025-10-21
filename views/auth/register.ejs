@@ -1,128 +1,133 @@
 <%- contentFor('content') %>
 <div class="auth-wrapper">
-    <div class="auth-card shadow-lg">
-        <div class="auth-side d-none d-xl-flex">
-            <div class="auth-side-inner">
-                <span class="badge bg-light text-dark mb-3 px-3 py-2 fw-semibold">
-                    <i class="fas fa-user-shield me-2 text-success"></i>Tạo tài khoản mới
-                </span>
-                <h2 class="display-6 fw-semibold text-white mb-3">Mở rộng quyền truy cập cho đội ngũ của bạn</h2>
-                <p class="text-white-50 mb-4">Tài khoản cá nhân giúp bạn theo dõi nhiệm vụ, quản lý tài liệu và phối hợp với đồng nghiệp một cách linh hoạt.</p>
-                <div class="d-flex flex-column gap-3">
-                    <div class="feature-card bg-white bg-opacity-10 rounded-4 p-3">
-                        <h6 class="text-white-75 text-uppercase small mb-1">Quyền truy cập bảo mật</h6>
-                        <p class="text-white-50 mb-0">Hệ thống phân quyền theo vai trò, đảm bảo dữ liệu nhạy cảm luôn an toàn.</p>
+    <div class="auth-shell theme-emerald">
+        <div class="auth-visual d-none d-xl-flex">
+            <div class="visual-content">
+                <div class="visual-badge">
+                    <span class="icon-circle"><i class="fas fa-user-shield"></i></span>
+                    <span>Tạo tài khoản mới</span>
+                </div>
+                <h2 class="visual-title">Xây dựng quyền truy cập tin cậy cho đội ngũ của bạn</h2>
+                <p class="visual-subtitle">Tài khoản cá nhân mở ra trải nghiệm làm việc thống nhất, giúp quản trị viên kiểm soát dữ liệu nhạy cảm một cách an toàn.</p>
+                <div class="visual-grid">
+                    <div class="visual-card">
+                        <span class="visual-card-icon"><i class="fas fa-layer-group"></i></span>
+                        <div>
+                            <h6>Phân quyền thông minh</h6>
+                            <p>Tự động đề xuất vai trò và kiểm duyệt quyền hạn trước khi cấp tài khoản.</p>
+                        </div>
                     </div>
-                    <div class="feature-card bg-white bg-opacity-10 rounded-4 p-3">
-                        <h6 class="text-white-75 text-uppercase small mb-1">Quy trình thống nhất</h6>
-                        <p class="text-white-50 mb-0">Từ hồ sơ học vụ tới lịch công tác, mọi thao tác đều được chuẩn hoá.</p>
+                    <div class="visual-card">
+                        <span class="visual-card-icon"><i class="fas fa-file-shield"></i></span>
+                        <div>
+                            <h6>An toàn dữ liệu</h6>
+                            <p>Lưu trữ mã hoá, bản ghi phê duyệt và cảnh báo bất thường theo thời gian thực.</p>
+                        </div>
                     </div>
                 </div>
             </div>
+            <div class="visual-metric">
+                <span class="metric-value">48h</span>
+                <span class="metric-label">Thời gian kích hoạt trung bình</span>
+            </div>
         </div>
-        <div class="auth-form p-4 p-md-5">
-            <div class="mb-4 text-center text-md-start">
-                <h3 class="fw-bold text-success mb-1">Đăng ký tài khoản</h3>
+
+        <div class="auth-panel">
+            <div class="panel-header">
+                <span class="panel-chip">Tạo tài khoản</span>
+                <h3>Đăng ký truy cập hệ thống</h3>
                 <% if (isAdmin) { %>
-                    <p class="text-muted mb-0">Thêm thành viên vào hệ thống và chỉ định vai trò phù hợp.</p>
+                    <p>Nhập thông tin thành viên và chỉ định vai trò để hoàn tất phê duyệt.</p>
                 <% } else { %>
-                    <p class="text-muted mb-0">Điền đầy đủ thông tin, quản trị viên sẽ phê duyệt tài khoản trước khi bạn đăng nhập.</p>
+                    <p>Điền đầy đủ thông tin cá nhân. Quản trị viên sẽ rà soát và kích hoạt tài khoản của bạn.</p>
                 <% } %>
             </div>
 
             <%- include('../partials/alerts') %>
 
             <form action="/auth/register" method="POST" class="needs-validation" novalidate>
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <label for="full_name" class="form-label fw-semibold">Họ và tên</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-id-card text-secondary"></i></span>
-                            <input type="text" class="form-control border-start-0" id="full_name" name="full_name" placeholder="Nguyễn Văn A" value="<%= formData && formData.full_name ? formData.full_name : '' %>" required>
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label for="full_name">Họ và tên</label>
+                        <div class="field-wrapper">
+                            <span class="field-icon"><i class="fas fa-id-card"></i></span>
+                            <input type="text" id="full_name" name="full_name" placeholder="Nguyễn Văn A" value="<%= formData && formData.full_name ? formData.full_name : '' %>" required>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <label for="username" class="form-label fw-semibold">Tên đăng nhập</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-user text-secondary"></i></span>
-                            <input type="text" class="form-control border-start-0" id="username" name="username" placeholder="tối thiểu 4 ký tự" minlength="4" value="<%= formData && formData.username ? formData.username : '' %>" required>
+
+                    <div class="form-field">
+                        <label for="username">Tên đăng nhập</label>
+                        <div class="field-wrapper">
+                            <span class="field-icon"><i class="fas fa-user"></i></span>
+                            <input type="text" id="username" name="username" placeholder="Tối thiểu 4 ký tự" minlength="4" value="<%= formData && formData.username ? formData.username : '' %>" required>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <label for="email" class="form-label fw-semibold">Email</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-secondary"></i></span>
-                            <input type="email" class="form-control border-start-0" id="email" name="email" placeholder="email@domain.com" value="<%= formData && formData.email ? formData.email : '' %>" required>
+
+                    <div class="form-field">
+                        <label for="email">Email</label>
+                        <div class="field-wrapper">
+                            <span class="field-icon"><i class="fas fa-envelope"></i></span>
+                            <input type="email" id="email" name="email" placeholder="email@domain.com" value="<%= formData && formData.email ? formData.email : '' %>" required>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <label for="role_id" class="form-label fw-semibold">Vai trò</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-user-shield text-secondary"></i></span>
+
+                    <div class="form-field">
+                        <label for="role_id">Vai trò</label>
+                        <div class="field-wrapper">
+                            <span class="field-icon"><i class="fas fa-user-shield"></i></span>
                             <% if (isAdmin && roles && roles.length) { %>
-                                <select class="form-select border-start-0" id="role_id" name="role_id">
+                                <select id="role_id" name="role_id" required>
                                     <% roles.forEach(r => { %>
                                         <option value="<%= r.id %>" <%= (formData && +formData.role_id === r.id) || (defaultRole && defaultRole.id === r.id && (!formData || !formData.role_id)) ? 'selected' : '' %>><%= r.name %></option>
                                     <% }) %>
                                 </select>
                             <% } else { %>
-                                <input type="text" class="form-control border-start-0" value="<%= defaultRole ? defaultRole.name : 'staff' %>" readonly>
+                                <input type="text" value="<%= defaultRole ? defaultRole.name : 'staff' %>" readonly>
                                 <input type="hidden" name="role_id" value="<%= formData && formData.role_id ? formData.role_id : (defaultRole && defaultRole.id ? defaultRole.id : 2) %>">
                             <% } %>
                         </div>
                         <% if (!isAdmin) { %>
-                            <small class="text-muted d-block mt-2"><i class="fas fa-info-circle me-1"></i>Bạn sẽ sở hữu quyền truy cập chuẩn dành cho nhân viên.</small>
-                            <small class="text-muted d-block"><i class="fas fa-shield-alt me-1"></i>Tài khoản sẽ được kích hoạt sau khi quản trị viên phê duyệt.</small>
+                            <small class="field-hint"><i class="fas fa-circle-info"></i> Quyền truy cập chuẩn cho nhân viên. Sẽ kích hoạt sau khi được phê duyệt.</small>
                         <% } %>
                     </div>
-                    <div class="col-md-6">
-                        <label for="password" class="form-label fw-semibold">Mật khẩu</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-secondary"></i></span>
-                            <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="Tối thiểu 6 ký tự" required>
-                            <button class="btn btn-outline-secondary border-start-0 toggle-password" type="button" data-target="#password">
-                                <i class="fas fa-eye"></i>
-                            </button>
+
+                    <div class="form-field">
+                        <label for="password">Mật khẩu</label>
+                        <div class="field-wrapper has-action">
+                            <span class="field-icon"><i class="fas fa-lock"></i></span>
+                            <input type="password" id="password" name="password" placeholder="Tối thiểu 6 ký tự" required>
+                            <button class="field-action toggle-password" type="button" data-target="#password"><i class="fas fa-eye"></i></button>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <label for="confirm_password" class="form-label fw-semibold">Xác nhận mật khẩu</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-secondary"></i></span>
-                            <input type="password" class="form-control border-start-0" id="confirm_password" name="confirm_password" placeholder="Nhập lại mật khẩu" required>
-                            <button class="btn btn-outline-secondary border-start-0 toggle-password" type="button" data-target="#confirm_password">
-                                <i class="fas fa-eye"></i>
-                            </button>
+
+                    <div class="form-field">
+                        <label for="confirm_password">Xác nhận mật khẩu</label>
+                        <div class="field-wrapper has-action">
+                            <span class="field-icon"><i class="fas fa-lock"></i></span>
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Nhập lại mật khẩu" required>
+                            <button class="field-action toggle-password" type="button" data-target="#confirm_password"><i class="fas fa-eye"></i></button>
                         </div>
                     </div>
                 </div>
 
-                <div class="d-flex align-items-start gap-3 mt-4">
-                    <span class="text-success bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
-                        <i class="fas fa-lock"></i>
-                    </span>
-                    <p class="mb-0 text-muted small">Bằng việc đăng ký, bạn đồng ý với quy định bảo mật và sử dụng dữ liệu của hệ thống. Mọi thông tin sẽ được mã hóa theo tiêu chuẩn hiện hành.</p>
+                <div class="policy-callout">
+                    <span class="policy-icon"><i class="fas fa-shield-alt"></i></span>
+                    <p>Bằng việc đăng ký, bạn đồng ý với chính sách bảo mật và sử dụng dữ liệu của hệ thống. Thông tin sẽ được mã hoá theo tiêu chuẩn hiện hành.</p>
                 </div>
 
-                <div class="d-grid mt-4">
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <i class="fas fa-user-plus me-2"></i>
-                        Tạo tài khoản
-                    </button>
-                </div>
+                <button type="submit" class="auth-action">
+                    <span>Tạo tài khoản</span>
+                    <i class="fas fa-user-plus"></i>
+                </button>
             </form>
 
-            <div class="mt-4 pt-3 border-top text-center">
+            <div class="panel-footer">
                 <% if (isAdmin) { %>
-                    <a href="/users" class="text-decoration-none fw-semibold"><i class="fas fa-arrow-left me-2"></i>Quản lý thành viên</a>
+                    <p><a href="/users"><i class="fas fa-arrow-left"></i> Quay lại quản lý thành viên</a></p>
                 <% } else { %>
-                    <span class="text-muted">Đã có tài khoản?</span>
-                    <a href="/auth/login" class="text-decoration-none fw-semibold ms-1">Đăng nhập</a>
+                    <p>Đã có tài khoản? <a href="/auth/login">Đăng nhập</a></p>
                 <% } %>
-            </div>
-
-            <div class="mt-4 small text-muted text-center">
-                <i class="fas fa-info-circle me-1"></i>Thông tin đăng ký được bảo vệ theo chính sách an ninh dữ liệu của Học viện.
+                <span class="footer-note"><i class="fas fa-info-circle"></i>Dữ liệu đăng ký được giám sát bởi bộ phận an ninh thông tin Học viện.</span>
             </div>
         </div>
     </div>
@@ -157,83 +162,307 @@
 
     .auth-wrapper {
         width: 100%;
-        max-width: 1100px;
+        max-width: 980px;
     }
 
-    .auth-card {
+    .auth-shell {
+        --accent: #0f766e;
+        --accent-strong: #0d9488;
+        --accent-soft: rgba(34, 197, 94, 0.18);
+        --accent-gradient: linear-gradient(150deg, #0f766e, #10b981);
         background: #ffffff;
-        border-radius: 28px;
+        border-radius: 32px;
         overflow: hidden;
         display: grid;
-        grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
-        position: relative;
-    }
-
-    .auth-side {
-        background: linear-gradient(135deg, #047857, #0f766e);
-        padding: 56px;
+        grid-template-columns: minmax(0, 420px) minmax(0, 520px);
+        box-shadow: 0 30px 70px -40px rgba(15, 118, 110, 0.45);
         position: relative;
         isolation: isolate;
     }
 
-    .auth-side::after {
+    .auth-shell.theme-emerald::before,
+    .auth-shell.theme-emerald::after {
         content: '';
         position: absolute;
-        inset: 28px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        border-radius: 24px;
-        opacity: 0.7;
+        border-radius: 50%;
+        filter: blur(70px);
+        opacity: 0.6;
         z-index: -1;
     }
 
-    .auth-side-inner {
-        max-width: 340px;
-        color: #fff;
+    .auth-shell.theme-emerald::before {
+        width: 250px;
+        height: 250px;
+        background: rgba(45, 212, 191, 0.4);
+        top: -120px;
+        right: -60px;
     }
 
-    .feature-card {
-        backdrop-filter: blur(4px);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+    .auth-shell.theme-emerald::after {
+        width: 260px;
+        height: 260px;
+        background: rgba(16, 185, 129, 0.42);
+        bottom: -120px;
+        left: -80px;
     }
 
-    .auth-form .form-control,
-    .auth-form .form-select {
+    .auth-visual {
+        display: flex;
+        background: var(--accent-gradient);
+        color: #ffffff;
+        padding: 52px 48px;
+        position: relative;
+        flex-direction: column;
+        gap: 48px;
+    }
+
+    .auth-visual::after {
+        content: '';
+        position: absolute;
+        inset: 32px;
+        border-radius: 26px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        opacity: 0.6;
+    }
+
+    .visual-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+        max-width: 360px;
+    }
+
+    .visual-grid {
+        display: grid;
+        gap: 16px;
+    }
+
+    .visual-card {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        background: rgba(15, 23, 42, 0.16);
+        border-radius: 18px;
+        padding: 18px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(6px);
+    }
+
+    .auth-panel {
+        padding: 52px 48px;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+    }
+
+    .panel-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .panel-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(16, 185, 129, 0.12);
+        color: var(--accent-strong);
+        border-radius: 999px;
+        padding: 6px 18px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .panel-header h3 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .panel-header p {
+        margin: 0;
+        color: #475569;
+        max-width: 480px;
+    }
+
+    .form-grid {
+        display: grid;
+        gap: 20px 24px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .form-field label {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .field-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .field-wrapper input,
+    .field-wrapper select {
+        width: 100%;
+        border: 1px solid rgba(148, 163, 184, 0.6);
         border-radius: 16px;
-        padding: 0.85rem 1rem;
+    padding: 14px 14px 14px 48px;
+        font-size: 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        appearance: none;
+        background-color: #ffffff;
     }
 
-    .auth-form .input-group-text {
-        border-radius: 16px 0 0 16px;
+    .field-wrapper select {
+        padding-right: 40px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%230f766e' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: calc(100% - 16px) center;
+        background-size: 12px;
     }
 
-    .auth-form .btn.btn-outline-secondary {
-        border-radius: 0 16px 16px 0;
+    .field-wrapper input:focus,
+    .field-wrapper select:focus {
+        outline: none;
+        border-color: rgba(13, 148, 136, 0.65);
+        box-shadow: 0 0 0 4px var(--accent-soft);
     }
 
-    .auth-form .form-control:focus,
-    .auth-form .form-select:focus {
-        box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.18);
-        border-color: rgba(5, 150, 105, 0.4);
+    .field-icon {
+        position: absolute;
+        left: 18px;
+        color: var(--accent-strong);
+        font-size: 1rem;
+        pointer-events: none;
     }
 
-    .auth-form .btn-success {
-        border-radius: 16px;
-        background: linear-gradient(135deg, #047857, #10b981);
+    .field-wrapper.has-action {
+        gap: 10px;
+    }
+
+    .field-wrapper.has-action input {
+        padding-right: 110px;
+    }
+
+    .field-action {
+        position: absolute;
+        right: 12px;
         border: none;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        background: transparent;
+        color: #0f766e;
+        padding: 6px 10px;
+        border-radius: 12px;
+        transition: background 0.2s ease;
     }
 
-    .auth-form .btn-success:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 18px 35px -14px rgba(16, 185, 129, 0.45);
+    .field-action:hover {
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+    .field-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-top: 8px;
+    }
+
+    .policy-callout {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        background: rgba(16, 185, 129, 0.08);
+        border-radius: 18px;
+        padding: 18px 20px;
+        border: 1px solid rgba(16, 185, 129, 0.12);
+        color: #475569;
+    }
+
+    .policy-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: rgba(16, 185, 129, 0.14);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-strong);
+        flex-shrink: 0;
+    }
+
+    .policy-callout p {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .auth-action {
+        border: none;
+        width: 100%;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--accent-strong), #34d399);
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 1.05rem;
+    padding: 15px 18px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 18px 38px -22px rgba(13, 148, 136, 0.6);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        margin-top: 12px;
+    }
+
+    .auth-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 24px 44px -20px rgba(13, 148, 136, 0.65);
+    }
+
+    .panel-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+        font-size: 0.95rem;
+        color: #475569;
+    }
+
+    .panel-footer a {
+        color: var(--accent-strong);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .panel-footer a:hover {
+        color: #0f766e;
+    }
+
+    .footer-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: #64748b;
     }
 
     @media (max-width: 1200px) {
-        .auth-card {
+        .auth-shell {
             grid-template-columns: 1fr;
         }
 
-        .auth-side {
+        .auth-visual {
             display: none !important;
         }
     }
@@ -243,8 +472,8 @@
             padding: 32px 12px;
         }
 
-        .auth-form {
-            padding: 36px 28px;
+        .auth-panel {
+            padding: 48px 34px;
         }
     }
 
@@ -253,25 +482,12 @@
             padding: 24px 12px;
         }
 
-        .auth-form .input-group {
-            flex-direction: column;
+        .auth-panel {
+            padding: 40px 26px;
         }
 
-        .auth-form .input-group-text {
-            width: 100%;
-            border-radius: 14px;
-            margin-bottom: 6px;
-        }
-
-        .auth-form .btn.btn-outline-secondary {
-            width: 100%;
-            border-radius: 14px;
-            margin-top: 6px;
-        }
-
-        .auth-form .form-control,
-        .auth-form .form-select {
-            border-radius: 14px;
+        .form-grid {
+            grid-template-columns: 1fr;
         }
     }
 </style>

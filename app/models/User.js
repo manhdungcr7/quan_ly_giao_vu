@@ -413,6 +413,10 @@ class User extends BaseModel {
                 throw new Error('User not found');
             }
 
+            if (!user.password_hash) {
+                throw new Error('Invalid old password');
+            }
+
             // Verify old password
             const isValidOldPassword = await bcrypt.compare(oldPassword, user.password_hash);
             if (!isValidOldPassword) {

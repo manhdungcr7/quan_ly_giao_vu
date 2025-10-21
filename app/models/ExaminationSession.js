@@ -20,6 +20,7 @@ class ExaminationSession extends BaseModel {
       'ep.name as period_name',
       's.code as subject_code',
       's.name as subject_name',
+  's.credits as subject_credits',
       'c.code as class_code',
       'c.name as class_name',
       'u.full_name as grader_name',
@@ -101,6 +102,7 @@ class ExaminationSession extends BaseModel {
       'ep.name as period_name',
       's.code as subject_code',
       's.name as subject_name',
+  's.credits as subject_credits',
       'c.code as class_code',
       'c.name as class_name',
       'u.full_name as grader_name',
@@ -298,6 +300,46 @@ class ExaminationSession extends BaseModel {
     }
 
     return this._supportsSecondaryGrader;
+  }
+
+  static async ensureSecondaryGraderColumns() {
+    const table = this.tableName;
+    const hasId = await this.columnExists(table, 'grader2_id');
+    const hasManual = await this.columnExists(table, 'grader2_manual_name');
+
+    const alterParts = [];
+
+    if (!hasId) {
+      alterParts.push('ADD COLUMN `grader2_id` INT NULL DEFAULT NULL COMMENT "ID cán bộ chấm thi phụ" AFTER `grader_manual_name`');
+      alterParts.push('ADD INDEX `idx_grader2` (`grader2_id`)');
+    }
+
+    if (!hasManual) {
+      alterParts.push('ADD COLUMN `grader2_manual_name` VARCHAR(120) NULL DEFAULT NULL COMMENT "Tên cán bộ chấm thi phụ nhập tay" AFTER `grader2_id`');
+    }
+
+    if (!alterParts.length) {
+      return false;
+    }
+
+    const alterSql = `ALTER TABLE ${table} ${alterParts.join(', ')}`;
+    try {
+      await this.db.query(alterSql);
+    } catch (error) {
+      // Ignore duplicate column/index errors caused by concurrent migrations
+      const duplicateCodes = new Set(['ER_DUP_FIELDNAME', 'ER_DUP_KEYNAME', 'ER_DUP_KEY']);
+      if (!duplicateCodes.has(error.code)) {
+        throw error;
+      }
+    }
+
+    if (this._columnExistCache) {
+      this._columnExistCache.delete(`${table}.grader2_id`);
+      this._columnExistCache.delete(`${table}.grader2_manual_name`);
+    }
+
+    await this.supportsSecondaryGrader({ forceRefresh: true });
+    return true;
   }
 
   /**

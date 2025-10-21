@@ -1,6 +1,7 @@
 const Staff = require('../models/Staff');
 const EvaluationCriteria = require('../models/EvaluationCriteria');
 const EvaluationPeriod = require('../models/EvaluationPeriod');
+const { getFileInfo } = require('../middleware/upload');
 
 const STATUS_META = {
   active: { label: 'Đang công tác', tone: 'success' },
@@ -19,11 +20,122 @@ const EMPLOYMENT_OPTIONS = [
   { value: 'temporary', label: 'Tạm thời/Thử việc' }
 ];
 
+const EMPLOYMENT_FORM_OPTIONS = EMPLOYMENT_OPTIONS.filter((opt) => opt.value);
+const STATUS_OPTIONS = Object.entries(STATUS_META).map(([value, meta]) => ({ value, label: meta.label }));
+const GENDER_OPTIONS = [
+  { value: '', label: 'Chưa cập nhật' },
+  { value: 'M', label: 'Nam' },
+  { value: 'F', label: 'Nữ' },
+  { value: 'O', label: 'Khác' }
+];
+
+const CRITERIA_CATEGORIES = new Set(['teaching', 'research', 'service', 'professional', 'other']);
+const MEASUREMENT_TYPES = new Set(['numeric', 'percentage', 'grade', 'boolean', 'text']);
+
+const parseDecimalField = (rawValue, defaultValue = 0) => {
+  if (rawValue === undefined || rawValue === null) {
+    return { ok: true, value: defaultValue, isBlank: true };
+  }
+
+  if (typeof rawValue === 'number') {
+    return { ok: true, value: rawValue, isBlank: false };
+  }
+
+  const trimmed = String(rawValue).trim();
+  if (!trimmed) {
+    return { ok: true, value: defaultValue, isBlank: true };
+  }
+
+  const normalized = trimmed.replace(/\s+/g, '').replace(/,/g, '.');
+  const parsed = Number.parseFloat(normalized);
+  if (!Number.isFinite(parsed)) {
+    return { ok: false, value: defaultValue, isBlank: false };
+  }
+
+  return { ok: true, value: parsed, isBlank: false };
+};
+
+const normalizeBooleanFlag = (value, defaultValue = 0) => {
+  if (value === undefined || value === null) {
+    return defaultValue ? 1 : 0;
+  }
+
+  if (value === true || value === 1) {
+    return 1;
+  }
+
+  if (value === false || value === 0) {
+    return 0;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'on', 'yes'].includes(normalized)) {
+      return 1;
+    }
+    if (['0', 'false', 'off', 'no'].includes(normalized)) {
+      return 0;
+    }
+  }
+
+  return defaultValue ? 1 : 0;
+};
+
 class StaffController {
   constructor() {
     this.staffModel = new Staff();
     this.evaluationCriteriaModel = new EvaluationCriteria();
     this.evaluationPeriodModel = new EvaluationPeriod();
+  }
+
+  buildDocumentPayload(files) {
+    if (!Array.isArray(files) || !files.length) {
+      return [];
+    }
+
+    return files.map((file) => {
+      const info = getFileInfo(file);
+      const rawPath = info.relativePath || file.path.replace(process.cwd(), '').replace(/\\/g, '/');
+      const normalizedPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+      return {
+        originalName: info.originalName || file.originalname,
+        filename: info.filename,
+        mimetype: info.mimetype,
+        size: info.size,
+        relativePath: normalizedPath,
+        path: info.path
+      };
+    });
+  }
+
+  formatFileSize(bytes) {
+    if (!bytes || Number.isNaN(bytes)) {
+      return '0 KB';
+    }
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  prepareDocumentList(documents = []) {
+    return documents.map((doc) => {
+      const normalized = (doc.file_path || '').replace(/\\/g, '/');
+      const publicIndex = normalized.indexOf('/public/');
+      const urlPath = publicIndex >= 0
+        ? normalized.slice(publicIndex + '/public'.length)
+        : normalized;
+      const webPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
+
+      return {
+        ...doc,
+        url: webPath,
+        sizeLabel: this.formatFileSize(doc.file_size)
+      };
+    });
   }
 
   buildFilterLinks(currentSearch, extraParams = {}) {
@@ -117,6 +229,19 @@ class StaffController {
       .slice(0, 2)
       .toUpperCase();
 
+    const parseJsonList = (value) => {
+      if (!value) return [];
+      try {
+        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    };
+
+    const primaryLanguages = parseJsonList(record.language_skills);
+    const primaryItSkills = parseJsonList(record.it_skills);
+
     return {
       id: record.id,
       name: record.full_name || record.name || 'Chưa cập nhật',
@@ -126,7 +251,16 @@ class StaffController {
       position: record.position_name || 'Chưa phân công',
       department: record.department_name || 'Chưa cập nhật',
       employmentType: record.employment_type,
+      sectorJoinDate: record.hire_date,
       hireDate: record.hire_date,
+      t04StartDate: record.t04_start_date,
+      facultyStartDate: record.faculty_start_date,
+      languages: primaryLanguages,
+      itSkills: primaryItSkills,
+      partyCardNumber: record.party_card_number,
+      serviceNumber: record.service_number,
+      partyJoinDate: record.party_join_date,
+      yearsExperience: typeof record.years_experience === 'number' ? record.years_experience : Number(record.years_experience) || 0,
       academicRank: record.academic_rank,
       academicDegree: record.academic_degree,
       status: statusKey,
@@ -171,8 +305,8 @@ class StaffController {
 
     const hasFilters = Boolean(searchQuery)
       || (rawStatus && rawStatus !== 'all')
-      || Number.isFinite(departmentId) && departmentId > 0
-      || Number.isFinite(positionId) && positionId > 0
+      || (Number.isFinite(departmentId) && departmentId > 0)
+      || (Number.isFinite(positionId) && positionId > 0)
       || Boolean(employmentType);
 
     const filterLinks = this.buildFilterLinks(searchQuery, {
@@ -386,12 +520,20 @@ class StaffController {
         'Chức vụ',
         'Loại cán bộ',
         'Trạng thái',
-        'Ngày vào làm',
+        'Ngày vào ngành',
+        'Ngày công tác tại T04',
+        'Ngày công tác tại Khoa',
+        'Thâm niên (năm)',
         'Email',
         'Điện thoại',
         'Học hàm',
         'Học vị',
-        'Lương (VND)'
+        'Lương (VND)',
+        'Ngoại ngữ',
+        'Tin học',
+        'Số thẻ đảng viên',
+        'Số hiệu',
+        'Ngày vào Đảng'
       ];
 
       const formatDate = (value) => {
@@ -425,12 +567,20 @@ class StaffController {
           normalized.position || 'Chưa phân công',
           employmentLabel,
           normalized.statusMeta?.label || normalized.status || 'Không xác định',
-          formatDate(normalized.hireDate),
+          formatDate(normalized.sectorJoinDate),
+          formatDate(normalized.t04StartDate),
+          formatDate(normalized.facultyStartDate),
+          normalized.yearsExperience || 0,
           normalized.email,
           normalized.phone,
           normalized.academicRank || '',
           normalized.academicDegree || '',
-          salaryValue
+          salaryValue,
+          (normalized.languages || []).join('; '),
+          (normalized.itSkills || []).join('; '),
+          normalized.partyCardNumber || '',
+          normalized.serviceNumber || '',
+          formatDate(normalized.partyJoinDate)
         ].map(escapeCsv).join(',');
       });
 
@@ -461,7 +611,7 @@ class StaffController {
         user: req.session.user,
         departmentOptions,
         positionOptions,
-        employmentOptions: EMPLOYMENT_OPTIONS.filter(opt => opt.value),
+        employmentOptions: EMPLOYMENT_FORM_OPTIONS,
         formData: req.flash('formData')[0] || {},
         errors: req.flash('errors')[0] || {}
       });
@@ -486,6 +636,8 @@ class StaffController {
         position_id,
         employment_type,
         hire_date,
+        t04_start_date,
+        faculty_start_date,
         birth_date,
         gender,
         id_number,
@@ -494,18 +646,51 @@ class StaffController {
         academic_rank,
         academic_degree,
         years_experience,
+        language_skills,
+        it_skills,
         status,
-        notes
+        notes,
+        party_card_number,
+        service_number,
+        party_join_date
       } = req.body;
+
+      const toIntOrNull = (value) => {
+        if (value === null || value === undefined || value === '') {
+          return null;
+        }
+        const parsed = Number.parseInt(value, 10);
+        return Number.isNaN(parsed) ? null : parsed;
+      };
+
+      const toNumberOrZero = (value) => {
+        if (value === null || value === undefined || value === '') {
+          return 0;
+        }
+        const normalized = typeof value === 'string' ? value.replace(/,/g, '').trim() : value;
+        const parsed = Number.parseFloat(normalized);
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+
+      const toExperience = (value) => {
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+          return 0;
+        }
+        return Math.min(parsed, 60);
+      };
+
+      const departmentIdValue = toIntOrNull(department_id);
+      const positionIdValue = toIntOrNull(position_id);
 
       // Basic validation
       const errors = {};
       if (!full_name || full_name.trim().length < 3) errors.full_name = 'Họ tên phải có ít nhất 3 ký tự';
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Email không hợp lệ';
       if (!staff_code || staff_code.trim().length < 3) errors.staff_code = 'Mã cán bộ phải có ít nhất 3 ký tự';
-      if (!department_id) errors.department_id = 'Vui lòng chọn phòng/bộ môn';
-      if (!employment_type) errors.employment_type = 'Vui lòng chọn loại hình công tác';
-      if (!hire_date) errors.hire_date = 'Vui lòng nhập ngày vào làm';
+      if (!departmentIdValue) errors.department_id = 'Vui lòng chọn phòng/bộ môn';
+    if (!employment_type) errors.employment_type = 'Vui lòng chọn loại hình công tác';
+    if (!hire_date) errors.hire_date = 'Vui lòng nhập ngày vào ngành';
       if (Object.keys(errors).length) {
         req.flash('errors', errors);
         req.flash('formData', req.body);
@@ -530,21 +715,21 @@ class StaffController {
       }
 
       // Validate foreign keys
-      const deptRow = await this.staffModel.db.findOne('SELECT id FROM departments WHERE id = ? AND is_active = 1', [department_id]);
+      const deptRow = await this.staffModel.db.findOne('SELECT id FROM departments WHERE id = ? AND is_active = 1', [departmentIdValue]);
       if (!deptRow) {
         req.flash('error', 'Phòng/Bộ môn không hợp lệ hoặc đã ngừng hoạt động');
         req.flash('formData', req.body);
         return res.redirect('/staff/create');
       }
       let posId = null;
-      if (position_id) {
-        const posRow = await this.staffModel.db.findOne('SELECT id FROM positions WHERE id = ? AND is_active = 1', [position_id]);
+      if (positionIdValue) {
+        const posRow = await this.staffModel.db.findOne('SELECT id FROM positions WHERE id = ? AND is_active = 1', [positionIdValue]);
         if (!posRow) {
           req.flash('error', 'Chức vụ không hợp lệ');
           req.flash('formData', req.body);
           return res.redirect('/staff/create');
         }
-        posId = position_id;
+        posId = positionIdValue;
       }
 
       // Normalize data
@@ -567,33 +752,76 @@ class StaffController {
       }
 
       // Create staff linked to user; rollback user on failure
+      const normalizeList = (input) => {
+        if (!input) return [];
+        const raw = Array.isArray(input) ? input : [input];
+        const results = [];
+        raw.forEach((entry) => {
+          if (!entry) {
+            return;
+          }
+          const segments = String(entry)
+            .split(/[\n,;]+/)
+            .map((segment) => segment.trim())
+            .filter(Boolean);
+          segments.forEach((segment) => {
+            if (results.length < 5) {
+              results.push(segment);
+            }
+          });
+        });
+        return results.slice(0, 5);
+      };
+
+      const languageList = normalizeList(language_skills);
+      const itSkillList = normalizeList(it_skills);
+
+      const allowedStatus = new Set(['active', 'on_leave', 'inactive', 'terminated']);
+      const normalizedStatus = allowedStatus.has(status) ? status : 'active';
+      const allowedGender = new Set(['M', 'F', 'O']);
+      const normalizedGender = allowedGender.has(gender) ? gender : null;
+
       const staffData = {
         user_id: userResult.id,
         staff_code: staff_code.trim(),
-        department_id: department_id || null,
-        position_id: posId || null,
+        department_id: departmentIdValue,
+        position_id: posId,
         employment_type: normalizedEmployment,
         hire_date,
         birth_date: birth_date || null,
-        gender: gender || null,
+        t04_start_date: t04_start_date || null,
+        faculty_start_date: faculty_start_date || null,
+        gender: normalizedGender,
         id_number: id_number?.trim() || null,
         address: address?.trim() || null,
-        salary: salary || 0,
+        salary: toNumberOrZero(salary),
         academic_rank: academic_rank?.trim() || null,
         academic_degree: academic_degree?.trim() || null,
-        years_experience: years_experience || 0,
-        status: status || 'active',
+        years_experience: toExperience(years_experience),
+        language_skills: languageList.length ? JSON.stringify(languageList) : null,
+        it_skills: itSkillList.length ? JSON.stringify(itSkillList) : null,
+        party_card_number: party_card_number?.trim() || null,
+        service_number: service_number?.trim() || null,
+        party_join_date: party_join_date || null,
+        status: normalizedStatus,
         notes: notes?.trim() || null
       };
 
       try {
-        await this.staffModel.create(staffData);
+        const staffInsert = await this.staffModel.create(staffData);
+        const newStaffId = staffInsert?.insertId;
+
+        const uploadedFiles = Array.isArray(req.files) ? req.files : [];
+        if (newStaffId && uploadedFiles.length) {
+          const documentPayload = this.buildDocumentPayload(uploadedFiles);
+          await this.staffModel.addDocuments(newStaffId, documentPayload);
+        }
       } catch (e) {
         try { await this.staffModel.db.delete('DELETE FROM users WHERE id = ?', [userResult.id]); } catch (_) {}
         throw e;
       }
 
-      req.flash('success', `Đã thêm cán bộ ${full_name} thành công! Mật khẩu mặc định: staff@123`);
+  req.flash('success', `Đã thêm cán bộ ${full_name} thành công! Mật khẩu mặc định: staff@123`);
       return res.redirect('/staff');
     } catch (error) {
       console.error('StaffController.store error:', error);
@@ -603,6 +831,430 @@ class StaffController {
       req.flash('error', message);
       req.flash('formData', req.body);
       return res.redirect('/staff/create');
+    }
+  }
+
+  async profile(req, res) {
+    const staffId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(staffId) || staffId <= 0) {
+      req.flash('error', 'ID cán bộ không hợp lệ');
+      return res.redirect('/staff');
+    }
+
+    try {
+      const staffRecord = await this.staffModel.findWithDetails(staffId);
+      if (!staffRecord) {
+        req.flash('error', 'Không tìm thấy thông tin cán bộ');
+        return res.redirect('/staff');
+      }
+
+      const normalized = this.formatStaffRecord(staffRecord);
+      const [documents, departmentOptions, positionOptions] = await Promise.all([
+        this.staffModel.getDocuments(staffId),
+        this.staffModel.getDepartmentOptions(),
+        this.staffModel.getPositionOptions()
+      ]);
+      const documentList = this.prepareDocumentList(documents);
+
+      const formatDate = (value) => {
+        if (!value) return null;
+        try {
+          const dt = new Date(value);
+          if (!Number.isNaN(dt.getTime())) {
+            return dt.toLocaleDateString('vi-VN');
+          }
+          return typeof value === 'string' ? value : null;
+        } catch (error) {
+          return typeof value === 'string' ? value : null;
+        }
+      };
+
+      const formatDateInput = (value) => {
+        if (!value) return '';
+        const dateValue = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(dateValue.getTime())) {
+          return '';
+        }
+        return dateValue.toISOString().slice(0, 10);
+      };
+
+      const baseFormData = {
+        staff_code: (staffRecord.staff_code || normalized.staffCode || '').trim(),
+        full_name: (staffRecord.full_name || staffRecord.name || normalized.name || '').trim(),
+        email: staffRecord.email || '',
+        phone: staffRecord.phone || '',
+        department_id: staffRecord.department_id ? String(staffRecord.department_id) : '',
+        position_id: staffRecord.position_id ? String(staffRecord.position_id) : '',
+        employment_type: staffRecord.employment_type || normalized.employmentType || 'full_time',
+        status: normalized.status || staffRecord.status || 'active',
+        hire_date: formatDateInput(staffRecord.hire_date),
+        t04_start_date: formatDateInput(staffRecord.t04_start_date),
+        faculty_start_date: formatDateInput(staffRecord.faculty_start_date),
+        birth_date: formatDateInput(staffRecord.birth_date),
+        gender: staffRecord.gender || '',
+        salary: staffRecord.salary !== null && staffRecord.salary !== undefined
+          ? String(Number(staffRecord.salary))
+          : '',
+        academic_rank: staffRecord.academic_rank || '',
+        academic_degree: staffRecord.academic_degree || '',
+        years_experience: Number.isFinite(Number(staffRecord.years_experience))
+          ? String(staffRecord.years_experience)
+          : '',
+        language_skills: Array.isArray(normalized.languages) && normalized.languages.length
+          ? normalized.languages.join(', ')
+          : '',
+        it_skills: Array.isArray(normalized.itSkills) && normalized.itSkills.length
+          ? normalized.itSkills.join(', ')
+          : '',
+        address: staffRecord.address || '',
+        notes: staffRecord.notes || '',
+        party_card_number: staffRecord.party_card_number || '',
+        service_number: staffRecord.service_number || '',
+        party_join_date: formatDateInput(staffRecord.party_join_date)
+      };
+
+      const [flashedFormData] = req.flash('formData');
+      const [flashedErrors] = req.flash('errors');
+      const showEditFormFlash = req.flash('showEditForm');
+
+      const validationErrors = flashedErrors || {};
+      const formData = flashedFormData
+        ? { ...baseFormData, ...flashedFormData }
+        : baseFormData;
+      const shouldShowEditForm = Boolean(showEditFormFlash && showEditFormFlash.length
+        ? showEditFormFlash.some((value) => value === true || value === 'true')
+        : Object.keys(validationErrors).length > 0);
+
+      return res.render('staff/profile', {
+        title: `Hồ sơ nhân sự - ${normalized.name}`,
+        user: req.session.user,
+        staff: normalized,
+        staffRaw: staffRecord,
+        documents: documentList,
+        helpers: { formatDate, formatDateInput },
+        departmentOptions,
+        positionOptions,
+        employmentOptions: EMPLOYMENT_FORM_OPTIONS,
+        statusOptions: STATUS_OPTIONS,
+        genderOptions: GENDER_OPTIONS,
+        formData,
+        validationErrors,
+        showEditForm: shouldShowEditForm
+      });
+    } catch (error) {
+      console.error('StaffController.profile error:', error);
+      req.flash('error', 'Không thể tải hồ sơ cán bộ. Vui lòng thử lại.');
+      return res.redirect('/staff');
+    }
+  }
+
+  async updateProfile(req, res) {
+    const staffId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(staffId) || staffId <= 0) {
+      req.flash('error', 'ID cán bộ không hợp lệ');
+      return res.redirect('/staff');
+    }
+
+    const toIntOrNull = (value) => {
+      if (value === null || value === undefined || value === '') {
+        return null;
+      }
+      const parsed = Number.parseInt(value, 10);
+      return Number.isNaN(parsed) ? null : parsed;
+    };
+
+    const toPositiveNumberOrZero = (value) => {
+      if (value === null || value === undefined || value === '') {
+        return 0;
+      }
+      const normalized = typeof value === 'string' ? value.replace(/,/g, '').trim() : value;
+      const parsed = Number.parseFloat(normalized);
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    };
+
+    const toExperience = (value) => {
+      const parsed = Number.parseInt(value, 10);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        return 0;
+      }
+      return Math.min(parsed, 60);
+    };
+
+    const normalizeList = (input) => {
+      if (!input) return [];
+      const raw = Array.isArray(input) ? input : [input];
+      const results = [];
+      raw.forEach((entry) => {
+        if (!entry) {
+          return;
+        }
+        const segments = String(entry)
+          .split(/[\n,;]+/)
+          .map((segment) => segment.trim())
+          .filter(Boolean);
+        segments.forEach((segment) => {
+          if (results.length < 10) {
+            results.push(segment);
+          }
+        });
+      });
+      return results.slice(0, 10);
+    };
+
+    const ensureDateValue = (value) => {
+      if (!value) return null;
+      const dt = new Date(value);
+      return Number.isNaN(dt.getTime()) ? null : value;
+    };
+
+    try {
+      const staffRecord = await this.staffModel.findWithDetails(staffId);
+      if (!staffRecord) {
+        req.flash('error', 'Không tìm thấy thông tin cán bộ');
+        return res.redirect('/staff');
+      }
+
+      const {
+        staff_code,
+        full_name,
+        email,
+        phone,
+        department_id,
+        position_id,
+        employment_type,
+        status,
+        hire_date,
+        t04_start_date,
+        faculty_start_date,
+        birth_date,
+        gender,
+        salary,
+        academic_rank,
+        academic_degree,
+        years_experience,
+        language_skills,
+        it_skills,
+        address,
+        notes,
+        party_card_number,
+        service_number,
+        party_join_date
+      } = req.body;
+
+      const errors = {};
+
+      const normalizedName = (full_name || '').trim();
+      const normalizedStaffCode = (staff_code || '').trim();
+      const normalizedEmail = (email || '').trim();
+      const normalizedPhone = (phone || '').trim();
+      const normalizedHireDate = (hire_date || '').trim();
+      const normalizedEmploymentInput = typeof employment_type === 'string' ? employment_type.trim() : employment_type;
+      const employmentIsValid = Boolean(normalizedEmploymentInput && EMPLOYMENT_FORM_OPTIONS.some((opt) => opt.value === normalizedEmploymentInput));
+      const normalizedEmployment = employmentIsValid
+        ? normalizedEmploymentInput
+        : (staffRecord.employment_type || 'full_time');
+      const normalizedStatusInput = typeof status === 'string' ? status.trim().toLowerCase() : status;
+      const statusIsValid = Boolean(normalizedStatusInput && STATUS_META[normalizedStatusInput]);
+      const normalizedStatus = statusIsValid
+        ? normalizedStatusInput
+        : (staffRecord.status || 'active');
+      const normalizedGenderInput = typeof gender === 'string' ? gender.trim().toUpperCase() : gender;
+      const normalizedGender = normalizedGenderInput && ['M', 'F', 'O'].includes(normalizedGenderInput)
+        ? normalizedGenderInput
+        : null;
+
+      const departmentIdValue = toIntOrNull(department_id);
+      const positionIdValue = toIntOrNull(position_id);
+
+      if (!normalizedName || normalizedName.length < 3) {
+        errors.full_name = 'Họ tên phải có ít nhất 3 ký tự';
+      }
+
+      if (!normalizedStaffCode || normalizedStaffCode.length < 3) {
+        errors.staff_code = 'Mã cán bộ phải có ít nhất 3 ký tự';
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!normalizedEmail || !emailRegex.test(normalizedEmail)) {
+        errors.email = 'Email không hợp lệ';
+      }
+
+      if (!departmentIdValue) {
+        errors.department_id = 'Vui lòng chọn phòng/bộ môn';
+      }
+
+      if (!normalizedHireDate) {
+        errors.hire_date = 'Vui lòng nhập ngày vào ngành';
+      } else if (Number.isNaN(new Date(normalizedHireDate).getTime())) {
+        errors.hire_date = 'Ngày vào ngành không hợp lệ';
+      }
+
+      if (!employmentIsValid) {
+        errors.employment_type = 'Loại hình công tác không hợp lệ';
+      }
+
+      const t04Value = ensureDateValue((t04_start_date || '').trim());
+      if (t04_start_date && !t04Value) {
+        errors.t04_start_date = 'Ngày công tác T04 không hợp lệ';
+      }
+
+      const facultyValue = ensureDateValue((faculty_start_date || '').trim());
+      if (faculty_start_date && !facultyValue) {
+        errors.faculty_start_date = 'Ngày công tác tại khoa không hợp lệ';
+      }
+
+      const birthValue = ensureDateValue((birth_date || '').trim());
+      if (birth_date && !birthValue) {
+        errors.birth_date = 'Ngày sinh không hợp lệ';
+      }
+
+      const partyJoinValue = ensureDateValue((party_join_date || '').trim());
+      if (party_join_date && !partyJoinValue) {
+        errors.party_join_date = 'Ngày vào Đảng không hợp lệ';
+      }
+
+      if (!statusIsValid) {
+        errors.status = 'Trạng thái không hợp lệ';
+      }
+
+      if (Object.keys(errors).length) {
+        req.flash('errors', errors);
+        req.flash('formData', req.body);
+        req.flash('showEditForm', true);
+        return res.redirect(`/staff/${staffId}/profile`);
+      }
+
+      if (normalizedStaffCode !== staffRecord.staff_code) {
+        const duplicateStaffCode = await this.staffModel.isStaffCodeExists(normalizedStaffCode, staffId);
+        if (duplicateStaffCode) {
+          errors.staff_code = 'Mã cán bộ đã tồn tại trong hệ thống';
+        }
+        const duplicateUsername = await this.staffModel.db.findOne(
+          'SELECT id FROM users WHERE username = ? AND id != ? LIMIT 1',
+          [normalizedStaffCode, staffRecord.user_id]
+        );
+        if (duplicateUsername) {
+          errors.staff_code = 'Tên đăng nhập (mã cán bộ) đã được sử dụng';
+        }
+      }
+
+      if (normalizedEmail.toLowerCase() !== String(staffRecord.email || '').toLowerCase()) {
+        const duplicateEmail = await this.staffModel.db.findOne(
+          'SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1',
+          [normalizedEmail, staffRecord.user_id]
+        );
+        if (duplicateEmail) {
+          errors.email = 'Email đã được sử dụng bởi tài khoản khác';
+        }
+      }
+
+      if (Object.keys(errors).length) {
+        req.flash('errors', errors);
+        req.flash('formData', req.body);
+        req.flash('showEditForm', true);
+        return res.redirect(`/staff/${staffId}/profile`);
+      }
+
+      const deptRow = await this.staffModel.db.findOne('SELECT id FROM departments WHERE id = ? AND is_active = 1', [departmentIdValue]);
+      if (!deptRow) {
+        req.flash('errors', { department_id: 'Phòng/Bộ môn không hợp lệ hoặc đã ngừng hoạt động' });
+        req.flash('formData', req.body);
+        req.flash('showEditForm', true);
+        return res.redirect(`/staff/${staffId}/profile`);
+      }
+
+      let validatedPositionId = null;
+      if (positionIdValue) {
+        const posRow = await this.staffModel.db.findOne('SELECT id FROM positions WHERE id = ? AND is_active = 1', [positionIdValue]);
+        if (!posRow) {
+          req.flash('errors', { position_id: 'Chức vụ không hợp lệ' });
+          req.flash('formData', req.body);
+          req.flash('showEditForm', true);
+          return res.redirect(`/staff/${staffId}/profile`);
+        }
+        validatedPositionId = positionIdValue;
+      }
+
+      const languageList = normalizeList(language_skills);
+      const itSkillList = normalizeList(it_skills);
+      const numericSalary = toPositiveNumberOrZero(salary);
+      const normalizedExperience = toExperience(years_experience);
+
+      const staffPayload = {
+        staff_code: normalizedStaffCode,
+        department_id: departmentIdValue,
+        position_id: validatedPositionId,
+        employment_type: normalizedEmployment,
+        status: normalizedStatus,
+        hire_date: normalizedHireDate,
+        t04_start_date: t04Value,
+        faculty_start_date: facultyValue,
+        birth_date: birthValue,
+        gender: normalizedGender,
+        salary: numericSalary,
+        academic_rank: academic_rank ? academic_rank.trim() : null,
+        academic_degree: academic_degree ? academic_degree.trim() : null,
+        years_experience: normalizedExperience,
+        language_skills: languageList.length ? JSON.stringify(languageList) : null,
+        it_skills: itSkillList.length ? JSON.stringify(itSkillList) : null,
+        address: address ? address.trim() : null,
+        notes: notes ? notes.trim() : null,
+        party_card_number: party_card_number ? party_card_number.trim() : null,
+        service_number: service_number ? service_number.trim() : null,
+        party_join_date: partyJoinValue
+      };
+
+      await this.staffModel.update(staffId, staffPayload);
+      await this.staffModel.db.update(
+        'UPDATE users SET username = ?, email = ?, full_name = ?, phone = ? WHERE id = ?',
+        [
+          normalizedStaffCode,
+          normalizedEmail,
+          normalizedName,
+          normalizedPhone || null,
+          staffRecord.user_id
+        ]
+      );
+
+      req.flash('success', 'Đã cập nhật hồ sơ cán bộ');
+      return res.redirect(`/staff/${staffId}/profile`);
+    } catch (error) {
+      console.error('StaffController.updateProfile error:', error);
+      req.flash('error', 'Không thể cập nhật hồ sơ cán bộ. Vui lòng thử lại.');
+      req.flash('formData', req.body);
+      req.flash('showEditForm', true);
+      return res.redirect(`/staff/${staffId}/profile`);
+    }
+  }
+
+  async uploadProfileFiles(req, res) {
+    const staffId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(staffId) || staffId <= 0) {
+      req.flash('error', 'Không xác định được cán bộ cần cập nhật hồ sơ');
+      return res.redirect('/staff');
+    }
+
+    try {
+      const staffRecord = await this.staffModel.findById(staffId);
+      if (!staffRecord) {
+        req.flash('error', 'Không tìm thấy cán bộ trong hệ thống');
+        return res.redirect('/staff');
+      }
+
+      const uploadedFiles = Array.isArray(req.files) ? req.files : [];
+      if (!uploadedFiles.length) {
+        req.flash('error', 'Vui lòng chọn ít nhất một file hồ sơ để tải lên');
+        return res.redirect(`/staff/${staffId}/profile`);
+      }
+
+      const payload = this.buildDocumentPayload(uploadedFiles);
+      await this.staffModel.addDocuments(staffId, payload);
+      req.flash('success', `Đã tải lên ${payload.length} tài liệu hồ sơ cá nhân`);
+      return res.redirect(`/staff/${staffId}/profile`);
+    } catch (error) {
+      console.error('StaffController.uploadProfileFiles error:', error);
+      req.flash('error', 'Không thể cập nhật hồ sơ cá nhân. Vui lòng thử lại.');
+      return res.redirect(`/staff/${staffId}/profile`);
     }
   }
 
@@ -667,28 +1319,65 @@ class StaffController {
     try {
       const { name, code, description, category, measurement_type, unit, weight, is_required } = req.body;
 
-      // Basic validation
-      const errors = {};
-      if (!name || name.trim().length < 3) errors.name = 'Tên tiêu chí tối thiểu 3 ký tự';
-      if (!code || code.trim().length < 3) errors.code = 'Mã tiêu chí tối thiểu 3 ký tự';
-      if (!category) errors.category = 'Chọn nhóm tiêu chí';
-      if (!measurement_type) errors.measurement_type = 'Chọn loại đo lường';
-      const numericWeight = Number(weight || 0);
-      if (Number.isNaN(numericWeight) || numericWeight < 0 || numericWeight > 100) errors.weight = 'Trọng số 0-100';
+      const normalizedName = typeof name === 'string' ? name.trim() : '';
+      const normalizedCode = typeof code === 'string' ? code.trim().toUpperCase() : '';
+      const normalizedCategory = typeof category === 'string' ? category.trim() : '';
+      const normalizedMeasurement = typeof measurement_type === 'string' ? measurement_type.trim() : '';
+      const normalizedUnit = typeof unit === 'string' ? unit.trim() : '';
+      const normalizedDescription = typeof description === 'string' ? description.trim() : '';
 
-      if (Object.keys(errors).length) {
-        return res.status(422).json({ ok: false, errors });
+      const errors = {};
+      if (!normalizedName || normalizedName.length < 3) {
+        errors.name = 'Tên tiêu chí tối thiểu 3 ký tự';
       }
 
+      if (!normalizedCode || normalizedCode.length < 3) {
+        errors.code = 'Mã tiêu chí tối thiểu 3 ký tự';
+      }
+
+      if (!normalizedCategory || !CRITERIA_CATEGORIES.has(normalizedCategory)) {
+        errors.category = 'Nhóm tiêu chí không hợp lệ';
+      }
+
+      if (!normalizedMeasurement || !MEASUREMENT_TYPES.has(normalizedMeasurement)) {
+        errors.measurement_type = 'Loại đo lường không hợp lệ';
+      }
+
+      const parsedWeight = parseDecimalField(weight, 0);
+      if (!parsedWeight.ok) {
+        errors.weight = 'Trọng số phải là số hợp lệ';
+      }
+
+      const numericWeight = parsedWeight.ok ? parsedWeight.value : 0;
+      if (parsedWeight.ok && (numericWeight < 0 || numericWeight > 100)) {
+        errors.weight = 'Trọng số phải nằm trong khoảng 0-100';
+      }
+
+      if (!errors.code) {
+        const duplicate = await this.evaluationCriteriaModel.db.findOne(
+          'SELECT id FROM evaluation_criteria WHERE code = ? LIMIT 1',
+          [normalizedCode]
+        );
+        if (duplicate) {
+          errors.code = 'Mã tiêu chí đã tồn tại';
+        }
+      }
+
+      if (Object.keys(errors).length) {
+        const firstErrorMessage = Object.values(errors)[0] || 'Dữ liệu không hợp lệ';
+        return res.status(422).json({ ok: false, message: firstErrorMessage, errors });
+      }
+
+      const normalizedWeight = Math.round(numericWeight * 100) / 100;
       const data = {
-        name: name.trim(),
-        code: code.trim().toUpperCase(),
-        description: description?.trim() || null,
-        category,
-        measurement_type,
-        unit: unit?.trim() || null,
-        weight: numericWeight,
-        is_required: is_required ? 1 : 0,
+        name: normalizedName,
+        code: normalizedCode,
+        description: normalizedDescription || null,
+        category: normalizedCategory,
+        measurement_type: normalizedMeasurement,
+        unit: normalizedUnit || null,
+        weight: normalizedWeight,
+        is_required: normalizeBooleanFlag(is_required, 0),
         is_active: 1,
         display_order: 999
       };
@@ -699,6 +1388,128 @@ class StaffController {
       console.error('StaffController.createCriteria error:', error);
       const conflict = error?.code === 'ER_DUP_ENTRY';
       return res.status(conflict ? 409 : 500).json({ ok: false, message: conflict ? 'Mã tiêu chí đã tồn tại' : 'Không thể tạo tiêu chí mới' });
+    }
+  }
+
+  async updateCriteria(req, res) {
+    try {
+      const rawId = req.params.id;
+      const criteriaId = Number.parseInt(rawId, 10);
+      if (!Number.isFinite(criteriaId) || criteriaId <= 0) {
+        return res.status(400).json({ ok: false, message: 'ID tiêu chí không hợp lệ' });
+      }
+
+      const existing = await this.evaluationCriteriaModel.findById(criteriaId);
+      if (!existing) {
+        return res.status(404).json({ ok: false, message: 'Không tìm thấy tiêu chí' });
+      }
+
+      const { name, code, description, category, measurement_type, unit, weight, is_required } = req.body;
+
+      const normalizedName = typeof name === 'string' ? name.trim() : (existing.name || '');
+      const normalizedCode = typeof code === 'string' ? code.trim().toUpperCase() : (existing.code || '');
+      const normalizedCategory = typeof category === 'string' ? category.trim() : (existing.category || '');
+      const normalizedMeasurement = typeof measurement_type === 'string' ? measurement_type.trim() : (existing.measurement_type || '');
+      const normalizedUnit = typeof unit === 'string' ? unit.trim() : (existing.unit || '');
+      const normalizedDescription = typeof description === 'string' ? description.trim() : (existing.description || '');
+
+      const errors = {};
+      if (!normalizedName || normalizedName.length < 3) {
+        errors.name = 'Tên tiêu chí tối thiểu 3 ký tự';
+      }
+
+      if (!normalizedCode || normalizedCode.length < 3) {
+        errors.code = 'Mã tiêu chí tối thiểu 3 ký tự';
+      }
+
+      if (!normalizedCategory || !CRITERIA_CATEGORIES.has(normalizedCategory)) {
+        errors.category = 'Nhóm tiêu chí không hợp lệ';
+      }
+
+      if (!normalizedMeasurement || !MEASUREMENT_TYPES.has(normalizedMeasurement)) {
+        errors.measurement_type = 'Loại đo lường không hợp lệ';
+      }
+
+      const parsedWeight = parseDecimalField(weight, existing.weight ?? 0);
+      if (!parsedWeight.ok) {
+        errors.weight = 'Trọng số phải là số hợp lệ';
+      }
+
+      const numericWeight = parsedWeight.ok ? parsedWeight.value : Number(existing.weight || 0);
+      if (parsedWeight.ok && (numericWeight < 0 || numericWeight > 100)) {
+        errors.weight = 'Trọng số phải nằm trong khoảng 0-100';
+      }
+
+      if (!errors.code && normalizedCode !== (existing.code || '').toUpperCase()) {
+        const duplicate = await this.evaluationCriteriaModel.db.findOne(
+          'SELECT id FROM evaluation_criteria WHERE code = ? AND id != ? LIMIT 1',
+          [normalizedCode, criteriaId]
+        );
+        if (duplicate) {
+          errors.code = 'Mã tiêu chí đã tồn tại';
+        }
+      }
+
+      if (Object.keys(errors).length) {
+        const firstErrorMessage = Object.values(errors)[0] || 'Dữ liệu không hợp lệ';
+        return res.status(422).json({ ok: false, message: firstErrorMessage, errors });
+      }
+
+      const normalizedWeight = Math.round(numericWeight * 100) / 100;
+      const normalizedRequired = normalizeBooleanFlag(is_required, existing.is_required ? 1 : 0);
+
+      const data = {
+        name: normalizedName,
+        code: normalizedCode,
+        description: normalizedDescription || null,
+        category: normalizedCategory,
+        measurement_type: normalizedMeasurement,
+        unit: normalizedUnit || null,
+        weight: normalizedWeight,
+        is_required: normalizedRequired,
+        is_active: existing.is_active ?? 1
+      };
+
+      await this.evaluationCriteriaModel.updateCriteria(criteriaId, data);
+
+      try {
+        const activePeriod = await this.evaluationPeriodModel.getActivePeriod();
+        if (activePeriod && activePeriod.id) {
+          await this.evaluationPeriodModel.addCriteriaToPeriod(activePeriod.id, criteriaId, {
+            weight: normalizedWeight,
+            is_required: Boolean(normalizedRequired)
+          });
+        }
+      } catch (attachError) {
+        console.warn('StaffController.updateCriteria: unable to sync period weight:', attachError.message);
+      }
+
+      return res.json({ ok: true, data: { id: criteriaId, ...data } });
+    } catch (error) {
+      console.error('StaffController.updateCriteria error:', error);
+      const conflict = error?.code === 'ER_DUP_ENTRY';
+      return res.status(conflict ? 409 : 500).json({ ok: false, message: conflict ? 'Mã tiêu chí đã tồn tại' : 'Không thể cập nhật tiêu chí' });
+    }
+  }
+
+  async deleteCriteria(req, res) {
+    try {
+      const rawId = req.params.id;
+      const criteriaId = Number.parseInt(rawId, 10);
+      if (!Number.isFinite(criteriaId) || criteriaId <= 0) {
+        return res.status(400).json({ ok: false, message: 'ID tiêu chí không hợp lệ' });
+      }
+
+      const existing = await this.evaluationCriteriaModel.findById(criteriaId);
+      if (!existing) {
+        return res.status(404).json({ ok: false, message: 'Không tìm thấy tiêu chí' });
+      }
+
+      await this.evaluationCriteriaModel.deleteCriteria(criteriaId);
+      return res.json({ ok: true });
+    } catch (error) {
+      console.error('StaffController.deleteCriteria error:', error);
+      return res.status(500).json({ ok: false, message: 'Không thể xóa tiêu chí' });
     }
   }
 

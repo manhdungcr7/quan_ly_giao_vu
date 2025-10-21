@@ -40,30 +40,100 @@ class Workbook extends BaseModel {
 
   static async findByWeek(userId, weekStart, weekEnd) {
     console.log(' Workbook.findByWeek:', { userId, weekStart, weekEnd });
-    const query = `
+
+    const ensureDateString = (value) => {
+      if (value === null || value === undefined) {
+        return null;
+      }
+
+      if (value instanceof Date) {
+        if (Number.isNaN(value.getTime())) {
+          return null;
+        }
+        return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+      }
+
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed || trimmed === '0000-00-00') {
+          return null;
+        }
+        return trimmed.includes('T') ? trimmed.split('T')[0] : trimmed;
+      }
+
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) {
+        return null;
+      }
+      return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+    };
+
+    const extractRows = (result) => {
+      if (Array.isArray(result)) {
+        if (Array.isArray(result[0])) {
+          return result[0];
+        }
+        return result;
+      }
+      return Array.isArray(result) ? result : [result];
+    };
+
+    const runQuery = async (sql, params) => {
+      const queryResult = await Workbook.db.query(sql, params);
+      return extractRows(queryResult);
+    };
+
+    const normalizedStart = ensureDateString(weekStart);
+    const normalizedEnd = ensureDateString(weekEnd);
+
+    const exactQuery = `
       SELECT * FROM ${Workbook.tableName}
       WHERE user_id = ?
-      AND week_start = ?
-      AND week_end = ?
+        AND week_start = ?
+        AND week_end = ?
       ORDER BY created_at DESC
       LIMIT 1
     `;
-    
-    const result = await Workbook.db.query(query, [userId, weekStart, weekEnd]);
-    
-    let rows;
-    if (Array.isArray(result)) {
-      if (Array.isArray(result[0])) {
-        rows = result[0];
-      } else {
-        rows = result;
-      }
-    } else {
-      rows = [result];
+
+    const candidatePairs = [];
+    if (normalizedStart && normalizedEnd) {
+      candidatePairs.push([normalizedStart, normalizedEnd]);
     }
-    
-    console.log(' findByWeek result:', { foundRows: rows.length, firstId: rows[0]?.id });
-    return rows && rows.length > 0 ? rows[0] : null;
+    if (weekStart && weekEnd && (weekStart !== normalizedStart || weekEnd !== normalizedEnd)) {
+      candidatePairs.push([weekStart, weekEnd]);
+    }
+
+    for (const [start, end] of candidatePairs) {
+      const rows = await runQuery(exactQuery, [userId, start, end]);
+      if (rows.length) {
+        console.log(' findByWeek matched exact range:', { start, end, workbookId: rows[0].id });
+        return rows[0];
+      }
+    }
+
+    const referenceDates = [normalizedStart, normalizedEnd, weekStart, weekEnd].filter(Boolean);
+
+    if (referenceDates.length) {
+      const rangeQuery = `
+        SELECT * FROM ${Workbook.tableName}
+        WHERE user_id = ?
+          AND week_start <= ?
+          AND week_end >= ?
+        ORDER BY week_start DESC
+        LIMIT 1
+      `;
+
+      for (const reference of referenceDates) {
+        const rows = await runQuery(rangeQuery, [userId, reference, reference]);
+        if (rows.length) {
+          console.log(' findByWeek matched inclusive range:', { reference, workbookId: rows[0].id });
+          return rows[0];
+        }
+      }
+    }
+
+    console.log(' findByWeek result: no workbook found');
+    return null;
   }
 
   static async create(data) {
@@ -89,6 +159,17 @@ class Workbook extends BaseModel {
     
     const insertResult = Array.isArray(result) ? result[0] : result;
     return insertResult.insertId;
+  }
+
+  static async updateWeekRange(id, weekStart, weekEnd) {
+    const query = `
+      UPDATE ${Workbook.tableName}
+      SET week_start = ?, week_end = ?, updated_at = NOW()
+      WHERE id = ?
+    `;
+
+    await Workbook.db.query(query, [weekStart, weekEnd, id]);
+    return true;
   }
 
   static async updateQuickNotes(id, notes) {

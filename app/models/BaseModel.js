@@ -7,6 +7,37 @@ class BaseModel {
         this.db = db;
     }
 
+    // Cache table existence checks to avoid redundant queries
+    static tableExistenceCache = new Map();
+
+    static async tableExists(tableName) {
+        if (!tableName) return false;
+        if (this.tableExistenceCache.has(tableName)) {
+            return this.tableExistenceCache.get(tableName);
+        }
+
+        try {
+            const sql = 'SELECT 1 FROM information_schema.tables WHERE table_schema = ? AND table_name = ? LIMIT 1';
+            const params = [process.env.DB_NAME || 'quan_ly_giao_vu', tableName];
+            const result = await db.findOne(sql, params);
+            const exists = !!result;
+            this.tableExistenceCache.set(tableName, exists);
+            return exists;
+        } catch (error) {
+            console.error('BaseModel.tableExists error:', error);
+            this.tableExistenceCache.set(tableName, false);
+            return false;
+        }
+    }
+
+    static clearTableExistenceCache(tableName) {
+        if (typeof tableName === 'string') {
+            this.tableExistenceCache.delete(tableName);
+        } else {
+            this.tableExistenceCache.clear();
+        }
+    }
+
     // Lấy tất cả bản ghi
     async findAll(options = {}) {
         try {

@@ -444,9 +444,17 @@ class AuthController {
     // Hiển thị trang đổi mật khẩu
     async showChangePassword(req, res) {
         try {
+            const sessionUser = req.session ? req.session.user : null;
+
+            if (!sessionUser) {
+                req.flash('error', 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                return res.redirect('/auth/login');
+            }
+
             res.render('auth/change-password', {
                 title: 'Đổi mật khẩu',
-                user: req.session.user,
+                user: sessionUser,
+                minPasswordLength: (CONSTANTS && CONSTANTS.VALIDATION && CONSTANTS.VALIDATION.PASSWORD_MIN_LENGTH) ? CONSTANTS.VALIDATION.PASSWORD_MIN_LENGTH : 6,
                 error: res.locals.error,
                 success: res.locals.success
             });
@@ -462,8 +470,15 @@ class AuthController {
     // Xử lý đổi mật khẩu
     async changePassword(req, res) {
         try {
+            const sessionUser = req.session ? req.session.user : null;
+
+            if (!sessionUser) {
+                req.flash('error', 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                return res.redirect('/auth/login');
+            }
+
             const { current_password, new_password, confirm_password } = req.body;
-            const userId = req.session.user.id;
+            const userId = sessionUser.id;
 
             // Validate input
             if (!current_password || !new_password || !confirm_password) {
@@ -473,6 +488,11 @@ class AuthController {
 
             if (new_password !== confirm_password) {
                 req.flash('error', 'Mật khẩu mới không khớp');
+                return res.redirect('/auth/change-password');
+            }
+
+            if (current_password === new_password) {
+                req.flash('error', 'Mật khẩu mới phải khác mật khẩu hiện tại');
                 return res.redirect('/auth/change-password');
             }
 

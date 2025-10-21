@@ -368,8 +368,9 @@ textarea {
 
 .actions {
   display: flex;
-  gap: 0.35rem;
+  gap: 0.5rem;
   justify-content: flex-end;
+  align-items: center;
 }
 
 .btn-icon {
@@ -378,27 +379,39 @@ textarea {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 12px;
-  border: none;
+  border-radius: 8px;
+  border: 1px solid rgba(26, 60, 100, 0.1);
   background: #ffffff;
   color: #1a3c64;
-  box-shadow: 0 6px 18px rgba(18, 52, 92, 0.12);
+  box-shadow: 0 2px 8px rgba(18, 52, 92, 0.08);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.btn-icon i {
+  font-size: 14px;
+  line-height: 1;
 }
 
 .btn-icon:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(18, 52, 92, 0.16);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(18, 52, 92, 0.15);
+  background: #f0f6ff;
+  border-color: #1a3c64;
 }
 
 .btn-icon--danger {
-  background: rgba(194, 68, 68, 0.12);
-  color: #a33232;
+  background: #fff5f5;
+  color: #c23030;
+  border-color: rgba(194, 48, 48, 0.2);
 }
 
 .btn-icon--danger:hover {
-  background: rgba(194, 68, 68, 0.2);
+  background: #ffe5e5;
+  border-color: #c23030;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(194, 48, 48, 0.2);
 }
 
 .btn-icon .sr-only {
@@ -411,6 +424,26 @@ textarea {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Đảm bảo form trong actions không có margin */
+.actions form {
+  display: inline-flex;
+  margin: 0;
+}
+
+/* Tooltip cho buttons */
+.btn-icon {
+  position: relative;
+}
+
+.btn-icon:focus {
+  outline: 2px solid #1a3c64;
+  outline-offset: 2px;
+}
+
+.btn-icon--danger:focus {
+  outline-color: #c23030;
 }
 
 [data-mode="edit"] {

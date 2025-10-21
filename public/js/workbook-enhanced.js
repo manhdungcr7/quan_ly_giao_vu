@@ -33,11 +33,11 @@
       return path;
     }
 
-    if (!path.startsWith('/')) {
-      return `${apiBaseUrl}/${path}`;
+    if (path.startsWith('/')) {
+      return path;
     }
 
-    return `${apiBaseUrl}${path}`;
+    return `/${path.replace(/^\/+/g, '')}`;
   }
 
   async function parseJsonResponse(response) {
@@ -758,14 +758,49 @@
     const currentWeekLabel = document.querySelector('[data-current-week-academic]');
     const currentWeekStart = layout ? layout.dataset.weekStart : null;
 
+    console.log('🔍 updateAcademicWeekLabels called:', {
+      hasLayout: !!layout,
+      hasCurrentWeekLabel: !!currentWeekLabel,
+      currentWeekStart,
+      academicStartDate,
+      academicStartISO
+    });
+
     if (currentWeekLabel && currentWeekStart) {
       const defaultLabel = currentWeekLabel.dataset.defaultLabel || currentWeekLabel.textContent;
       const weekNumber = computeAcademicWeekNumber(currentWeekStart);
+      console.log('📊 Sidebar week number:', weekNumber);
       if (weekNumber) {
         currentWeekLabel.textContent = `Tuần học số ${weekNumber}`;
       } else {
         currentWeekLabel.textContent = defaultLabel;
       }
+    }
+
+    // Cập nhật breadcrumb - Thử nhiều selector
+    let breadcrumbWeekEl = document.querySelector('#breadcrumb-week [data-breadcrumb-label]');
+    
+    // Fallback: tìm breadcrumb item cuối cùng
+    if (!breadcrumbWeekEl) {
+      const breadcrumbItems = document.querySelectorAll('.breadcrumb-pro .crumb.is-current [data-breadcrumb-label]');
+      if (breadcrumbItems.length > 0) {
+        breadcrumbWeekEl = breadcrumbItems[breadcrumbItems.length - 1];
+        console.log('🔄 Using fallback breadcrumb selector');
+      }
+    }
+    
+    console.log('🍞 Breadcrumb element:', breadcrumbWeekEl);
+    if (breadcrumbWeekEl && currentWeekStart) {
+      const weekNumber = computeAcademicWeekNumber(currentWeekStart);
+      console.log('📊 Breadcrumb week number:', weekNumber);
+      if (weekNumber) {
+        breadcrumbWeekEl.textContent = `Tuần ${weekNumber}`;
+        console.log('✅ Breadcrumb updated to:', `Tuần ${weekNumber}`);
+      } else {
+        console.log('⚠️ No week number computed for breadcrumb');
+      }
+    } else {
+      console.log('⚠️ Breadcrumb element not found or no weekStart');
     }
 
     document.querySelectorAll('[data-week-chip]').forEach((chip) => {

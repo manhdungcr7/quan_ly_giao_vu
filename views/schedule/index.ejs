@@ -1095,6 +1095,15 @@
             }
         }
 
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         .modal-header {
             padding: 1.5rem 2rem;
             border-bottom: 1px solid #e9ecef;
@@ -1289,6 +1298,9 @@
                 <div class="toolbar-left">
                     <button class="btn btn-primary" onclick="openCreateModal()">
                         <i class="bi bi-plus-circle"></i> Tạo sự kiện mới
+                    </button>
+                    <button class="btn btn-secondary" onclick="openPdfExportModal()">
+                        <i class="bi bi-filetype-pdf"></i> Xuất PDF tổng hợp
                     </button>
                     <button class="btn btn-secondary" onclick="calendar.today()">
                         <i class="bi bi-calendar-today"></i> Hôm nay
@@ -1689,6 +1701,123 @@
                 <button class="btn btn-secondary" type="button" onclick="closeTeachingLessonModal()">Hủy</button>
                 <button class="btn btn-primary" type="button" onclick="submitTeachingLesson()">
                     <i class="bi bi-check-circle"></i> Lưu lịch giảng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal tùy chỉnh xuất PDF -->
+    <div id="pdfExportModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
+                <h2 style="display: flex; align-items: center; gap: 10px; margin: 0; font-size: 20px;">
+                    <i class="bi bi-filetype-pdf"></i>
+                    Xuất tổng hợp PDF
+                </h2>
+                <button class="close-btn" onclick="closePdfExportModal()" style="color: white; opacity: 0.9; background: rgba(255,255,255,0.2); border-radius: 50%; width: 32px; height: 32px;">&times;</button>
+            </div>
+            
+            <div class="modal-body" style="padding: 24px;">
+                <p style="color: #64748b; margin-bottom: 20px; font-size: 14px;">
+                    Chọn các trường thông tin cần hiển thị trong file PDF:
+                </p>
+
+                <div id="pdfFieldSelection" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+                    <!-- Cột 1 -->
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="title" checked style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Tiêu đề</span>
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="event_type" checked style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Loại sự kiện</span>
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="datetime" checked style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Ngày giờ</span>
+                    </label>
+
+                    <!-- Cột 2 -->
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="organizer" checked style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Người tổ chức</span>
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="location" checked style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Địa điểm</span>
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="status" checked style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Trạng thái</span>
+                    </label>
+
+                    <!-- Cột 3 -->
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="priority" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Độ ưu tiên</span>
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="room" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Phòng</span>
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="building" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Tòa nhà</span>
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="class_name" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Lớp học</span>
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="description" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Mô tả</span>
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="pdf-field-checkbox">
+                        <input type="checkbox" value="notes" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #1e293b;">Ghi chú</span>
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 20px; padding: 16px; background: #f1f5f9; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <p style="margin: 0; font-size: 14px; color: #475569;">
+                        <strong>Hướng giấy:</strong>
+                    </p>
+                    <div style="display: flex; gap: 16px; margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="pdfOrientation" value="portrait" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 14px; color: #1e293b;">
+                                <i class="bi bi-file-earmark-text"></i> Dọc
+                            </span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="pdfOrientation" value="landscape" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 14px; color: #1e293b;">
+                                <i class="bi bi-file-earmark-text-fill"></i> Ngang
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <p style="font-size: 13px; color: #94a3b8; margin: 0;">
+                    Các bộ lọc đang áp dụng trên lịch cũng sẽ được giữ nguyên khi xuất.
+                </p>
+            </div>
+
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #f8fafc; border-radius: 0 0 12px 12px;">
+                <button class="btn btn-light" onclick="closePdfExportModal()" style="padding: 10px 20px;">
+                    <i class="bi bi-x-circle"></i> Hủy
+                </button>
+                <button class="btn btn-primary" onclick="confirmPdfExport()" style="padding: 10px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                    <i class="bi bi-download"></i> Xuất PDF
                 </button>
             </div>
         </div>
@@ -3874,6 +4003,92 @@
             return 8;
         }
 
+        const CLASS_NAME_TEXT_PATTERN = /(?:^|\b)(?:lớp|lop|class)\s*[:\-]?\s*([A-Za-z0-9 ,._\-/()]+)/i;
+        const CLASS_NAME_IGNORE_PATTERN = /(giảng viên|g[\. ]?v|email|phòng|room|địa điểm|location)/i;
+
+        function extractClassFromText(text) {
+            if (typeof text !== 'string') {
+                return '';
+            }
+
+            const trimmed = text.trim();
+            if (!trimmed) {
+                return '';
+            }
+
+            const match = trimmed.match(CLASS_NAME_TEXT_PATTERN);
+            if (match && match[1]) {
+                return match[1].trim();
+            }
+
+            const singleLine = trimmed.split(/\r?\n/)[0].trim();
+
+            if (CLASS_NAME_IGNORE_PATTERN.test(singleLine)) {
+                return '';
+            }
+
+            if (/^[A-Za-z0-9][A-Za-z0-9 ,._\-/()]{1,40}$/.test(singleLine) && /\d/.test(singleLine)) {
+                return singleLine;
+            }
+
+            if (/\b(?:k|cn|dh|da|th|lt|sh|tn)[A-Za-z0-9]*\d+/i.test(singleLine)) {
+                return singleLine;
+            }
+
+            return '';
+        }
+
+        function resolveLessonClassName(lesson) {
+            if (!lesson) {
+                return '';
+            }
+
+            const candidates = [];
+
+            if (typeof lesson.class_name === 'string') {
+                candidates.push(lesson.class_name);
+            }
+
+            const tags = lesson.tags;
+            if (Array.isArray(tags)) {
+                candidates.push(...tags);
+            } else if (tags && typeof tags === 'object') {
+                if (Array.isArray(tags.items)) {
+                    candidates.push(...tags.items);
+                }
+                const keys = ['class', 'class_name', 'lop', 'group', 'group_name', 'section'];
+                keys.forEach(key => {
+                    if (typeof tags[key] === 'string') {
+                        candidates.push(tags[key]);
+                    }
+                });
+            }
+
+            const textFields = [lesson.description, lesson.public_notes, lesson.notes, lesson.title];
+            textFields.forEach(field => {
+                if (typeof field === 'string') {
+                    candidates.push(field);
+                }
+            });
+
+            for (const candidate of candidates) {
+                const className = extractClassFromText(candidate);
+                if (className) {
+                    return className;
+                }
+
+                if (typeof candidate === 'string') {
+                    const trimmedCandidate = candidate.trim();
+                    const singleLineCandidate = trimmedCandidate.split(/\r?\n/)[0].trim();
+                    if (singleLineCandidate && /\d/.test(singleLineCandidate) && !CLASS_NAME_IGNORE_PATTERN.test(singleLineCandidate)) {
+                        return singleLineCandidate;
+                    }
+                }
+            }
+
+            return '';
+        }
+
         function createLessonCard(lesson) {
             const details = [];
             if (lesson.organizer) {
@@ -3905,15 +4120,158 @@
                 attributes.push(`data-organizer-id="${escapeHtml(String(lesson.organizer_id))}"`);
             }
             const attributeString = attributes.length ? ` ${attributes.join(' ')}` : '';
+            const classLabel = resolveLessonClassName(lesson) || 'Lớp chưa xác định';
 
             return `
                 <div class="lesson-card"${attributeString}>
-                    <div class="lesson-class">${escapeHtml(lesson.class_name || 'Lớp chưa xác định')}</div>
+                    <div class="lesson-class">${escapeHtml(classLabel)}</div>
                     <h4>${escapeHtml(lesson.title || 'Chưa đặt tên')}</h4>
                     <div class="lesson-meta">${details.join('')}</div>
                 </div>
             `;
         }
+
+        function exportCombinedSchedule() {
+            // This function is kept for backward compatibility
+            // Now it opens the customization modal
+            openPdfExportModal();
+        }
+
+        function openPdfExportModal() {
+            const modal = document.getElementById('pdfExportModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                modal.style.alignItems = 'center';
+                modal.style.justifyContent = 'center';
+                modal.style.position = 'fixed';
+                modal.style.top = '0';
+                modal.style.left = '0';
+                modal.style.width = '100%';
+                modal.style.height = '100%';
+                modal.style.background = 'rgba(0, 0, 0, 0.5)';
+                modal.style.zIndex = '10000';
+            }
+        }
+
+        function closePdfExportModal() {
+            const modal = document.getElementById('pdfExportModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function confirmPdfExport() {
+            // Get selected fields
+            const checkboxes = document.querySelectorAll('#pdfFieldSelection input[type="checkbox"]:checked');
+            const selectedFields = Array.from(checkboxes).map(cb => cb.value);
+
+            if (selectedFields.length === 0) {
+                alert('Vui lòng chọn ít nhất một trường thông tin để xuất PDF.');
+                return;
+            }
+
+            // Get orientation
+            const orientation = document.querySelector('input[name="pdfOrientation"]:checked').value;
+
+            // Get current filter values
+            const userFilterEl = document.getElementById('userFilter');
+            const userId = userFilterEl ? userFilterEl.value : '';
+
+            // Build request body
+            const requestBody = {
+                fields: selectedFields,
+                orientation: orientation
+            };
+
+            // Get date range from calendar if available
+            if (calendar && calendar.view) {
+                if (calendar.view.currentStart instanceof Date) {
+                    requestBody.start = calendar.view.currentStart.toISOString();
+                }
+                if (calendar.view.currentEnd instanceof Date) {
+                    requestBody.end = calendar.view.currentEnd.toISOString();
+                }
+            }
+
+            if (userId) {
+                requestBody.user_id = userId;
+            }
+
+            // Close modal
+            closePdfExportModal();
+
+            // Show loading indicator
+            const loadingToast = document.createElement('div');
+            loadingToast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #667eea; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10001; display: flex; align-items: center; gap: 12px;';
+            loadingToast.innerHTML = '<i class="bi bi-hourglass-split" style="font-size: 20px; animation: spin 1s linear infinite;"></i> <span>Đang tạo file PDF...</span>';
+            document.body.appendChild(loadingToast);
+
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/api/schedule/export/pdf';
+            form.target = '_blank';
+
+            const fieldsInput = document.createElement('input');
+            fieldsInput.type = 'hidden';
+            fieldsInput.name = 'fields';
+            fieldsInput.value = JSON.stringify(selectedFields);
+            form.appendChild(fieldsInput);
+
+            const orientationInput = document.createElement('input');
+            orientationInput.type = 'hidden';
+            orientationInput.name = 'orientation';
+            orientationInput.value = orientation;
+            form.appendChild(orientationInput);
+
+            if (requestBody.start) {
+                const startInput = document.createElement('input');
+                startInput.type = 'hidden';
+                startInput.name = 'start';
+                startInput.value = requestBody.start;
+                form.appendChild(startInput);
+            }
+
+            if (requestBody.end) {
+                const endInput = document.createElement('input');
+                endInput.type = 'hidden';
+                endInput.name = 'end';
+                endInput.value = requestBody.end;
+                form.appendChild(endInput);
+            }
+
+            if (userId) {
+                const userInput = document.createElement('input');
+                userInput.type = 'hidden';
+                userInput.name = 'user_id';
+                userInput.value = userId;
+                form.appendChild(userInput);
+            }
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+
+            // Remove loading after delay
+            setTimeout(() => {
+                loadingToast.remove();
+            }, 2000);
+        }
+
+        // Add hover effect to checkboxes
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxLabels = document.querySelectorAll('.pdf-field-checkbox');
+            checkboxLabels.forEach(label => {
+                label.addEventListener('mouseenter', function() {
+                    this.style.background = '#e0e7ff';
+                    this.style.transform = 'translateY(-2px)';
+                });
+                label.addEventListener('mouseleave', function() {
+                    this.style.background = '#f8fafc';
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
 
         function exportTeachingSchedule() {
             const card = document.getElementById('teachingModuleCard');

@@ -249,7 +249,22 @@ function validateFileUpload(req, res, next) {
         return next();
     }
     
-    const files = req.files || [req.file];
+    const files = [];
+    if (Array.isArray(req.files)) {
+        files.push(...req.files);
+    } else if (req.files && typeof req.files === 'object') {
+        Object.values(req.files).forEach((value) => {
+            if (Array.isArray(value)) {
+                files.push(...value);
+            } else if (value) {
+                files.push(value);
+            }
+        });
+    }
+
+    if (req.file) {
+        files.push(req.file);
+    }
     
     for (const file of files) {
         // Kiểm tra extension
@@ -259,6 +274,19 @@ function validateFileUpload(req, res, next) {
             ...CONSTANTS.ALLOWED_FILE_EXTENSIONS.DOCUMENTS,
             ...CONSTANTS.ALLOWED_FILE_EXTENSIONS.ARCHIVES
         ];
+    const hasUpload = (() => {
+        if (req.file) return true;
+        if (!req.files) return false;
+        if (Array.isArray(req.files)) {
+            return req.files.length > 0;
+        }
+        return Object.values(req.files).some((value) => {
+            if (Array.isArray(value)) {
+                return value.length > 0;
+            }
+            return Boolean(value);
+        });
+    })();
         
         if (!allowedExts.includes(ext)) {
             // Xóa file đã upload

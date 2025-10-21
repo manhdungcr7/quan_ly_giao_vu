@@ -84,6 +84,7 @@ class ResearchController {
 
   async getUpcomingMilestones(limit = 8) {
     try {
+      const safeLimit = Math.max(1, Math.min(parseInt(limit, 10) || 8, 100));
       const sql = `
         SELECT m.id, m.project_id, m.title, m.due_date, m.status, m.progress,
                p.project_code, p.title as project_title, u.full_name as leader_name
@@ -93,9 +94,9 @@ class ResearchController {
         LEFT JOIN users u ON s.user_id = u.id
         WHERE m.due_date IS NOT NULL
         ORDER BY m.due_date ASC
-        LIMIT ?
+        LIMIT ${safeLimit}
       `;
-      return await this.projectModel.db.findMany(sql, [limit]);
+      return await this.projectModel.db.findMany(sql);
     } catch (error) {
       console.error('ResearchController.getUpcomingMilestones error:', error);
       return [];
@@ -104,6 +105,7 @@ class ResearchController {
 
   async getFacultyLeaderboard(limit = 6) {
     try {
+      const safeLimit = Math.max(1, Math.min(parseInt(limit, 10) || 6, 50));
       const sql = `
         SELECT 
           u.full_name as leader_name,
@@ -119,9 +121,9 @@ class ResearchController {
         LEFT JOIN departments d ON s.department_id = d.id
         GROUP BY u.full_name, d.name
         ORDER BY total_projects DESC, avg_progress DESC
-        LIMIT ?
+        LIMIT ${safeLimit}
       `;
-      const rows = await this.projectModel.db.findMany(sql, [limit]);
+      const rows = await this.projectModel.db.findMany(sql);
       return rows.map((row) => ({
         leaderName: row.leader_name || 'Chưa cập nhật',
         departmentName: row.department_name || 'Không rõ đơn vị',
@@ -353,7 +355,7 @@ class ResearchController {
     const canManageResearch = user?.role_name === 'admin' || permissions.includes('manage_research');
 
     res.render('research/index', {
-      title: 'Nghiên cứu khoa học',
+      title: 'Tổng quan nghiên cứu khoa học',
       user: req.session.user,
       summaryCards,
       statusDistribution,

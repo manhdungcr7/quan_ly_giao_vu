@@ -335,6 +335,29 @@
             resize: vertical;
         }
 
+        body.exam-page--full {
+            background: var(--layout-bg);
+        }
+
+        .exam-full-wrapper {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+        }
+
+        .exam-full-inner {
+            flex: 1;
+            max-width: 1260px;
+            padding: 36px 48px 52px;
+        }
+
+        @media (max-width: 992px) {
+            .exam-full-inner {
+                padding: 24px;
+            }
+        }
+
         @media (max-width: 1200px) {
             .section-grid {
                 grid-template-columns: 1fr;
@@ -364,59 +387,10 @@
         }
         </style>
 </head>
-<body class="app-auth">
-        <div class="app-layout">
-                <aside class="app-sidebar" id="appSidebar">
-                        <div class="sidebar-brand">
-                                <span class="sidebar-brand__logo">KA</span>
-                                <div class="sidebar-brand__text">
-                                        <span class="sidebar-brand__title">Quản lý giáo vụ</span>
-                                        <small class="sidebar-brand__subtitle">Khoa An ninh điều tra</small>
-                                </div>
-                        </div>
-                        <%- include('../partials/sidebar') %>
-                </aside>
-                <div class="app-main">
-                        <header class="app-topbar">
-                                <div class="topbar-left">
-                                        <button class="sidebar-toggle" id="sidebarToggle">
-                                                <i class="fas fa-bars"></i>
-                                        </button>
-                                </div>
-                                <div class="topbar-right">
-                                    <div class="topbar-user" data-user-menu>
-                                        <button class="topbar-user__details" type="button" data-user-menu-toggle aria-haspopup="true" aria-expanded="false">
-                                            <div class="topbar-user__meta">
-                                                <span class="topbar-user__name"><%= (user && (user.fullName || user.full_name || user.username)) || 'Người dùng' %></span>
-                                                <span class="topbar-user__role"><%= (user && (user.roleName || user.role_name)) || 'Administrator' %></span>
-                                            </div>
-                                            <div class="topbar-user__avatar"><%= (user && (user.fullName || user.full_name || user.username) || '?').charAt(0).toUpperCase() %></div>
-                                            <span class="topbar-user__chevron" aria-hidden="true">⌄</span>
-                                        </button>
-                                        <div class="topbar-user__menu" data-user-menu-dropdown hidden>
-                                            <a class="topbar-user__menu-item" href="<%= (user && user.id) ? ('/users/' + user.id) : '#' %>">
-                                                <span>👤 Hồ sơ cá nhân</span>
-                                            </a>
-                                            <a class="topbar-user__menu-item" href="/auth/change-password">
-                                                <span>🔑 Đổi mật khẩu</span>
-                                            </a>
-                                            <form class="topbar-user__menu-item" method="post" action="/auth/logout">
-                                                <button type="submit" class="topbar-user__logout">
-                                                    <span>🚪 Đăng xuất</span>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                    <form class="topbar-logout" method="post" action="/auth/logout">
-                                        <button type="submit" class="topbar-logout__button" title="Đăng xuất">
-                                            <span>Đăng xuất</span>
-                                            <i aria-hidden="true">⇦</i>
-                                        </button>
-                                    </form>
-                                </div>
-                        </header>
-                        <main class="app-content">
-                                <%- include('../partials/alerts') %>
+<body class="app-auth exam-page--full">
+    <div class="exam-full-wrapper">
+        <div class="exam-full-inner">
+            <%- include('../partials/alerts') %>
 
                 <% const isEdit = !!session; %>
                 <%
@@ -432,6 +406,22 @@
                   const examDateValue = session && session.exam_date ? new Date(session.exam_date) : null;
                   const examTimeValue = session && session.exam_time ? session.exam_time.substring(0, 5) : null;
                   const gradingDeadlineValue = session && session.grading_deadline ? new Date(session.grading_deadline) : null;
+                                      const selectedClass = session ? (classes || []).find(cls => cls.id == session.class_id) : null;
+                                      const classDisplayValue = selectedClass
+                                          ? `${selectedClass.code} - ${selectedClass.name}`
+                                          : (session ? [session.class_code, session.class_name].filter(Boolean).join(' - ') : '');
+                                      const selectedSubject = session ? (subjects || []).find(subject => subject.id == session.subject_id) : null;
+                                    const subjectDisplayValue = selectedSubject
+                                        ? `${selectedSubject.code} - ${selectedSubject.name}`
+                                        : (session ? (session.subject_name || '') : '');
+                                    const selectedGrader1 = session ? (graders || []).find(grader => grader.id == session.grader_id) : null;
+                                    const grader1DisplayValue = selectedGrader1
+                                        ? `${selectedGrader1.full_name} (${selectedGrader1.email})`
+                                        : (session ? (session.grader_name || session.grader_manual_name || '') : '');
+                                    const selectedGrader2 = session ? (graders || []).find(grader => grader.id == session.grader2_id) : null;
+                                    const grader2DisplayValue = selectedGrader2
+                                        ? `${selectedGrader2.full_name} (${selectedGrader2.email})`
+                                        : (session ? (session.grader2_name || session.grader2_manual_name || '') : '');
                 %>
 
                 <div class="form-page">
@@ -500,38 +490,46 @@
                                             </div>
 
                                             <div class="form-field form-field--full">
-                                                <label for="exam_name">Tên ca thi <span class="required">*</span></label>
-                                                <input type="text" class="form-control" id="exam_name" name="exam_name" value="<%= session ? session.exam_name : '' %>" required>
+                                                <label for="exam_name">Làm đề <span class="required">*</span></label>
+                                                <input type="text" class="form-control" id="exam_name" name="exam_name" value="<%= session ? session.exam_name : '' %>" placeholder="Nhập tên ca thi hoặc giảng viên ra đề" required>
                                             </div>
 
                                             <div class="form-field">
-                                                <label for="period_id">Kỳ thi <span class="required">*</span></label>
-                                                <select class="form-select" id="period_id" name="period_id" required>
-                                                    <option value="">-- Chọn kỳ thi --</option>
+                                                <label for="period_name">Kỳ thi <span class="required">*</span></label>
+                                                <input type="text" class="form-control" id="period_name" name="period_name" list="periodsList" value="<%= session ? (session.period_name || '') : '' %>" placeholder="Nhập hoặc chọn kỳ thi" required>
+                                                <datalist id="periodsList">
                                                     <% (periods || []).forEach(period => { %>
-                                                        <option value="<%= period.id %>" <%= session && session.period_id == period.id ? 'selected' : '' %>><%= period.name %></option>
+                                                        <option value="<%= period.name %>" data-id="<%= period.id %>"></option>
                                                     <% }) %>
-                                                </select>
+                                                </datalist>
+                                                <input type="hidden" name="period_id" id="period_id" value="<%= session ? (session.period_id || '') : '' %>">
                                             </div>
 
                                             <div class="form-field">
-                                                <label for="subject_id">Môn học <span class="required">*</span></label>
-                                                <select class="form-select" id="subject_id" name="subject_id" required>
-                                                    <option value="">-- Chọn môn học --</option>
+                                                <label for="subject_name">Môn học <span class="required">*</span></label>
+                                                <input type="text" class="form-control" id="subject_name" name="subject_name" list="subjectsList" value="<%= subjectDisplayValue %>" placeholder="Nhập hoặc chọn môn học" required>
+                                                <datalist id="subjectsList">
                                                     <% (subjects || []).forEach(subject => { %>
-                                                        <option value="<%= subject.id %>" <%= session && session.subject_id == subject.id ? 'selected' : '' %>><%= subject.code %> - <%= subject.name %></option>
+                                                        <option value="<%= subject.code %> - <%= subject.name %>" data-id="<%= subject.id %>" data-credits="<%= typeof subject.credits !== 'undefined' && subject.credits !== null ? subject.credits : '' %>"></option>
                                                     <% }) %>
-                                                </select>
+                                                </datalist>
+                                                <input type="hidden" name="subject_id" id="subject_id" value="<%= session ? (session.subject_id || '') : '' %>">
+                                            </div>
+
+                                            <div class="form-field">
+                                                <label for="subject_credits">Tín chỉ</label>
+                                                <input type="number" class="form-control" id="subject_credits" name="subject_credits" min="0" max="10" step="1" value="<%= session && typeof session.subject_credits !== 'undefined' && session.subject_credits !== null ? session.subject_credits : (selectedSubject && selectedSubject.credits ? selectedSubject.credits : '') %>" placeholder="Ví dụ: 3">
                                             </div>
 
                                             <div class="form-field form-field--full">
-                                                <label for="class_id">Lớp học</label>
-                                                <select class="form-select" id="class_id" name="class_id">
-                                                    <option value="">-- Chọn lớp (nếu có) --</option>
+                                                <label for="class_name">Lớp học</label>
+                                                <input type="text" class="form-control" id="class_name" name="class_name" list="classesList" value="<%= classDisplayValue %>" placeholder="Nhập hoặc chọn lớp (nếu có)">
+                                                <datalist id="classesList">
                                                     <% (classes || []).forEach(cls => { %>
-                                                        <option value="<%= cls.id %>" <%= session && session.class_id == cls.id ? 'selected' : '' %>><%= cls.code %> - <%= cls.name %></option>
+                                                        <option value="<%= cls.code %> - <%= cls.name %>" data-id="<%= cls.id %>"></option>
                                                     <% }) %>
-                                                </select>
+                                                </datalist>
+                                                <input type="hidden" name="class_id" id="class_id" value="<%= session ? (session.class_id || '') : '' %>">
                                             </div>
                                         </div>
                                     </div>
@@ -605,15 +603,24 @@
                                     <div class="section-body">
                                         <div class="form-grid form-grid--2">
                                             <div class="form-field form-field--full">
-                                                <label for="grader_id"><i class="fas fa-user-tie"></i> Cán bộ chấm thi</label>
-                                                <select class="form-select" id="grader_id" name="grader_id">
-                                                    <option value="">-- Chọn cán bộ chấm --</option>
-                                                    <% (graders || []).forEach(grader => { %>
-                                                        <option value="<%= grader.id %>" <%= session && session.grader_id == grader.id ? 'selected' : '' %>><%= grader.full_name %> (<%= grader.email %>)</option>
-                                                    <% }) %>
-                                                </select>
+                                                <label for="grader_name"><i class="fas fa-user-tie"></i> CBCT1</label>
+                                                <input type="text" class="form-control" id="grader_name" name="grader_name" list="gradersList" value="<%= grader1DisplayValue %>" placeholder="Nhập hoặc chọn cán bộ chấm chính">
+                                                <input type="hidden" name="grader_id" id="grader_id" value="<%= session ? (session.grader_id || '') : '' %>">
                                                 <span class="hint">Có thể bỏ trống nếu cần phân công thủ công sau</span>
                                             </div>
+
+                                            <div class="form-field form-field--full">
+                                                <label for="grader2_name"><i class="fas fa-user-friends"></i> CBCT2</label>
+                                                <input type="text" class="form-control" id="grader2_name" name="grader2_name" list="gradersList" value="<%= grader2DisplayValue %>" placeholder="Nhập hoặc chọn cán bộ chấm phụ">
+                                                <input type="hidden" name="grader2_id" id="grader2_id" value="<%= session ? (session.grader2_id || '') : '' %>">
+                                                <span class="hint">Tùy chọn: thêm cán bộ hỗ trợ chấm thi</span>
+                                            </div>
+
+                                            <datalist id="gradersList">
+                                                <% (graders || []).forEach(grader => { %>
+                                                    <option value="<%= grader.full_name %> (<%= grader.email %>)" data-id="<%= grader.id %>"></option>
+                                                <% }) %>
+                                            </datalist>
 
                                             <div class="form-field">
                                                 <label for="grading_deadline"><i class="fas fa-calendar-times"></i> Hạn chấm bài</label>
@@ -691,7 +698,7 @@
                         </aside>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     </div>
 
@@ -699,8 +706,86 @@
 
     <script src="/js/app.js"></script>
     <script src="/js/examination-enhanced.js"></script>
-    <script>
-    const examForm = document.getElementById('examForm');
+        <script>
+        (function() {
+            function setupComboField({ inputId, hiddenId, datalistId, onMatch, onClear }) {
+                const inputEl = document.getElementById(inputId);
+                if (!inputEl) return;
+
+                const hiddenEl = hiddenId ? document.getElementById(hiddenId) : null;
+                const datalistEl = datalistId ? document.getElementById(datalistId) : null;
+
+                const findOption = (value) => {
+                    if (!datalistEl || !value) return null;
+                    return Array.from(datalistEl.options).find((option) => option.value === value) || null;
+                };
+
+                const syncFromValue = () => {
+                    const value = inputEl.value.trim();
+                    const option = findOption(value);
+                    if (hiddenEl) {
+                        hiddenEl.value = option ? (option.dataset.id || '') : '';
+                    }
+                    if (option && typeof onMatch === 'function') {
+                        onMatch(option);
+                    }
+                    if (!option && typeof onClear === 'function') {
+                        onClear();
+                    }
+                };
+
+                inputEl.addEventListener('change', syncFromValue);
+                inputEl.addEventListener('blur', syncFromValue);
+                inputEl.addEventListener('input', () => {
+                    if (hiddenEl) hiddenEl.value = '';
+                    if (typeof onClear === 'function') {
+                        onClear();
+                    }
+                });
+
+                syncFromValue();
+            }
+
+            setupComboField({
+                inputId: 'period_name',
+                hiddenId: 'period_id',
+                datalistId: 'periodsList'
+            });
+
+            const subjectCreditsInput = document.getElementById('subject_credits');
+            setupComboField({
+                inputId: 'subject_name',
+                hiddenId: 'subject_id',
+                datalistId: 'subjectsList',
+                onMatch(option) {
+                    const credits = option.dataset.credits || '';
+                    if (!subjectCreditsInput) return;
+                    if (!subjectCreditsInput.value) {
+                        subjectCreditsInput.value = credits;
+                    }
+                }
+            });
+
+            setupComboField({
+                inputId: 'class_name',
+                hiddenId: 'class_id',
+                datalistId: 'classesList'
+            });
+
+            setupComboField({
+                inputId: 'grader_name',
+                hiddenId: 'grader_id',
+                datalistId: 'gradersList'
+            });
+
+            setupComboField({
+                inputId: 'grader2_name',
+                hiddenId: 'grader2_id',
+                datalistId: 'gradersList'
+            });
+        })();
+
+        const examForm = document.getElementById('examForm');
     if (examForm) {
       examForm.addEventListener('submit', async function (event) {
         event.preventDefault();

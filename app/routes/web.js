@@ -65,16 +65,29 @@ const moduleRoutes = [
     },
     {
         path: '/research',
-        title: 'Nghiên cứu khoa học',
-        subtitle: 'Quản lý đề tài khoa học, công bố và sản phẩm nghiên cứu',
+        title: 'Tổng quan nghiên cứu khoa học',
+        subtitle: 'Dashboard thống kê và báo cáo nghiên cứu khoa học',
         status: 'active',
         statusLabel: 'Đã triển khai',
         highlights: [
-            'Theo dõi tiến độ đề tài giảng viên và sinh viên',
+            'Xem tổng quan đề tài giảng viên và sinh viên',
             'Bảng điều phối milestone và cảnh báo tiến độ',
-            'Tổng hợp kết quả nghiên cứu, bài báo và giải thưởng'
+            'Thống kê kết quả nghiên cứu, bài báo và giải thưởng'
         ],
-        notes: 'Trang tổng quan nghiên cứu khoa học đã sẵn sàng sử dụng.'
+        notes: 'Trang dashboard tổng quan nghiên cứu (chỉ xem, không chỉnh sửa)'
+    },
+    {
+        path: '/research/manage',
+        title: 'Quản lý dữ liệu nghiên cứu',
+        subtitle: 'Thêm, sửa, xóa dữ liệu nghiên cứu khoa học',
+        status: 'active',
+        statusLabel: 'Đã triển khai',
+        highlights: [
+            'Quản lý CRUD đề tài giảng viên',
+            'Quản lý đề tài sinh viên',
+            'Quản lý kết quả và sản phẩm nghiên cứu'
+        ],
+        notes: 'Trang quản trị dữ liệu (dành cho admin/quản lý)'
     },
     {
         path: '/project-management',
@@ -205,12 +218,18 @@ router.post('/departments/:id/delete', requireAuth, requireAdmin, (req, res) => 
 
 // Document management routes (must be before moduleRoutes loop to override any placeholder)
 router.get('/documents', requireAuth, (req, res) => {
-    res.redirect('/documents/incoming');
+    res.redirect('/documents/administrative/incoming');
 });
 router.get('/documents/incoming', requireAuth, (req, res) => {
-    documentController.incoming(req, res);
+    res.redirect('/documents/administrative/incoming');
 });
 router.get('/documents/outgoing', requireAuth, (req, res) => {
+    res.redirect('/documents/administrative/outgoing');
+});
+router.get('/documents/:module(administrative|party)/incoming', requireAuth, (req, res) => {
+    documentController.incoming(req, res);
+});
+router.get('/documents/:module(administrative|party)/outgoing', requireAuth, (req, res) => {
     documentController.outgoing(req, res);
 });
 router.get('/documents/create', requireAuth, (req, res) => {
@@ -264,11 +283,12 @@ router.get('/workbook', requireAuth, (req, res) => workbookController.index(req,
 router.get('/workbook/history', requireAuth, (req, res) => workbookController.history(req, res));
 router.get('/workbook/find', requireAuth, (req, res) => workbookController.findWorkbookByWeek(req, res));
 router.post('/workbook/create', requireAuth, (req, res) => workbookController.createWorkbook(req, res));
+router.get('/workbook/entry', requireAuth, (req, res) => workbookController.getEntry(req, res));
+router.post('/workbook/entry', requireAuth, (req, res) => workbookController.saveEntry(req, res));
 router.get('/workbook/:id', requireAuth, (req, res) => workbookController.show(req, res));
 
 // Entry APIs
-router.post('/workbook/entry', requireAuth, (req, res) => workbookController.saveEntry(req, res));
-router.get('/workbook/entry', requireAuth, (req, res) => workbookController.getEntry(req, res));
+// Note: Specific entry routes declared above to avoid ":id" capturing "entry"
 router.post('/workbook/:id/status', requireAuth, (req, res) => workbookController.updateStatus(req, res));
 router.put('/workbook/:id/status', requireAuth, (req, res) => workbookController.updateStatus(req, res));
 router.get('/workbook/approvers/options', requireAuth, (req, res) => workbookController.listApproverOptions(req, res));
@@ -290,6 +310,7 @@ router.post('/examination/:id/reminder', requireAuth, (req, res) => examinationC
 
 // Schedule routes (Lịch công tác)
 router.get('/schedule', requireAuth, (req, res) => scheduleController.index(req, res));
+router.get('/schedule/export/pdf', requireAuth, (req, res) => scheduleController.exportPdf(req, res));
 router.get('/schedules', requireAuth, (req, res) => res.redirect(301, '/schedule'));
 
 // Research routes (Nghiên cứu khoa học)
@@ -318,12 +339,29 @@ router.post('/reports/schedules/:id/delete', requireAuth, (req, res) => reportCo
 // Staff routes (Quản lý cán bộ)
 router.get('/staff', requireAuth, (req, res) => staffController.index(req, res));
 router.get('/staff/create', requireAuth, (req, res) => staffController.create(req, res));
-router.post('/staff', requireAuth, (req, res) => staffController.store(req, res));
+router.get('/staff/:id/profile', requireAuth, (req, res) => staffController.profile(req, res));
+router.post(
+    '/staff',
+    requireAuth,
+    documentUpload.array('profile_files', 5),
+    validateFileUpload,
+    (req, res) => staffController.store(req, res)
+);
+router.post('/staff/:id/profile/update', requireAuth, (req, res) => staffController.updateProfile(req, res));
+router.post(
+    '/staff/:id/profile/files',
+    requireAuth,
+    documentUpload.array('profile_files', 5),
+    validateFileUpload,
+    (req, res) => staffController.uploadProfileFiles(req, res)
+);
 router.get('/staff/evaluation-criteria', requireAuth, (req, res) => staffController.evaluationCriteria(req, res));
 router.get('/staff/export', requireAuth, (req, res) => staffController.exportCsv(req, res));
 // Criteria APIs
 router.get('/api/staff/evaluation-criteria', requireAuth, (req, res) => staffController.apiListCriteria(req, res));
 router.post('/api/staff/evaluation-criteria', requireAuth, (req, res) => staffController.createCriteria(req, res));
+router.put('/api/staff/evaluation-criteria/:id', requireAuth, (req, res) => staffController.updateCriteria(req, res));
+router.delete('/api/staff/evaluation-criteria/:id', requireAuth, (req, res) => staffController.deleteCriteria(req, res));
 router.post('/api/staff/evaluation-criteria/attach', requireAuth, (req, res) => staffController.attachCriteriaToActivePeriod(req, res));
 
 // Asset routes (Quản lý tài sản)

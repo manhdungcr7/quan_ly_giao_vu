@@ -1,4 +1,5 @@
 const BaseModel = require('./BaseModel');
+const db = require('../../config/database');
 
 const STATUS_PRIORITY = {
   pending: 1,
@@ -15,6 +16,68 @@ const STATUS_ORDER_FRAGMENT = Object.entries(STATUS_PRIORITY)
 class ReportSchedule extends BaseModel {
   constructor() {
     super('report_schedules');
+  }
+
+  static schemaEnsured = false;
+
+  static async ensureSchema() {
+    if (this.schemaEnsured) {
+      return true;
+    }
+
+    const tableName = 'report_schedules';
+    const exists = await BaseModel.tableExists(tableName);
+
+    if (exists) {
+      this.schemaEnsured = true;
+      return true;
+    }
+
+    const createTableSql = `
+      CREATE TABLE IF NOT EXISTS report_schedules (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(150) NOT NULL,
+        frequency ENUM('weekly','monthly','quarterly','annual','custom') NOT NULL DEFAULT 'monthly',
+        owner_unit_id MEDIUMINT UNSIGNED NULL,
+        owner_custom VARCHAR(120) NULL,
+        channel VARCHAR(150) NULL,
+        scope TEXT NULL,
+        status ENUM('planning','pending','in_progress','draft','on_hold') NOT NULL DEFAULT 'planning',
+        progress TINYINT UNSIGNED NOT NULL DEFAULT 0,
+        completion_rate TINYINT UNSIGNED NOT NULL DEFAULT 0,
+        remind_before_hours SMALLINT UNSIGNED NOT NULL DEFAULT 48,
+        next_due_date DATE NULL,
+        due_label VARCHAR(150) NULL,
+        recurrence_pattern JSON NULL,
+        attachments_expected TINYINT UNSIGNED NOT NULL DEFAULT 0,
+        tags JSON NULL,
+        last_submitted_at DATE NULL,
+        created_by INT UNSIGNED NULL,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+        FOREIGN KEY (owner_unit_id) REFERENCES departments(id) ON DELETE SET NULL,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+
+        INDEX idx_frequency (frequency),
+        INDEX idx_status_report (status),
+        INDEX idx_next_due (next_due_date),
+        INDEX idx_owner_unit (owner_unit_id),
+        INDEX idx_active_schedule (is_active)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+
+    try {
+      await db.execute(createTableSql);
+      BaseModel.clearTableExistenceCache(tableName);
+      this.schemaEnsured = true;
+      console.info('[ReportSchedule] Created missing table report_schedules on the fly.');
+      return true;
+    } catch (error) {
+      console.error('[ReportSchedule] Unable to create report_schedules table:', error);
+      return false;
+    }
   }
 
   parseTags(value) {
@@ -129,6 +192,11 @@ class ReportSchedule extends BaseModel {
   }
 
   async listActiveWithDepartments() {
+    const hasSchema = await ReportSchedule.ensureSchema();
+    if (!hasSchema) {
+      return [];
+    }
+
     const sql = `
       SELECT rs.*, d.name AS department_name, d.code AS department_code
       FROM report_schedules rs
@@ -144,11 +212,26 @@ class ReportSchedule extends BaseModel {
         rs.id DESC
     `;
 
-    const rows = await this.db.findMany(sql);
-    return rows.map((row) => this.formatRecord(row));
+    try {
+      const rows = await this.db.findMany(sql);
+      return rows.map((row) => this.formatRecord(row));
+    } catch (error) {
+      if (error && error.code === 'ER_NO_SUCH_TABLE') {
+        console.warn('[ReportSchedule] report_schedules table still missing, using blueprint fallback.');
+        ReportSchedule.schemaEnsured = false;
+        BaseModel.clearTableExistenceCache('report_schedules');
+        return [];
+      }
+      throw error;
+    }
   }
 
   async findByIdWithDepartment(id) {
+    const hasSchema = await ReportSchedule.ensureSchema();
+    if (!hasSchema) {
+      return null;
+    }
+
     const sql = `
       SELECT rs.*, d.name AS department_name, d.code AS department_code
       FROM report_schedules rs

@@ -85,8 +85,21 @@ class WorkbookController {
         };
       }
 
-      const normalizedWeekStart = this.normalizeDateValue(workbook?.week_start) || currentWeekStart;
-      const normalizedWeekEnd = this.normalizeDateValue(workbook?.week_end) || currentWeekEnd;
+      const storedWeekStart = this.normalizeDateValue(workbook?.week_start);
+      const storedWeekEnd = this.normalizeDateValue(workbook?.week_end);
+      const normalizedWeekStart = this.getWeekStart(storedWeekStart || workbook?.week_start || currentWeekStart);
+      const normalizedWeekEnd = this.getWeekEnd(normalizedWeekStart);
+
+      if (workbook?.id && (storedWeekStart !== normalizedWeekStart || storedWeekEnd !== normalizedWeekEnd)) {
+        try {
+          await Workbook.updateWeekRange(workbook.id, normalizedWeekStart, normalizedWeekEnd);
+          workbook.week_start = normalizedWeekStart;
+          workbook.week_end = normalizedWeekEnd;
+        } catch (syncError) {
+          console.warn('Unable to normalize workbook week range', workbook.id, syncError.message || syncError);
+        }
+      }
+
       const normalizedWorkbook = {
         ...workbook,
         week_start: normalizedWeekStart,
@@ -410,7 +423,7 @@ class WorkbookController {
   async createWorkbook(req, res) {
     try {
       const userId = req.session.user.id;
-      const { week_start, week_end } = req.body;
+  const { week_start, week_end } = req.body;
       
       console.log('📝 Creating new workbook:', { userId, week_start, week_end });
       
@@ -422,13 +435,28 @@ class WorkbookController {
         });
       }
       
+      const normalizedWeekStart = this.getWeekStart(week_start);
+      const normalizedWeekEnd = this.getWeekEnd(normalizedWeekStart);
+
       // Check if workbook already exists for this week
-      const existingWorkbook = await Workbook.findByWeek(userId, week_start, week_end);
+      const existingWorkbook = await Workbook.findByWeek(userId, normalizedWeekStart, normalizedWeekEnd);
       
       if (existingWorkbook) {
+        if (
+          existingWorkbook.week_start !== normalizedWeekStart ||
+          existingWorkbook.week_end !== normalizedWeekEnd
+        ) {
+          try {
+            await Workbook.updateWeekRange(existingWorkbook.id, normalizedWeekStart, normalizedWeekEnd);
+          } catch (syncError) {
+            console.warn('Unable to sync existing workbook range', existingWorkbook.id, syncError.message || syncError);
+          }
+        }
         return res.json({
           success: true,
           workbook_id: existingWorkbook.id,
+          week_start: normalizedWeekStart,
+          week_end: normalizedWeekEnd,
           message: 'Sổ tay cho tuần này đã tồn tại'
         });
       }
@@ -436,8 +464,8 @@ class WorkbookController {
       // Create new workbook
       const workbookId = await Workbook.create({
         user_id: userId,
-        week_start,
-        week_end,
+        week_start: normalizedWeekStart,
+        week_end: normalizedWeekEnd,
         status: 'draft'
       });
       
@@ -446,6 +474,8 @@ class WorkbookController {
       res.json({
         success: true,
         workbook_id: workbookId,
+        week_start: normalizedWeekStart,
+        week_end: normalizedWeekEnd,
         message: 'Đã tạo sổ tay mới thành công'
       });
       
@@ -516,8 +546,21 @@ class WorkbookController {
   const rawProgress = await WorkbookEntry.getWeekProgress(id);
   const progress = this.normalizeProgressSummary(rawProgress);
 
-      const normalizedWeekStart = this.normalizeDateValue(workbook.week_start) || this.getWeekStart(new Date());
-      const normalizedWeekEnd = this.normalizeDateValue(workbook.week_end) || this.getWeekEnd(normalizedWeekStart);
+      const storedWeekStart = this.normalizeDateValue(workbook.week_start);
+      const storedWeekEnd = this.normalizeDateValue(workbook.week_end);
+      const normalizedWeekStart = this.getWeekStart(storedWeekStart || workbook.week_start || new Date());
+      const normalizedWeekEnd = this.getWeekEnd(normalizedWeekStart);
+
+      if (workbook?.id && (storedWeekStart !== normalizedWeekStart || storedWeekEnd !== normalizedWeekEnd)) {
+        try {
+          await Workbook.updateWeekRange(workbook.id, normalizedWeekStart, normalizedWeekEnd);
+          workbook.week_start = normalizedWeekStart;
+          workbook.week_end = normalizedWeekEnd;
+        } catch (syncError) {
+          console.warn('Unable to normalize workbook week range', workbook.id, syncError.message || syncError);
+        }
+      }
+
       const normalizedWorkbook = {
         ...workbook,
         week_start: normalizedWeekStart,
@@ -587,13 +630,28 @@ class WorkbookController {
         });
       }
       
+      const normalizedWeekStart = this.getWeekStart(week_start);
+      const normalizedWeekEnd = this.getWeekEnd(normalizedWeekStart);
+
       // Check if workbook already exists for this week
-      const existingWorkbook = await Workbook.findByWeek(userId, week_start, week_end);
+      const existingWorkbook = await Workbook.findByWeek(userId, normalizedWeekStart, normalizedWeekEnd);
       
       if (existingWorkbook) {
+        if (
+          existingWorkbook.week_start !== normalizedWeekStart ||
+          existingWorkbook.week_end !== normalizedWeekEnd
+        ) {
+          try {
+            await Workbook.updateWeekRange(existingWorkbook.id, normalizedWeekStart, normalizedWeekEnd);
+          } catch (syncError) {
+            console.warn('Unable to sync existing workbook range', existingWorkbook.id, syncError.message || syncError);
+          }
+        }
         return res.json({
           success: true,
           workbook_id: existingWorkbook.id,
+          week_start: normalizedWeekStart,
+          week_end: normalizedWeekEnd,
           message: 'Sổ tay cho tuần này đã tồn tại'
         });
       }
@@ -601,8 +659,8 @@ class WorkbookController {
       // Create new workbook
       const workbookId = await Workbook.create({
         user_id: userId,
-        week_start: week_start,
-        week_end: week_end,
+        week_start: normalizedWeekStart,
+        week_end: normalizedWeekEnd,
         status: 'draft'
       });
       
@@ -611,6 +669,8 @@ class WorkbookController {
       res.json({
         success: true,
         workbook_id: workbookId,
+        week_start: normalizedWeekStart,
+        week_end: normalizedWeekEnd,
         message: 'Đã tạo sổ tay mới thành công'
       });
       
@@ -640,15 +700,37 @@ class WorkbookController {
         });
       }
       
+      const normalizedWeekStart = this.getWeekStart(week_start);
+      const normalizedWeekEnd = this.getWeekEnd(normalizedWeekStart);
+
       // Find workbook for this week
-      const workbook = await Workbook.findByWeek(userId, week_start, week_end);
+      let workbook = await Workbook.findByWeek(userId, normalizedWeekStart, normalizedWeekEnd);
+
+      if (!workbook && (week_start !== normalizedWeekStart || week_end !== normalizedWeekEnd)) {
+        workbook = await Workbook.findByWeek(userId, week_start, week_end);
+      }
       
       if (workbook) {
+        const storedWeekStart = this.normalizeDateValue(workbook.week_start);
+        const storedWeekEnd = this.normalizeDateValue(workbook.week_end);
+
+        if (storedWeekStart !== normalizedWeekStart || storedWeekEnd !== normalizedWeekEnd) {
+          try {
+            await Workbook.updateWeekRange(workbook.id, normalizedWeekStart, normalizedWeekEnd);
+            workbook.week_start = normalizedWeekStart;
+            workbook.week_end = normalizedWeekEnd;
+          } catch (syncError) {
+            console.warn('Unable to normalize workbook week range', workbook.id, syncError.message || syncError);
+          }
+        }
+
         console.log('✅ Workbook found:', workbook.id);
         return res.json({
           success: true,
           workbook_id: workbook.id,
-          workbook: workbook
+          workbook: workbook,
+          week_start: normalizedWeekStart,
+          week_end: normalizedWeekEnd
         });
       } else {
         console.log('ℹ️ No workbook found for this week');
@@ -668,52 +750,92 @@ class WorkbookController {
   }
 
   // Helper methods
-  normalizeDateValue(value) {
-    if (!value && value !== 0) {
+  formatDateOnly(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+      return null;
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  parseDateInput(value) {
+    if (value === null || value === undefined) {
       return null;
     }
 
     if (value instanceof Date) {
-      return value.toISOString().split('T')[0];
+      if (Number.isNaN(value.getTime())) {
+        return null;
+      }
+      return new Date(value.getFullYear(), value.getMonth(), value.getDate());
     }
 
     if (typeof value === 'string') {
       const trimmed = value.trim();
-      if (!trimmed) {
+      if (!trimmed || trimmed === '0000-00-00') {
         return null;
       }
-      return trimmed.includes('T') ? trimmed.split('T')[0] : trimmed;
+
+      const normalized = trimmed.includes('T') ? trimmed.split('T')[0] : trimmed;
+      const parts = normalized.split('-').map((part) => Number.parseInt(part, 10));
+      if (parts.length === 3 && parts.every((part) => Number.isFinite(part))) {
+        const [year, month, day] = parts;
+        if (year >= 1000 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+          return new Date(year, month - 1, day);
+        }
+      }
+
+      const fallback = new Date(trimmed);
+      if (!Number.isNaN(fallback.getTime())) {
+        return new Date(fallback.getFullYear(), fallback.getMonth(), fallback.getDate());
+      }
+      return null;
     }
 
     if (typeof value === 'number') {
       const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().split('T')[0];
+      if (!Number.isNaN(parsed.getTime())) {
+        return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+      }
+      return null;
     }
 
     if (value && typeof value.toISOString === 'function') {
       try {
-        return value.toISOString().split('T')[0];
+        return this.parseDateInput(value.toISOString());
       } catch (error) {
         // fall through
       }
     }
 
     const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().split('T')[0];
+    if (!Number.isNaN(parsed.getTime())) {
+      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+    }
+    return null;
+  }
+
+  normalizeDateValue(value) {
+    const parsed = this.parseDateInput(value);
+    return parsed ? this.formatDateOnly(parsed) : null;
   }
 
   getWeekStart(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-    const monday = new Date(d.setDate(diff));
-    return monday.toISOString().split('T')[0];
+    const parsed = this.parseDateInput(date) || this.parseDateInput(new Date());
+    const monday = new Date(parsed);
+    const day = monday.getDay();
+    const offset = day === 0 ? -6 : 1 - day;
+    monday.setDate(monday.getDate() + offset);
+    return this.formatDateOnly(monday);
   }
 
   getWeekEnd(weekStart) {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate() + 6); // Sunday
-    return d.toISOString().split('T')[0];
+    const startDate = this.parseDateInput(weekStart) || this.parseDateInput(new Date());
+    const sunday = new Date(startDate);
+    sunday.setDate(sunday.getDate() + 6);
+    return this.formatDateOnly(sunday);
   }
 
   /**

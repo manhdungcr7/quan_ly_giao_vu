@@ -1,8 +1,374 @@
 const db = require('../../config/database');
+const BaseModel = require('./BaseModel');
+
+const TABLE_NAME = 'work_schedules';
+const DB_NAME = process.env.DB_NAME || 'quan_ly_giao_vu';
+const HISTORY_TABLE = 'schedule_history';
+const PARTICIPANT_TABLE = 'schedule_participants';
 
 class WorkSchedule {
+  static schemaEnsured = false;
+
+  static async ensureHistoryTable() {
+    try {
+      let exists = await BaseModel.tableExists(HISTORY_TABLE);
+
+      if (!exists) {
+        const createSql = `
+          CREATE TABLE IF NOT EXISTS ${HISTORY_TABLE} (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            schedule_id INT UNSIGNED NOT NULL,
+            action ENUM('created','updated','cancelled','rescheduled','deleted','status_changed') NOT NULL,
+            changed_by INT UNSIGNED NOT NULL,
+            old_data JSON NULL,
+            new_data JSON NULL,
+            change_summary TEXT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+            INDEX idx_schedule (schedule_id),
+            INDEX idx_action (action),
+            INDEX idx_created (created_at),
+            CONSTRAINT fk_${HISTORY_TABLE}_schedule FOREIGN KEY (schedule_id) REFERENCES ${TABLE_NAME}(id) ON DELETE CASCADE,
+            CONSTRAINT fk_${HISTORY_TABLE}_user FOREIGN KEY (changed_by) REFERENCES users(id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `;
+
+        await db.execute(createSql);
+        BaseModel.clearTableExistenceCache(HISTORY_TABLE);
+        exists = true;
+        console.info('[WorkSchedule] Created schedule_history table.');
+      }
+
+      if (!exists) {
+        return false;
+      }
+
+      const columns = await db.findMany(
+        `SELECT column_name FROM information_schema.columns WHERE table_schema = ? AND table_name = ?`,
+        [DB_NAME, HISTORY_TABLE]
+      );
+
+      const existingColumns = new Set(
+        columns.map((col) => (col.column_name || col.COLUMN_NAME || '').toLowerCase())
+      );
+
+      const alterations = [];
+
+      if (!existingColumns.has('old_data')) {
+        alterations.push('ADD COLUMN old_data JSON NULL AFTER changed_by');
+      }
+
+      if (!existingColumns.has('new_data')) {
+        const position = existingColumns.has('old_data') ? 'AFTER old_data' : 'AFTER changed_by';
+        alterations.push(`ADD COLUMN new_data JSON NULL ${position}`);
+      }
+
+      if (!existingColumns.has('change_summary')) {
+        const position = existingColumns.has('new_data') ? 'AFTER new_data' : 'AFTER changed_by';
+        alterations.push(`ADD COLUMN change_summary TEXT NULL ${position}`);
+      }
+
+      if (!existingColumns.has('created_at')) {
+        const position = existingColumns.has('change_summary') ? 'AFTER change_summary' : 'AFTER changed_by';
+        alterations.push(`ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ${position}`);
+      }
+
+      if (existingColumns.has('action')) {
+        alterations.push(
+          "MODIFY COLUMN action ENUM('created','updated','cancelled','rescheduled','deleted','status_changed') NOT NULL"
+        );
+      }
+
+      if (alterations.length > 0) {
+        const alterSql = `ALTER TABLE ${HISTORY_TABLE} ${alterations.join(', ')}`;
+        await db.execute(alterSql);
+        console.info('[WorkSchedule] Synchronized schedule_history schema.');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[WorkSchedule] ensureHistoryTable error:', error);
+      return false;
+    }
+  }
+
+  static async ensureParticipantsTable() {
+    try {
+      let exists = await BaseModel.tableExists(PARTICIPANT_TABLE);
+
+      if (!exists) {
+        const createSql = `
+          CREATE TABLE IF NOT EXISTS ${PARTICIPANT_TABLE} (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            schedule_id INT UNSIGNED NOT NULL,
+            user_id INT UNSIGNED NOT NULL,
+            role ENUM('organizer','required','optional','viewer') NOT NULL DEFAULT 'required',
+            status ENUM('pending','accepted','declined','tentative','no_response') NOT NULL DEFAULT 'pending',
+            response_at TIMESTAMP NULL,
+            notes TEXT NULL,
+            notification_sent BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+            UNIQUE KEY unique_participant (schedule_id, user_id),
+            INDEX idx_schedule (schedule_id),
+            INDEX idx_user (user_id),
+            INDEX idx_status (status),
+            CONSTRAINT fk_${PARTICIPANT_TABLE}_schedule FOREIGN KEY (schedule_id) REFERENCES ${TABLE_NAME}(id) ON DELETE CASCADE,
+            CONSTRAINT fk_${PARTICIPANT_TABLE}_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `;
+
+        await db.execute(createSql);
+        BaseModel.clearTableExistenceCache(PARTICIPANT_TABLE);
+        exists = true;
+        console.info('[WorkSchedule] Created schedule_participants table.');
+      }
+
+      if (!exists) {
+        return false;
+      }
+
+      const columns = await db.findMany(
+        `SELECT column_name FROM information_schema.columns WHERE table_schema = ? AND table_name = ?`,
+        [DB_NAME, PARTICIPANT_TABLE]
+      );
+
+      const existingColumns = new Set(
+        columns.map((col) => (col.column_name || col.COLUMN_NAME || '').toLowerCase())
+      );
+
+      const alterations = [];
+
+      if (!existingColumns.has('role')) {
+        const position = existingColumns.has('user_id') ? 'AFTER user_id' : 'AFTER schedule_id';
+        alterations.push(`ADD COLUMN role ENUM('organizer','required','optional','viewer') NOT NULL DEFAULT 'required' ${position}`);
+      }
+
+      if (!existingColumns.has('status')) {
+        const position = existingColumns.has('role') ? 'AFTER role' : 'AFTER user_id';
+        alterations.push(`ADD COLUMN status ENUM('pending','accepted','declined','tentative','no_response') NOT NULL DEFAULT 'pending' ${position}`);
+      }
+
+      if (!existingColumns.has('response_at')) {
+        const position = existingColumns.has('status') ? 'AFTER status' : 'AFTER user_id';
+        alterations.push(`ADD COLUMN response_at TIMESTAMP NULL ${position}`);
+      }
+
+      if (!existingColumns.has('notes')) {
+        const position = existingColumns.has('response_at') ? 'AFTER response_at' : 'AFTER status';
+        alterations.push(`ADD COLUMN notes TEXT NULL ${position}`);
+      }
+
+      if (!existingColumns.has('notification_sent')) {
+        const position = existingColumns.has('notes') ? 'AFTER notes' : 'AFTER response_at';
+        alterations.push(`ADD COLUMN notification_sent BOOLEAN NOT NULL DEFAULT FALSE ${position}`);
+      }
+
+      if (!existingColumns.has('created_at')) {
+        const position = existingColumns.has('notification_sent') ? 'AFTER notification_sent' : 'AFTER notes';
+        alterations.push(`ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ${position}`);
+      }
+
+      if (!existingColumns.has('updated_at')) {
+        const position = existingColumns.has('created_at') ? 'AFTER created_at' : 'AFTER notification_sent';
+        alterations.push(
+          `ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP ${position}`
+        );
+      }
+
+      if (existingColumns.has('status')) {
+        alterations.push(
+          "MODIFY COLUMN status ENUM('pending','accepted','declined','tentative','no_response') NOT NULL DEFAULT 'pending'"
+        );
+      }
+
+      if (alterations.length > 0) {
+        const alterSql = `ALTER TABLE ${PARTICIPANT_TABLE} ${alterations.join(', ')}`;
+        await db.execute(alterSql);
+        console.info('[WorkSchedule] Synchronized schedule_participants schema.');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[WorkSchedule] ensureParticipantsTable error:', error);
+      return false;
+    }
+  }
+
+  static async ensureSchema() {
+    if (this.schemaEnsured) {
+      return true;
+    }
+
+    try {
+      const tableExists = await BaseModel.tableExists(TABLE_NAME);
+
+      if (!tableExists) {
+        const createSql = `
+          CREATE TABLE IF NOT EXISTS ${TABLE_NAME} (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(150) NOT NULL,
+            description TEXT NULL,
+            event_type VARCHAR(50) NOT NULL DEFAULT 'other',
+            start_datetime DATETIME NOT NULL,
+            end_datetime DATETIME NOT NULL,
+            is_all_day BOOLEAN NOT NULL DEFAULT FALSE,
+            timezone VARCHAR(64) NULL,
+            recurrence_rule TEXT NULL,
+            recurrence_end_date DATE NULL,
+            location VARCHAR(150) NULL,
+            room VARCHAR(100) NULL,
+            building VARCHAR(100) NULL,
+            online_meeting_url VARCHAR(255) NULL,
+            organizer_id INT UNSIGNED NULL,
+            status ENUM('draft', 'confirmed', 'in_progress', 'completed', 'cancelled', 'postponed', 'scheduled', 'ongoing') NOT NULL DEFAULT 'confirmed',
+            priority ENUM('low', 'normal', 'high', 'critical', 'urgent', 'medium') NOT NULL DEFAULT 'normal',
+            color VARCHAR(20) NULL,
+            icon VARCHAR(50) NULL,
+            tags JSON NULL,
+            reminder_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 15,
+            attachments JSON NULL,
+            notes TEXT NULL,
+            public_notes TEXT NULL,
+            created_by INT UNSIGNED NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (organizer_id) REFERENCES users(id) ON DELETE SET NULL,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
+
+            INDEX idx_start (start_datetime),
+            INDEX idx_end (end_datetime),
+            INDEX idx_status (status),
+            INDEX idx_organizer (organizer_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `;
+
+        await db.execute(createSql);
+        BaseModel.clearTableExistenceCache(TABLE_NAME);
+        this.schemaEnsured = true;
+        console.info('[WorkSchedule] Created missing work_schedules table.');
+        return true;
+      }
+
+      const columns = await db.findMany(
+        `SELECT column_name FROM information_schema.columns WHERE table_schema = ? AND table_name = ?`,
+        [DB_NAME, TABLE_NAME]
+      );
+
+      const existingColumns = new Set(
+        columns.map((col) => (col.column_name || col.COLUMN_NAME || '').toLowerCase())
+      );
+
+      const alterations = [];
+
+      if (!existingColumns.has('event_type')) {
+        alterations.push("ADD COLUMN event_type VARCHAR(50) NOT NULL DEFAULT 'other' AFTER description");
+      }
+
+      if (!existingColumns.has('timezone')) {
+        alterations.push("ADD COLUMN timezone VARCHAR(64) NULL AFTER is_all_day");
+      }
+
+      if (!existingColumns.has('recurrence_end_date')) {
+        alterations.push('ADD COLUMN recurrence_end_date DATE NULL AFTER recurrence_rule');
+      }
+
+      if (!existingColumns.has('room')) {
+        alterations.push('ADD COLUMN room VARCHAR(100) NULL AFTER location');
+      }
+
+      if (!existingColumns.has('building')) {
+        alterations.push('ADD COLUMN building VARCHAR(100) NULL AFTER room');
+      }
+
+      if (!existingColumns.has('online_meeting_url')) {
+        alterations.push('ADD COLUMN online_meeting_url VARCHAR(255) NULL AFTER building');
+      }
+
+      if (!existingColumns.has('color')) {
+        alterations.push('ADD COLUMN color VARCHAR(20) NULL AFTER priority');
+      }
+
+      if (!existingColumns.has('icon')) {
+        alterations.push('ADD COLUMN icon VARCHAR(50) NULL AFTER color');
+      }
+
+      if (!existingColumns.has('tags')) {
+        alterations.push('ADD COLUMN tags JSON NULL AFTER icon');
+      }
+
+      if (!existingColumns.has('reminder_minutes')) {
+        alterations.push('ADD COLUMN reminder_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 15 AFTER tags');
+      }
+
+      if (!existingColumns.has('attachments')) {
+        alterations.push('ADD COLUMN attachments JSON NULL AFTER reminder_minutes');
+      }
+
+      if (!existingColumns.has('notes')) {
+        alterations.push('ADD COLUMN notes TEXT NULL AFTER attachments');
+      }
+
+      if (!existingColumns.has('public_notes')) {
+        alterations.push('ADD COLUMN public_notes TEXT NULL AFTER notes');
+      }
+
+      if (!existingColumns.has('is_all_day')) {
+        alterations.push('ADD COLUMN is_all_day BOOLEAN NOT NULL DEFAULT FALSE AFTER end_datetime');
+      }
+
+      if (existingColumns.has('status')) {
+        alterations.push(
+          "MODIFY COLUMN status ENUM('draft','confirmed','in_progress','completed','cancelled','postponed','scheduled','ongoing') NOT NULL DEFAULT 'confirmed'"
+        );
+      }
+
+      if (existingColumns.has('priority')) {
+        alterations.push(
+          "MODIFY COLUMN priority ENUM('low','normal','high','critical','urgent','medium') NOT NULL DEFAULT 'normal'"
+        );
+      }
+
+      if (!existingColumns.has('created_at')) {
+        alterations.push('ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER created_by');
+      }
+
+      if (!existingColumns.has('updated_at')) {
+        alterations.push(
+          'ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at'
+        );
+      }
+
+      if (alterations.length > 0) {
+        const alterSql = `ALTER TABLE ${TABLE_NAME} ${alterations.join(', ')}`;
+        await db.execute(alterSql);
+        console.info('[WorkSchedule] Synchronized work_schedules schema.');
+      }
+
+  const participantsReady = await this.ensureParticipantsTable();
+  const historyReady = participantsReady ? await this.ensureHistoryTable() : false;
+  this.schemaEnsured = participantsReady && historyReady;
+  return this.schemaEnsured;
+    } catch (error) {
+      console.error('[WorkSchedule] ensureSchema error:', error);
+      this.schemaEnsured = false;
+      return false;
+    }
+  }
+
+  static invalidateSchemaCache() {
+    this.schemaEnsured = false;
+  }
+
   // Lấy danh sách lịch với filters
   static async findAll(filters = {}) {
+    const hasSchema = await this.ensureSchema();
+    if (!hasSchema) {
+      return [];
+    }
+
     let query = `
       SELECT 
         ws.*,
@@ -59,6 +425,11 @@ class WorkSchedule {
 
   // Lấy chi tiết lịch
   static async findById(id) {
+    const hasSchema = await this.ensureSchema();
+    if (!hasSchema) {
+      return null;
+    }
+
     const query = `
       SELECT 
         ws.*,
@@ -95,6 +466,11 @@ class WorkSchedule {
 
   // Tạo lịch mới
   static async create(data = {}) {
+    const hasSchema = await this.ensureSchema();
+    if (!hasSchema) {
+      throw new Error('work_schedules schema not available');
+    }
+
     const allowedFields = [
       'title', 'description', 'event_type',
       'start_datetime', 'end_datetime', 'is_all_day', 'timezone',
@@ -135,6 +511,11 @@ class WorkSchedule {
 
   // Cập nhật lịch
   static async update(id, data = {}) {
+    const hasSchema = await this.ensureSchema();
+    if (!hasSchema) {
+      return false;
+    }
+
     const allowedFields = [
       'title', 'description', 'event_type',
       'start_datetime', 'end_datetime', 'is_all_day', 'timezone',
@@ -173,12 +554,22 @@ class WorkSchedule {
 
   // Xóa lịch
   static async delete(id) {
+    const hasSchema = await this.ensureSchema();
+    if (!hasSchema) {
+      return false;
+    }
+
     const result = await db.query('DELETE FROM work_schedules WHERE id = ?', [id]);
     return result.affectedRows > 0;
   }
 
   // Thêm participant
   static async addParticipant(scheduleId, userId, role = 'required') {
+    const hasSchema = await this.ensureSchema();
+    if (!hasSchema) {
+      return false;
+    }
+
     const query = `
       INSERT INTO schedule_participants (schedule_id, user_id, role, status)
       VALUES (?, ?, ?, 'pending')
@@ -191,6 +582,11 @@ class WorkSchedule {
 
   // Xóa participant
   static async removeParticipant(scheduleId, userId) {
+    const hasSchema = await this.ensureSchema();
+    if (!hasSchema) {
+      return false;
+    }
+
     const result = await db.query(
       'DELETE FROM schedule_participants WHERE schedule_id = ? AND user_id = ?',
       [scheduleId, userId]
@@ -200,6 +596,11 @@ class WorkSchedule {
 
   // Cập nhật trạng thái participant
   static async updateParticipantStatus(scheduleId, userId, status) {
+    const hasSchema = await this.ensureSchema();
+    if (!hasSchema) {
+      return false;
+    }
+
     const result = await db.query(
       'UPDATE schedule_participants SET status = ?, response_at = NOW() WHERE schedule_id = ? AND user_id = ?',
       [status, scheduleId, userId]
@@ -209,6 +610,11 @@ class WorkSchedule {
 
   // Kiểm tra xung đột lịch
   static async checkConflicts(userId, startDatetime, endDatetime, excludeId = null, options = {}) {
+    const hasSchema = await this.ensureSchema();
+    if (!hasSchema) {
+      return [];
+    }
+
     const filters = [];
     const params = [];
 
@@ -270,6 +676,11 @@ class WorkSchedule {
   }
 
   static async getTeachingSchedule(startDate, endDate, options = {}) {
+    const hasSchema = await this.ensureSchema();
+    if (!hasSchema) {
+      return [];
+    }
+
     const query = `
       SELECT 
         ws.*,

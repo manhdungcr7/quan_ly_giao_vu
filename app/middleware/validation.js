@@ -28,7 +28,12 @@ function checkValidationResult(req, res, next) {
         
         // Lưu errors vào flash và redirect về form
         req.flash('error', formattedErrors[0].message);
-        req.flash('formData', req.body);
+        try {
+            req.flash('formData', JSON.stringify(req.body));
+        } catch (flashErr) {
+            console.warn('Unable to serialize form data for flash:', flashErr?.message || flashErr);
+            req.flash('formData', '{}');
+        }
         return res.redirect('back');
     }
     
@@ -67,7 +72,8 @@ const userValidationRules = {
             .trim(),
         
         body('phone')
-            .optional()
+            .optional({ checkFalsy: true, nullable: true })
+            .trim()
             .matches(CONSTANTS.VALIDATION.PHONE_PATTERN)
             .withMessage('Số điện thoại không hợp lệ'),
         
@@ -88,12 +94,13 @@ const userValidationRules = {
             .trim(),
         
         body('phone')
-            .optional()
+            .optional({ checkFalsy: true, nullable: true })
+            .trim()
             .matches(CONSTANTS.VALIDATION.PHONE_PATTERN)
             .withMessage('Số điện thoại không hợp lệ'),
         
         body('role_id')
-            .optional()
+            .optional({ checkFalsy: true, nullable: true })
             .isInt({ min: 1 })
             .withMessage('Vai trò không hợp lệ')
     ],
@@ -167,7 +174,7 @@ const documentValidationRules = {
         
         body('status')
             .optional()
-            .isIn(['draft', 'pending', 'processing', 'completed', 'archived'])
+            .isIn(['draft', 'pending', 'processing', 'completed', 'approved', 'archived', 'overdue'])
             .withMessage('Trạng thái không hợp lệ')
     ]
 };

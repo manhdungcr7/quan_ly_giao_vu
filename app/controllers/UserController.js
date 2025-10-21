@@ -222,6 +222,23 @@ class UserController {
                 return res.redirect('/users');
             }
 
+            const formDataFlash = req.flash('formData') || [];
+            let formData = {};
+
+            if (formDataFlash.length) {
+                const raw = formDataFlash[0];
+                if (typeof raw === 'string') {
+                    try {
+                        formData = JSON.parse(raw) || {};
+                    } catch (parseError) {
+                        console.warn('Unable to parse user edit form data:', parseError?.message || parseError);
+                        formData = {};
+                    }
+                } else if (raw && typeof raw === 'object') {
+                    formData = raw;
+                }
+            }
+
             // Lấy danh sách roles (chỉ admin mới được thay đổi role)
             let roles = [];
             if (req.session.user.role_name === 'admin') {
@@ -233,6 +250,8 @@ class UserController {
                 user: req.session.user,
                 userDetail: user,
                 roles: roles,
+                roleLabels: CONSTANTS.USER_ROLE_LABELS,
+                formData,
                 error: res.locals.error,
                 success: res.locals.success
             });
@@ -247,19 +266,30 @@ class UserController {
     // Xử lý cập nhật user
     async update(req, res) {
         try {
-            const userId = parseInt(req.params.id);
-            
+            const userId = parseInt(req.params.id, 10);
+
             // Kiểm tra quyền: admin hoặc chính user đó
-            if (req.session.user.role_name !== 'admin' && req.session.user.id !== userId) {
+            const sessionUser = req.session.user;
+            if (sessionUser.role_name !== 'admin' && sessionUser.id !== userId) {
                 req.flash('error', CONSTANTS.MESSAGES.ERROR.UNAUTHORIZED);
                 return res.redirect('/users');
             }
 
             const { email, full_name, role_id, phone } = req.body;
 
-            // Validate input
+            const persistFormData = () => {
+                try {
+                    req.flash('formData', JSON.stringify(req.body));
+                } catch (flashErr) {
+                    console.warn('Unable to serialize user update form data:', flashErr?.message || flashErr);
+                    req.flash('formData', '{}');
+                }
+            };
+
+            // Validate input cơ bản
             if (!email || !full_name) {
                 req.flash('error', 'Vui lòng nhập đầy đủ thông tin bắt buộc');
+                persistFormData();
                 return res.redirect(`/users/${userId}/edit`);
             }
 
@@ -267,36 +297,65 @@ class UserController {
             const existingEmail = await this.userModel.isEmailExists(email, userId);
             if (existingEmail) {
                 req.flash('error', 'Email đã tồn tại');
+                persistFormData();
                 return res.redirect(`/users/${userId}/edit`);
             }
 
-            // Prepare update data
+            // Chuẩn bị dữ liệu cập nhật
             const updateData = {
                 email,
                 full_name,
                 phone: phone || null
             };
 
-            // Chỉ admin mới được thay đổi role
-            if (req.session.user.role_name === 'admin' && role_id) {
-                updateData.role_id = parseInt(role_id);
+            let resolvedRole = null;
+
+            // Chỉ admin mới được thay đổi role, đồng thời kiểm tra role hợp lệ
+            const isAdminSession = (sessionUser.role_name || '').toString().trim().toLowerCase() === 'admin';
+            if (isAdminSession) {
+                const normalizedRoleId = Number.parseInt(role_id, 10);
+
+                if (!Number.isInteger(normalizedRoleId) || normalizedRoleId <= 0) {
+                    req.flash('error', 'Vui lòng chọn vai trò hợp lệ.');
+                    persistFormData();
+                    return res.redirect(`/users/${userId}/edit`);
+                }
+
+                resolvedRole = await this.roleModel.findById(normalizedRoleId);
+                if (!resolvedRole || resolvedRole.is_active === 0) {
+                    req.flash('error', 'Vai trò lựa chọn không khả dụng hoặc đã bị vô hiệu hóa.');
+                    persistFormData();
+                    return res.redirect(`/users/${userId}/edit`);
+                }
+
+                updateData.role_id = normalizedRoleId;
             }
 
             const result = await this.userModel.update(userId, updateData);
-            
+
             if (result.affectedRows > 0) {
                 // Cập nhật session nếu user chỉnh sửa chính mình
-                if (req.session.user.id === userId) {
-                    req.session.user.email = email;
-                    req.session.user.full_name = full_name;
+                if (sessionUser.id === userId) {
+                    sessionUser.email = email;
+                    sessionUser.full_name = full_name;
+
+                    if (resolvedRole) {
+                        const roleName = resolvedRole.name;
+                        sessionUser.role_id = resolvedRole.id;
+                        sessionUser.role = roleName;
+                        sessionUser.role_name = roleName;
+                        sessionUser.roleName = roleName;
+                        sessionUser.role_label = CONSTANTS.USER_ROLE_LABELS[roleName] || roleName;
+                    }
                 }
 
                 req.flash('success', CONSTANTS.MESSAGES.SUCCESS.UPDATED);
-                res.redirect('/users');
-            } else {
-                req.flash('error', 'Không có thay đổi nào được thực hiện');
-                res.redirect(`/users/${userId}/edit`);
+                return res.redirect('/users');
             }
+
+            req.flash('error', 'Không có thay đổi nào được thực hiện');
+            persistFormData();
+            return res.redirect(`/users/${userId}/edit`);
 
         } catch (error) {
             console.error('Error in UserController update:', error);

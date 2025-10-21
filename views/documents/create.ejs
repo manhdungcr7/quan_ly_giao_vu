@@ -4,19 +4,15 @@
 <%- contentFor('content') %>
 <%- include('../partials/alerts') %>
 <div class="documents-page">
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Thêm văn bản mới</h1>
-      <p class="page-subtitle">Tạo văn bản đến hoặc văn bản đi trong hệ thống</p>
-    </div>
-    <div class="page-actions">
-      <a href="/documents" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Quay lại</a>
-    </div>
-  </div>
-
   <% if (typeof error !== 'undefined' && error.length > 0) { %>
     <div class="alert alert-danger">
       <%= error %>
+    </div>
+  <% } %>
+
+  <% if (moduleSupportEnabled === false) { %>
+    <div class="alert alert-warning">
+      Hệ thống chưa thể bật chế độ phân nhóm văn bản do thiếu quyền cập nhật cơ sở dữ liệu. Mọi văn bản mới sẽ được lưu vào nhóm mặc định.
     </div>
   <% } %>
 
@@ -27,16 +23,69 @@
   <% const toOrgSelected = organizationsList.find(function(o){ return String(o.id) === String(formData && formData.to_org_id || ''); }); %>
   <% const fromOrgSelected = organizationsList.find(function(o){ return String(o.id) === String(formData && formData.from_org_id || ''); }); %>
   <% const typeSelected = typesList.find(function(t){ return String(t.id) === String(formData && formData.type_id || ''); }); %>
+  <% const moduleList = Array.isArray(modules) ? modules : []; %>
+  <% const activeModule = module || moduleList.find(function(m){ return m.key === moduleKey; }) || { key: moduleKey || 'administrative', label: 'Văn bản hành chính', icon: 'fa-briefcase', description: '' }; %>
+  <% const moduleSlug = activeModule.key || 'administrative'; %>
+  <% const activeModuleIcon = activeModule.icon || 'fa-folder-tree'; %>
+  <% const backDirection = (formData && formData.direction) || 'incoming'; %>
   
-  <% const STATUS_LABELS = {
-    pending: 'Chờ xử lý',
-    processing: 'Đang xử lý',
-    completed: 'Hoàn tất',
-    approved: 'Đã duyệt',
-    archived: 'Đã lưu trữ'
-  }; %>
+  <% const STATUS_OPTIONS_BASE = [
+    { id: 'pending', label: 'Chờ xử lý' },
+    { id: 'processing', label: 'Đang xử lý' },
+    { id: 'completed', label: 'Hoàn tất' },
+    { id: 'approved', label: 'Đã duyệt' },
+    { id: 'archived', label: 'Đã lưu trữ' },
+    { id: 'overdue', label: 'Quá hạn' }
+  ];
+  const EXTRA_STATUS_LABELS = { draft: 'Bản nháp' };
+  let STATUS_OPTIONS = STATUS_OPTIONS_BASE.slice();
+  const RAW_STATUS_SELECTION = formData?.status;
+  if (RAW_STATUS_SELECTION && !STATUS_OPTIONS_BASE.some(function(opt){ return opt.id === RAW_STATUS_SELECTION; }) && EXTRA_STATUS_LABELS[RAW_STATUS_SELECTION]) {
+    STATUS_OPTIONS = STATUS_OPTIONS.concat([{ id: RAW_STATUS_SELECTION, label: EXTRA_STATUS_LABELS[RAW_STATUS_SELECTION] }]);
+  }
+  const DEFAULT_STATUS = 'pending';
+  const SELECTED_STATUS = STATUS_OPTIONS.some(function(opt){ return opt.id === RAW_STATUS_SELECTION; }) ? RAW_STATUS_SELECTION : DEFAULT_STATUS;
+  %>
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Thêm văn bản mới</h1>
+      <p class="page-subtitle">Tạo văn bản đến hoặc văn bản đi trong hệ thống</p>
+      <div class="documents-hero__chip" id="activeModuleChip">
+        <span class="documents-hero__chip-icon"><i id="moduleChipIcon" class="fas <%= activeModuleIcon %>" aria-hidden="true"></i></span>
+        <span class="documents-hero__chip-label" id="moduleChipLabel"><%= activeModule.label %></span>
+      </div>
+    </div>
+    <div class="page-actions">
+      <a href="/documents/<%= moduleSlug %>/<%= backDirection %>" class="btn btn-secondary" data-module-back="true"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    </div>
+  </div>
 
   <form method="post" action="/documents" class="document-form" enctype="multipart/form-data">
+    <input type="hidden" name="module" id="moduleField" value="<%= moduleSlug %>">
+    <% if (moduleList.length > 1) { %>
+      <div class="document-module-selector" role="group" aria-label="Chọn nhóm văn bản">
+        <span class="document-module-selector__label">Nhóm văn bản</span>
+        <div class="module-switcher">
+          <% moduleList.forEach(function(mod){ %>
+            <% const isActive = mod.key === moduleSlug; %>
+            <button type="button"
+                    class="module-switcher__option <%= isActive ? 'module-switcher__option--active' : '' %>"
+                    data-module-option="<%= mod.key %>"
+                    data-module-icon="<%= mod.icon || 'fa-folder-tree' %>"
+                    data-module-label="<%= mod.label %>"
+                    data-module-desc="<%= mod.description || '' %>">
+              <span class="module-switcher__badge"><i class="fas <%= mod.icon || 'fa-folder-tree' %>" aria-hidden="true"></i></span>
+              <span class="module-switcher__info">
+                <span class="module-switcher__title"><%= mod.label %></span>
+                <span class="module-switcher__desc"><%= mod.description || 'Quản lý văn bản thuộc nhóm này.' %></span>
+              </span>
+            </button>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
+
     <div class="form-grid">
       <div class="form-section">
         <h3>Thông tin cơ bản</h3>
@@ -68,9 +117,10 @@
         <div class="form-group">
           <label for="type_id">Loại văn bản</label>
           <input type="hidden" name="type_id" id="type_id" value="<%= formData?.type_id || '' %>">
+          <input type="hidden" name="type_label" id="type_label" value="<%= formData?.type_label || (typeSelected ? typeSelected.name : '') %>">
           <input type="text" id="type_id_display" list="typeIdOptions"
                  placeholder="Gõ để tìm loại văn bản"
-                 value="<%= typeSelected ? typeSelected.name : '' %>"
+                 value="<%= typeSelected ? typeSelected.name : (formData?.type_label || '') %>"
                  autocomplete="off">
           <datalist id="typeIdOptions">
             <% typesList.forEach(function(type) { %>
@@ -131,28 +181,22 @@
         </div>
         
         <div class="form-group">
-          <label for="status">Trạng thái</label>
-          <input type="hidden" name="status" id="status" value="<%= formData?.status || 'pending' %>">
-          <input type="text" id="status_display" list="statusOptions"
-                 placeholder="Chọn trạng thái"
-                 value="<%= STATUS_LABELS[formData?.status] || 'Chờ xử lý' %>"
-                 autocomplete="off">
-          <datalist id="statusOptions">
-            <option value="Chờ xử lý" data-id="pending"></option>
-            <option value="Đang xử lý" data-id="processing"></option>
-            <option value="Hoàn tất" data-id="completed"></option>
-            <option value="Đã duyệt" data-id="approved"></option>
-            <option value="Đã lưu trữ" data-id="archived"></option>
-          </datalist>
+          <label for="status_select">Trạng thái</label>
+          <select name="status" id="status_select">
+            <% STATUS_OPTIONS.forEach(function(option){ %>
+              <option value="<%= option.id %>" <%= SELECTED_STATUS === option.id ? 'selected' : '' %>><%= option.label %></option>
+            <% }); %>
+          </select>
           <small>Trạng thái hiện tại của văn bản trong quy trình xử lý.</small>
         </div>
 
         <div class="form-group">
           <label for="assigned_to_display">Người xử lý</label>
-          <input type="hidden" name="assigned_to" id="assigned_to" value="<%= formData?.assigned_to || '' %>">
+     <input type="hidden" name="assigned_to" id="assigned_to" value="<%= formData?.assigned_to || '' %>">
+     <input type="hidden" name="assigned_to_label" id="assigned_to_label" value="<%= formData?.assigned_to_label || (assignedSelected ? assignedSelected.full_name : '') %>">
           <input type="text" id="assigned_to_display" list="assignedToOptions"
                  placeholder="Gõ để tìm nhanh người xử lý"
-                 value="<%= assignedSelected ? assignedSelected.full_name : '' %>"
+       value="<%= assignedSelected ? assignedSelected.full_name : (formData?.assigned_to_label || '') %>"
                  autocomplete="off">
           <datalist id="assignedToOptions">
             <% usersList.forEach(function(user) { %>
@@ -168,10 +212,11 @@
 
         <div class="form-group" id="from_org_group">
           <label for="from_org_id">Cơ quan gửi</label>
-          <input type="hidden" name="from_org_id" id="from_org_id" value="<%= formData?.from_org_id || '' %>">
+     <input type="hidden" name="from_org_id" id="from_org_id" value="<%= formData?.from_org_id || '' %>">
+     <input type="hidden" name="from_org_label" id="from_org_label" value="<%= formData?.from_org_label || (fromOrgSelected ? fromOrgSelected.name : '') %>">
           <input type="text" id="from_org_display" list="fromOrgOptions"
                  placeholder="Gõ để tìm cơ quan gửi"
-                 value="<%= fromOrgSelected ? fromOrgSelected.name : '' %>"
+       value="<%= fromOrgSelected ? fromOrgSelected.name : (formData?.from_org_label || '') %>"
                  autocomplete="off">
           <datalist id="fromOrgOptions">
             <% organizationsList.forEach(function(org) { %>
@@ -183,10 +228,11 @@
 
         <div class="form-group" id="to_org_group">
           <label for="to_org_display">Cơ quan nhận</label>
-          <input type="hidden" name="to_org_id" id="to_org_id" value="<%= formData?.to_org_id || '' %>">
+     <input type="hidden" name="to_org_id" id="to_org_id" value="<%= formData?.to_org_id || '' %>">
+     <input type="hidden" name="to_org_label" id="to_org_label" value="<%= formData?.to_org_label || (toOrgSelected ? toOrgSelected.name : '') %>">
           <input type="text" id="to_org_display" list="toOrgOptions"
                  placeholder="Gõ để tìm cơ quan nhận"
-                 value="<%= toOrgSelected ? toOrgSelected.name : '' %>"
+       value="<%= toOrgSelected ? toOrgSelected.name : (formData?.to_org_label || '') %>"
                  autocomplete="off">
           <datalist id="toOrgOptions">
             <% organizationsList.forEach(function(org) { %>
@@ -209,7 +255,7 @@
       <button type="submit" class="btn btn-primary">
         <i class="fas fa-save"></i> Lưu văn bản
       </button>
-      <a href="/documents" class="btn btn-secondary">
+      <a href="/documents/<%= moduleSlug %>/<%= backDirection %>" class="btn btn-secondary" data-module-back="true">
         <i class="fas fa-times"></i> Hủy bỏ
       </a>
     </div>
@@ -218,14 +264,23 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  function bindDatalist(inputId, hiddenId, datalistId) {
+  var moduleField = document.getElementById('moduleField');
+  var moduleButtons = document.querySelectorAll('[data-module-option]');
+  var moduleChipLabel = document.getElementById('moduleChipLabel');
+  var moduleChipIcon = document.getElementById('moduleChipIcon');
+  var moduleBackLinks = document.querySelectorAll('[data-module-back]');
+  var defaultModule = <%- JSON.stringify(moduleSlug) %>;
+  var defaultDirection = <%- JSON.stringify(backDirection) %>;
+  var directionEl;
+
+  function bindDatalist(inputId, hiddenId, datalistId, labelHiddenId) {
     var input = document.getElementById(inputId);
     var hidden = document.getElementById(hiddenId);
     var datalist = document.getElementById(datalistId);
+    var labelHidden = labelHiddenId ? document.getElementById(labelHiddenId) : null;
     if (!input || !hidden || !datalist) {
       return;
     }
-
     function syncHidden() {
       var value = input.value.trim();
       var matchedOption = null;
@@ -234,6 +289,10 @@ document.addEventListener('DOMContentLoaded', function() {
           matchedOption = datalist.options[i];
           break;
         }
+      }
+
+      if (labelHidden) {
+        labelHidden.value = value;
       }
 
       if (matchedOption) {
@@ -246,7 +305,11 @@ document.addEventListener('DOMContentLoaded', function() {
     input.addEventListener('change', syncHidden);
     input.addEventListener('blur', syncHidden);
     input.addEventListener('input', function() {
-      if (!input.value.trim()) {
+      var currentValue = input.value.trim();
+      if (labelHidden) {
+        labelHidden.value = currentValue;
+      }
+      if (!currentValue) {
         hidden.value = '';
       }
     });
@@ -255,18 +318,58 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Bind all datalist fields
-  bindDatalist('type_id_display', 'type_id', 'typeIdOptions');
+  bindDatalist('type_id_display', 'type_id', 'typeIdOptions', 'type_label');
   bindDatalist('priority_display', 'priority', 'priorityOptions');
-  bindDatalist('status_display', 'status', 'statusOptions');
-  bindDatalist('assigned_to_display', 'assigned_to', 'assignedToOptions');
-  bindDatalist('from_org_display', 'from_org_id', 'fromOrgOptions');
-  bindDatalist('to_org_display', 'to_org_id', 'toOrgOptions');
+  bindDatalist('assigned_to_display', 'assigned_to', 'assignedToOptions', 'assigned_to_label');
+  bindDatalist('from_org_display', 'from_org_id', 'fromOrgOptions', 'from_org_label');
+  bindDatalist('to_org_display', 'to_org_id', 'toOrgOptions', 'to_org_label');
 
-  var directionEl = document.getElementById('direction');
+  directionEl = document.getElementById('direction');
   var fromOrgGroup = document.getElementById('from_org_group');
   var toOrgGroup = document.getElementById('to_org_group');
   var fromOrgInput = document.getElementById('from_org_display');
   var toOrgInput = document.getElementById('to_org_display');
+
+  function getCurrentDirection() {
+    if (directionEl && directionEl.value) {
+      return directionEl.value;
+    }
+    return defaultDirection || 'incoming';
+  }
+
+  function refreshBackLinks(forcedModule) {
+    var moduleValue = forcedModule || (moduleField && moduleField.value) || defaultModule || 'administrative';
+    var directionValue = getCurrentDirection();
+    moduleBackLinks.forEach(function(link) {
+      if (!link) {
+        return;
+      }
+      link.setAttribute('href', '/documents/' + moduleValue + '/' + directionValue);
+    });
+  }
+
+  if (moduleButtons && moduleButtons.length && moduleField) {
+    moduleButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        var moduleValue = button.getAttribute('data-module-option');
+        if (!moduleValue) {
+          return;
+        }
+        moduleField.value = moduleValue;
+        moduleButtons.forEach(function(btn) {
+          btn.classList.remove('module-switcher__option--active');
+        });
+        button.classList.add('module-switcher__option--active');
+        if (moduleChipLabel) {
+          moduleChipLabel.textContent = button.getAttribute('data-module-label') || moduleValue;
+        }
+        if (moduleChipIcon) {
+          moduleChipIcon.className = 'fas ' + (button.getAttribute('data-module-icon') || 'fa-folder-tree');
+        }
+        refreshBackLinks(moduleValue);
+      });
+    });
+  }
 
   function toggleOrgFields() {
     if (!directionEl) {
@@ -308,8 +411,13 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   if (directionEl) {
-    directionEl.addEventListener('change', toggleOrgFields);
+    directionEl.addEventListener('change', function() {
+      toggleOrgFields();
+      refreshBackLinks();
+    });
     toggleOrgFields();
   }
+
+  refreshBackLinks();
 });
 </script>

@@ -37,6 +37,67 @@
 .page-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+body.exam-page--full .app-layout {
+  grid-template-columns: 1fr;
+}
+
+body.exam-page--full .app-sidebar {
+  display: none !important;
+}
+
+body.exam-page--full .app-main {
+  width: 100%;
+}
+
+body.exam-page--full .app-topbar {
+  display: none;
+}
+
+body.exam-page--full .app-content {
+  padding-left: 48px;
+  padding-right: 48px;
+}
+
+.topbar-user--compact .topbar-user__meta {
+  display: none;
+}
+
+.topbar-user--compact .topbar-user__details {
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.topbar-user--compact .topbar-user__chevron {
+  display: none;
+}
+
+.topbar-logout__button {
+  gap: 0.4rem;
+}
+
+.topbar-logout__button .topbar-logout__label {
+  display: none;
+}
+
+.exam-page--no-top-icons .sidebar-toggle,
+.exam-page--no-top-icons .topbar-user,
+.exam-page--no-top-icons .topbar-logout {
+  display: none !important;
 }
 
 .insights-grid {
@@ -475,10 +536,74 @@
   color: #0d6efd;
   font-weight: 600;
 }
+
+#examExportModal .exam-modal-content {
+  max-width: 560px;
+  width: 92%;
+}
+
+#examExportModal .exam-modal-header,
+#examExportModal .exam-modal-footer {
+  padding: 18px 24px;
+}
+
+#examExportModal .exam-modal-body {
+  padding: 24px;
+}
+
+.export-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.export-field-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 0.9rem;
+  color: #1f2937;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.export-field-option:hover {
+  border-color: #6f42c1;
+  box-shadow: 0 4px 10px rgba(111, 66, 193, 0.15);
+}
+
+.export-field-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.export-options {
+  margin-top: 20px;
+}
+
+.export-option-radio {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.export-hint {
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.export-modal__footer .btn + .btn {
+  margin-left: 8px;
+}
 </style>
 
 </head>
-<body class="app-auth">
+<body class="app-auth exam-page--no-top-icons">
     <div class="app-layout">
         <aside class="app-sidebar" id="appSidebar">
             <div class="sidebar-brand">
@@ -498,8 +623,8 @@
                     </button>
                 </div>
         <div class="topbar-right">
-          <div class="topbar-user" data-user-menu>
-            <button class="topbar-user__details" type="button" data-user-menu-toggle aria-haspopup="true" aria-expanded="false">
+          <div class="topbar-user topbar-user--compact" data-user-menu>
+            <button class="topbar-user__details" type="button" data-user-menu-toggle aria-haspopup="true" aria-expanded="false" aria-label="Tài khoản">
               <div class="topbar-user__meta">
                 <span class="topbar-user__name"><%= (user && (user.fullName || user.full_name || user.username)) || 'Người dùng' %></span>
                 <span class="topbar-user__role"><%= (user && (user.roleName || user.role_name)) || 'Administrator' %></span>
@@ -522,8 +647,8 @@
             </div>
           </div>
           <form class="topbar-logout" method="post" action="/auth/logout">
-            <button type="submit" class="topbar-logout__button" title="Đăng xuất">
-              <span>Đăng xuất</span>
+            <button type="submit" class="topbar-logout__button" title="Đăng xuất" aria-label="Đăng xuất">
+              <span class="sr-only topbar-logout__label">Đăng xuất</span>
               <i aria-hidden="true">⇦</i>
             </button>
           </form>
@@ -540,12 +665,26 @@
     Công tác khảo thí
   </h1>
   <div class="page-actions">
+    <button type="button" class="btn btn-outline-primary" data-action="import-excel">
+      <i class="fas fa-file-import"></i>
+      Nhập Excel
+    </button>
+    <button type="button" class="btn btn-outline-info" data-action="download-template">
+      <i class="fas fa-file-download"></i>
+      Tải mẫu Excel
+    </button>
+    <button type="button" class="btn btn-outline-secondary" data-action="export-pdf">
+      <i class="fas fa-file-pdf"></i>
+      Xuất PDF
+    </button>
     <a href="/examination/create" class="btn btn-primary">
       <i class="fas fa-plus"></i>
       Thêm ca thi
     </a>
   </div>
 </div>
+
+<input type="file" id="examImportInput" accept=".xlsx,.xls" class="sr-only" />
 
 <%
   const statusCounts = (insights && insights.statusCounts) || {};
@@ -758,16 +897,16 @@
       <table class="table table-hover">
         <thead>
           <tr>
-            <th>Tên ca thi</th>
+            <th>Làm đề</th>
+            <th>Ngày thi</th>
             <th>Trạng thái</th>
             <th>Mã môn</th>
             <th>Lớp</th>
-            <th>Môn học</th>
+            <th>Tín chỉ</th>
             <th class="text-center">SL SV</th>
-            <th>Cán bộ chấm 1</th>
-            <th>Cán bộ chấm 2</th>
+            <th>CBCT1</th>
+            <th>CBCT2</th>
             <th>Hạn chấm</th>
-            <th>Ngày thi</th>
             <th>Link</th>
             <th class="text-center">Thao tác</th>
           </tr>
@@ -789,6 +928,16 @@
                   </a>
                 </td>
                 <td>
+                  <% if (session.exam_date) { %>
+                    <%= new Date(session.exam_date).toLocaleDateString('vi-VN') %>
+                    <% if (session.exam_time) { %>
+                      <div class="text-muted"><%= session.exam_time.substring(0,5) %></div>
+                    <% } %>
+                  <% } else { %>
+                    <span class="text-muted">-</span>
+                  <% } %>
+                </td>
+                <td>
                   <%
                     const config = statusConfig[session.status] || statusConfig.unknown;
                     const statusIcon = config.icon || 'fa-ellipsis';
@@ -801,7 +950,13 @@
                 </td>
                 <td><%= session.subject_code || '-' %></td>
                 <td><%= session.class_code || '-' %></td>
-                <td><%= session.subject_name || '-' %></td>
+                <td>
+                  <% if (session.subject_credits) { %>
+                    <%= session.subject_credits %>
+                  <% } else { %>
+                    <span class="text-muted">-</span>
+                  <% } %>
+                </td>
                 <td class="text-center"><%= session.student_count %></td>
                 <td>
                   <% if (session.grader_name) { %>
@@ -854,18 +1009,6 @@
                     </span>
                   <% } else { %>
                     <span class="text-muted">-</span>
-                  <% } %>
-                </td>
-                <td>
-                  <% if (session.exam_date) { %>
-                    <%= new Date(session.exam_date).toLocaleDateString('vi-VN') %>
-                    <% if (session.exam_time) { %>
-                      <small class="text-muted d-block">
-                        <%= session.exam_time.substring(0, 5) %>
-                      </small>
-                    <% } %>
-                  <% } else { %>
-                    -
                   <% } %>
                 </td>
                 <td>
@@ -939,6 +1082,55 @@
   </div>
 </div>
 
+<div class="exam-modal" id="examExportModal" data-default-fields="<%= (defaultPdfFields || []).join(',') %>">
+  <div class="exam-modal-content">
+    <div class="exam-modal-header">
+      <h3 class="exam-modal-title">
+        <i class="fas fa-file-pdf"></i>
+        <span>Xuất lịch thi PDF</span>
+      </h3>
+      <button type="button" class="exam-modal-close" data-action="close-export-modal" aria-label="Đóng">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="exam-modal-body">
+      <p>Chọn các trường thông tin cần hiển thị trong file PDF:</p>
+      <div class="export-fields-grid" data-export-field-list>
+        <% (pdfFieldOptions || []).forEach(option => { %>
+          <label class="export-field-option">
+            <input type="checkbox" value="<%= option.key %>" <%= (defaultPdfFields || []).includes(option.key) ? 'checked' : '' %>>
+            <span><%= option.label %></span>
+          </label>
+        <% }) %>
+      </div>
+
+      <div class="export-options">
+        <label>Hướng giấy</label>
+        <div class="export-option-radio">
+          <label>
+            <input type="radio" name="exportOrientation" value="portrait" checked>
+            Dọc
+          </label>
+          <label>
+            <input type="radio" name="exportOrientation" value="landscape">
+            Ngang
+          </label>
+        </div>
+      </div>
+
+      <div class="export-hint">Các bộ lọc đang áp dụng trên màn hình sẽ được giữ nguyên khi xuất.</div>
+    </div>
+    <div class="exam-modal-footer export-modal__footer">
+      <button type="button" class="btn btn-secondary" data-action="close-export-modal">
+        <i class="fas fa-times"></i> Hủy
+      </button>
+      <button type="button" class="btn btn-primary" data-action="confirm-export-pdf">
+        <i class="fas fa-download"></i> Xuất PDF
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 async function deleteSession(id) {
   if (!confirm('Bạn có chắc chắn muốn xóa ca thi này?')) return;
@@ -991,6 +1183,10 @@ async function backupSession(id) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('exam-page--full');
+  window.addEventListener('beforeunload', () => {
+    document.body.classList.remove('exam-page--full');
+  });
   document.querySelectorAll('[data-action="delete-session"]').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.sessionId;

@@ -88,6 +88,21 @@ router.get('/examination/:id', requireAuth, (req, res) => {
     examinationController.getSession(req, res);
 });
 
+// Import examination sessions from Excel
+router.post('/examination/import', requireAuth, upload.single('file'), (req, res) => {
+    examinationController.importExcel(req, res);
+});
+
+// Download Excel import template
+router.get('/examination/import/template', requireAuth, (req, res) => {
+    examinationController.downloadImportTemplate(req, res);
+});
+
+// Export examination sessions to PDF
+router.post('/examination/export/pdf', requireAuth, (req, res) => {
+    examinationController.exportPdf(req, res);
+});
+
 // Get files for a session
 router.get('/examination/:id/files', requireAuth, (req, res) => {
     examinationController.getSessionFiles(req, res);
@@ -152,6 +167,9 @@ router.put('/schedule/:id/participants/:userId', requireAuth, (req, res) => Sche
 
 // Check conflicts
 router.get('/schedule/conflicts', requireAuth, (req, res) => ScheduleController.checkConflicts(req, res));
+
+// Export schedule to PDF (POST for custom fields)
+router.post('/schedule/export/pdf', requireAuth, (req, res) => ScheduleController.exportPdfCustom(req, res));
 
 // Teaching schedule import
 router.get('/schedule/teaching/import/template', requireAuth, (req, res) => TeachingImportController.downloadTemplate(req, res));

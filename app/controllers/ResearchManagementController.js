@@ -84,29 +84,36 @@ class ResearchManagementController {
       console.warn('ResearchManagement.manage: unable to load staff list:', error.message);
     }
 
-    try {
-      const studentSql = `
-        SELECT *
-        FROM student_research_projects
-        ORDER BY created_at DESC
-        LIMIT 200
-      `;
-      studentProjects = await this.studentResearchModel.db.findMany(studentSql);
-    } catch (error) {
-      console.warn('ResearchManagement.manage: unable to load student projects:', error.message);
+    const hasStudentProjects = await StudentResearch.tableExists('student_research_projects');
+    const hasStudentOutputs = await StudentResearch.tableExists('student_research_outputs');
+
+    if (hasStudentProjects) {
+      try {
+        const studentSql = `
+          SELECT *
+          FROM student_research_projects
+          ORDER BY created_at DESC
+          LIMIT 200
+        `;
+        studentProjects = await this.studentResearchModel.db.findMany(studentSql);
+      } catch (error) {
+        console.warn('ResearchManagement.manage: unable to load student projects:', error.message);
+      }
     }
 
-    try {
-      const outputSql = `
-        SELECT o.*, p.title AS project_title
-        FROM student_research_outputs o
-        LEFT JOIN student_research_projects p ON o.project_id = p.id
-        ORDER BY o.publish_date DESC
-        LIMIT 200
-      `;
-      studentOutputs = await this.studentResearchModel.db.findMany(outputSql);
-    } catch (error) {
-      console.warn('ResearchManagement.manage: unable to load student outputs:', error.message);
+    if (hasStudentOutputs && hasStudentProjects) {
+      try {
+        const outputSql = `
+          SELECT o.*, p.title AS project_title
+          FROM student_research_outputs o
+          LEFT JOIN student_research_projects p ON o.project_id = p.id
+          ORDER BY o.publish_date DESC
+          LIMIT 200
+        `;
+        studentOutputs = await this.studentResearchModel.db.findMany(outputSql);
+      } catch (error) {
+        console.warn('ResearchManagement.manage: unable to load student outputs:', error.message);
+      }
     }
 
     const projectStatuses = [
@@ -133,7 +140,7 @@ class ResearchManagementController {
     ];
 
     res.render('research/manage', {
-      title: 'Quản lý nghiên cứu khoa học',
+      title: 'Quản lý dữ liệu nghiên cứu',
       user: req.session.user,
       projects,
       categories,
@@ -267,6 +274,12 @@ class ResearchManagementController {
   }
 
   async saveStudentProject(req, res) {
+    const hasStudentProjects = await StudentResearch.tableExists('student_research_projects');
+    if (!hasStudentProjects) {
+      req.flash('error', 'Không thể lưu vì thiếu bảng student_research_projects. Vui lòng tạo bảng trước.');
+      return res.redirect('/research/manage');
+    }
+
     const { errors, payload } = this.validateStudentProjectPayload(req.body);
 
     if (errors.length) {
@@ -291,6 +304,12 @@ class ResearchManagementController {
   }
 
   async deleteStudentProject(req, res) {
+    const hasStudentProjects = await StudentResearch.tableExists('student_research_projects');
+    if (!hasStudentProjects) {
+      req.flash('error', 'Không thể xoá vì thiếu bảng student_research_projects.');
+      return res.redirect('/research/manage');
+    }
+
     const { id } = req.params;
     if (!id) {
       req.flash('error', 'Không xác định được đề tài sinh viên cần xoá.');
@@ -329,6 +348,13 @@ class ResearchManagementController {
   }
 
   async saveStudentOutput(req, res) {
+    const hasProjects = await StudentResearch.tableExists('student_research_projects');
+    const hasOutputs = await StudentResearch.tableExists('student_research_outputs');
+    if (!hasProjects || !hasOutputs) {
+      req.flash('error', 'Không thể lưu kết quả vì thiếu bảng dữ liệu sinh viên.');
+      return res.redirect('/research/manage');
+    }
+
     const { errors, payload } = this.validateStudentOutputPayload(req.body);
 
     if (errors.length) {
@@ -353,6 +379,12 @@ class ResearchManagementController {
   }
 
   async deleteStudentOutput(req, res) {
+    const hasOutputs = await StudentResearch.tableExists('student_research_outputs');
+    if (!hasOutputs) {
+      req.flash('error', 'Không thể xoá vì thiếu bảng student_research_outputs.');
+      return res.redirect('/research/manage');
+    }
+
     const { id } = req.params;
     if (!id) {
       req.flash('error', 'Không xác định được kết quả khoa học cần xoá.');

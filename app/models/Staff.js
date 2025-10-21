@@ -1,9 +1,65 @@
 ﻿const BaseModel = require('./BaseModel');
 
+const REQUIRED_COLUMNS = [
+    { name: 'hire_date', definition: 'ADD COLUMN hire_date DATE NULL AFTER employment_type' },
+    { name: 't04_start_date', definition: 'ADD COLUMN t04_start_date DATE NULL AFTER hire_date' },
+    { name: 'faculty_start_date', definition: 'ADD COLUMN faculty_start_date DATE NULL AFTER t04_start_date' },
+    { name: 'birth_date', definition: 'ADD COLUMN birth_date DATE NULL AFTER faculty_start_date' },
+    { name: 'gender', definition: "ADD COLUMN gender VARCHAR(10) NULL AFTER birth_date" },
+    { name: 'id_number', definition: 'ADD COLUMN id_number VARCHAR(30) NULL AFTER gender' },
+    { name: 'address', definition: 'ADD COLUMN address TEXT NULL AFTER id_number' },
+    { name: 'salary', definition: 'ADD COLUMN salary DECIMAL(12,2) NULL DEFAULT 0 AFTER address' },
+    { name: 'academic_rank', definition: 'ADD COLUMN academic_rank VARCHAR(50) NULL AFTER salary' },
+    { name: 'academic_degree', definition: 'ADD COLUMN academic_degree VARCHAR(50) NULL AFTER academic_rank' },
+    { name: 'years_experience', definition: 'ADD COLUMN years_experience SMALLINT UNSIGNED NULL DEFAULT 0 AFTER academic_degree' },
+    { name: 'language_skills', definition: 'ADD COLUMN language_skills TEXT NULL AFTER years_experience' },
+    { name: 'it_skills', definition: 'ADD COLUMN it_skills TEXT NULL AFTER language_skills' },
+    { name: 'party_card_number', definition: 'ADD COLUMN party_card_number VARCHAR(50) NULL AFTER it_skills' },
+    { name: 'service_number', definition: 'ADD COLUMN service_number VARCHAR(50) NULL AFTER party_card_number' },
+    { name: 'party_join_date', definition: 'ADD COLUMN party_join_date DATE NULL AFTER service_number' },
+    { name: 'status', definition: "ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active' AFTER party_join_date" },
+    { name: 'notes', definition: 'ADD COLUMN notes TEXT NULL AFTER status' }
+];
+
 class Staff extends BaseModel {
     constructor() {
         super('staff');
         this._schemaInfo = null;
+        this._schemaEnsured = false;
+        this._lastEnsureErrorAt = 0;
+    }
+
+    async ensureRequiredColumns(fields) {
+        let columnSet = new Set(fields);
+        const missingColumns = REQUIRED_COLUMNS.filter((col) => !columnSet.has(col.name));
+        if (!missingColumns.length) {
+            return columnSet;
+        }
+
+        let columnsAdded = false;
+        for (const column of missingColumns) {
+            try {
+                await this.db.query(`ALTER TABLE staff ${column.definition}`);
+                columnsAdded = true;
+            } catch (error) {
+                const isDuplicate = error?.code === 'ER_DUP_FIELDNAME';
+                if (!isDuplicate) {
+                    console.warn(`Staff.ensureRequiredColumns: unable to add column ${column.name}:`, error.message);
+                    this._lastEnsureErrorAt = Date.now();
+                }
+            }
+        }
+
+        if (columnsAdded) {
+            try {
+                const refreshedColumns = await this.db.findMany('SHOW COLUMNS FROM staff');
+                columnSet = new Set(refreshedColumns.map((col) => col.Field));
+            } catch (error) {
+                console.warn('Staff.ensureRequiredColumns: unable to refresh column metadata:', error.message);
+            }
+        }
+
+        return columnSet;
     }
 
     async getSchemaInfo() {
@@ -11,21 +67,133 @@ class Staff extends BaseModel {
             return this._schemaInfo;
         }
 
-        let schema = { hasCreatedAt: false, hasUpdatedAt: false };
+        const fallbackSchema = { hasCreatedAt: false, hasUpdatedAt: false, columns: new Set() };
 
         try {
             const columns = await this.db.findMany('SHOW COLUMNS FROM staff');
-            const fields = new Set(columns.map((col) => col.Field));
-            schema = {
+            let fields = new Set(columns.map((col) => col.Field));
+            const enoughTimeSinceLastError = !this._lastEnsureErrorAt || Date.now() - this._lastEnsureErrorAt > 60000;
+            const shouldRecheck = !this._schemaEnsured && enoughTimeSinceLastError;
+
+            if (shouldRecheck) {
+                fields = await this.ensureRequiredColumns(fields);
+            }
+
+            const allColumnsPresent = REQUIRED_COLUMNS.every((col) => fields.has(col.name));
+            this._schemaEnsured = allColumnsPresent;
+            if (!allColumnsPresent) {
+                this._lastEnsureErrorAt = Date.now();
+            } else {
+                this._lastEnsureErrorAt = 0;
+            }
+
+            const schema = {
                 hasCreatedAt: fields.has('created_at'),
-                hasUpdatedAt: fields.has('updated_at')
+                hasUpdatedAt: fields.has('updated_at'),
+                columns: fields
             };
+
+            this._schemaInfo = allColumnsPresent ? schema : null;
+            return schema;
         } catch (error) {
             console.warn('Staff.getSchemaInfo: unable to introspect staff columns:', error.message);
+            this._schemaInfo = null;
+            this._schemaEnsured = false;
+            this._lastEnsureErrorAt = Date.now();
+            return fallbackSchema;
+        }
+    }
+
+    async create(data) {
+        if (!data || typeof data !== 'object') {
+            throw new Error('Staff.create: invalid payload');
         }
 
-        this._schemaInfo = schema;
-        return schema;
+        const schemaInfo = await this.getSchemaInfo();
+        const columnSet = schemaInfo?.columns instanceof Set ? schemaInfo.columns : new Set();
+        const hasColumnInfo = columnSet.size > 0;
+        const filteredEntries = Object.entries(data).filter(([key, value]) => (
+            value !== undefined && (hasColumnInfo ? columnSet.has(key) : true)
+        ));
+
+        if (!filteredEntries.length) {
+            throw new Error('Staff.create: no valid columns to insert');
+        }
+
+        const safeData = Object.fromEntries(filteredEntries);
+        return super.create(safeData);
+    }
+
+    async update(id, data) {
+        if (!id || !data || typeof data !== 'object') {
+            throw new Error('Staff.update: invalid input');
+        }
+
+        const schemaInfo = await this.getSchemaInfo();
+        const columnSet = schemaInfo?.columns instanceof Set ? schemaInfo.columns : new Set();
+        const hasColumnInfo = columnSet.size > 0;
+
+        const filteredEntries = Object.entries(data).filter(([key, value]) => (
+            value !== undefined && (hasColumnInfo ? columnSet.has(key) : true)
+        ));
+
+        if (!filteredEntries.length) {
+            return { affectedRows: 0, changedRows: 0 };
+        }
+
+        const safeData = Object.fromEntries(filteredEntries);
+        return super.update(id, safeData);
+    }
+
+    async updateByIdFiltered(id, data) {
+        if (!id || Number.isNaN(Number(id))) {
+            throw new Error('Staff.updateByIdFiltered: invalid id');
+        }
+
+        if (!data || typeof data !== 'object') {
+            throw new Error('Staff.updateByIdFiltered: invalid payload');
+        }
+
+        const schemaInfo = await this.getSchemaInfo();
+        const columnSet = schemaInfo?.columns instanceof Set ? schemaInfo.columns : new Set();
+        const hasColumnInfo = columnSet.size > 0;
+
+        const filteredEntries = Object.entries(data).filter(([key]) => (
+            hasColumnInfo ? columnSet.has(key) : true
+        ));
+
+        if (!filteredEntries.length) {
+            return { affectedRows: 0, changedRows: 0 };
+        }
+
+        const safeData = Object.fromEntries(filteredEntries);
+        return super.update(id, safeData);
+    }
+
+    async updateUserForStaff(userId, data) {
+        if (!userId || Number.isNaN(Number(userId))) {
+            throw new Error('Staff.updateUserForStaff: invalid user id');
+        }
+
+        if (!data || typeof data !== 'object') {
+            throw new Error('Staff.updateUserForStaff: invalid payload');
+        }
+
+        const allowedFields = new Set(['email', 'full_name', 'phone', 'avatar', 'is_active']);
+        const entries = Object.entries(data).filter(([key, value]) => (
+            allowedFields.has(key) && value !== undefined
+        ));
+
+        if (!entries.length) {
+            return { affectedRows: 0, changedRows: 0 };
+        }
+
+        const setClause = entries.map(([key]) => `${key} = ?`).join(', ');
+        const params = entries.map(([, value]) => value === undefined ? null : value);
+        params.push(userId);
+
+        const sql = `UPDATE users SET ${setClause} WHERE id = ?`;
+        return this.db.update(sql, params);
     }
 
     // Láº¥y thÃ´ng tin staff vá»›i user vÃ  department
@@ -50,20 +218,29 @@ class Staff extends BaseModel {
 
     // Láº¥y danh sÃ¡ch staff vá»›i thÃ´ng tin chi tiáº¿t
     async getStaffWithDetails(page = 1, limit = 20, filters = {}) {
+        const pageNumber = Number(page);
+        const limitNumber = Number(limit);
+        const normalizedPage = Number.isFinite(pageNumber) && pageNumber > 0 ? Math.floor(pageNumber) : 1;
+        const normalizedLimit = Number.isFinite(limitNumber) && limitNumber > 0 ? Math.floor(limitNumber) : 20;
+
         const emptyResult = {
             data: [],
             pagination: {
-                page,
-                limit,
+                page: normalizedPage,
+                limit: normalizedLimit,
                 total: 0,
                 totalPages: 1,
                 hasNext: false,
-                hasPrev: page > 1
+                hasPrev: normalizedPage > 1
             }
         };
 
         try {
-            const offset = (page - 1) * limit;
+            const safePage = normalizedPage;
+            const safeLimit = normalizedLimit;
+            const offset = (safePage - 1) * safeLimit;
+            const limitParam = Math.max(1, Number.isFinite(safeLimit) ? Math.floor(safeLimit) : 20);
+            const offsetParam = Math.max(0, Number.isFinite(offset) ? Math.floor(offset) : 0);
             let whereClause = 'WHERE 1=1';
             const params = [];
 
@@ -73,6 +250,38 @@ class Staff extends BaseModel {
                 : schemaInfo.hasUpdatedAt
                     ? 's.updated_at DESC'
                     : 's.id DESC';
+            const columnSet = schemaInfo.columns || new Set();
+
+            const baseSelect = [
+                's.id',
+                's.staff_code',
+                's.employment_type',
+                columnSet.has('hire_date') ? 's.hire_date' : 'NULL AS hire_date',
+                columnSet.has('salary') ? 's.salary' : 'NULL AS salary'
+            ];
+
+            const optionalColumns = [
+                't04_start_date',
+                'faculty_start_date',
+                'language_skills',
+                'it_skills',
+                'party_card_number',
+                'service_number',
+                'party_join_date',
+                'years_experience'
+            ].map((column) => (
+                columnSet.has(column)
+                    ? `s.${column}`
+                    : `NULL AS ${column}`
+            ));
+
+            const selectColumns = [
+                ...baseSelect,
+                ...optionalColumns,
+                's.academic_rank',
+                's.academic_degree',
+                's.status'
+            ].join(',\n                       ');
 
             const shouldExcludeTerminated = !filters.status;
             if (shouldExcludeTerminated) {
@@ -108,8 +317,7 @@ class Staff extends BaseModel {
             }
 
             const sql = `
-                SELECT s.id, s.staff_code, s.employment_type, s.hire_date, s.salary,
-                       s.academic_rank, s.academic_degree, s.status,
+                SELECT ${selectColumns},
                        u.full_name, u.email, u.phone,
                        p.name as position_name,
                        d.name as department_name
@@ -119,11 +327,10 @@ class Staff extends BaseModel {
                 LEFT JOIN departments d ON s.department_id = d.id
                 ${whereClause}
                 ORDER BY ${orderByClause}
-                LIMIT ? OFFSET ?
+                LIMIT ${limitParam} OFFSET ${offsetParam}
             `;
-            params.push(limit, offset);
-
-            const staff = await this.db.findMany(sql, params);
+            const staffParams = [...params];
+            const staff = await this.db.findMany(sql, staffParams);
 
             // Äáº¿m tá»•ng sá»‘
             const countSql = `
@@ -132,19 +339,19 @@ class Staff extends BaseModel {
                 LEFT JOIN users u ON s.user_id = u.id
                 ${whereClause}
             `;
-            const countParams = params.slice(0, -2); // Remove limit and offset
+            const countParams = [...params];
             const countResult = await this.db.findOne(countSql, countParams);
             const total = countResult.total;
 
             return {
                 data: staff,
                 pagination: {
-                    page,
-                    limit,
+                    page: safePage,
+                    limit: safeLimit,
                     total,
-                    totalPages: Math.max(1, Math.ceil(total / limit)),
-                    hasNext: page < Math.ceil(total / limit),
-                    hasPrev: page > 1
+                    totalPages: Math.max(1, Math.ceil(total / safeLimit)),
+                    hasNext: safePage < Math.ceil(total / safeLimit),
+                    hasPrev: safePage > 1
                 }
             };
         } catch (error) {
@@ -159,6 +366,14 @@ class Staff extends BaseModel {
 
     async getAllForExport(filters = {}) {
         try {
+            const schemaInfo = await this.getSchemaInfo();
+            const columnSet = schemaInfo?.columns instanceof Set ? schemaInfo.columns : new Set();
+            const columnOrNull = (column) => (
+                columnSet.has(column)
+                    ? `s.${column}`
+                    : `NULL AS ${column}`
+            );
+
             let whereClause = 'WHERE 1=1';
             const params = [];
 
@@ -194,12 +409,28 @@ class Staff extends BaseModel {
                 params.push(searchTerm, searchTerm, searchTerm);
             }
 
-            const sql = `
-                SELECT s.id, s.staff_code, s.employment_type, s.hire_date, s.salary,
-                       s.academic_rank, s.academic_degree, s.status,
-                       u.full_name, u.email, u.phone,
-                       p.name as position_name,
-                       d.name as department_name
+         const sql = `
+          SELECT s.id,
+              s.staff_code,
+              s.employment_type,
+              ${columnOrNull('hire_date')},
+              ${columnOrNull('salary')},
+              ${columnOrNull('academic_rank')},
+              ${columnOrNull('academic_degree')},
+              ${columnOrNull('status')},
+              ${columnOrNull('t04_start_date')},
+              ${columnOrNull('faculty_start_date')},
+              ${columnOrNull('years_experience')},
+              ${columnOrNull('language_skills')},
+              ${columnOrNull('it_skills')},
+              ${columnOrNull('party_card_number')},
+              ${columnOrNull('service_number')},
+              ${columnOrNull('party_join_date')},
+              u.full_name,
+              u.email,
+              u.phone,
+              p.name as position_name,
+              d.name as department_name
                 FROM staff s
                 LEFT JOIN users u ON s.user_id = u.id
                 LEFT JOIN positions p ON s.position_id = p.id
@@ -367,6 +598,76 @@ class Staff extends BaseModel {
             return await this.db.delete(sql, [staffId, specializationId]);
         } catch (error) {
             console.error('Error in Staff removeSpecialization:', error);
+            throw error;
+        }
+    }
+
+    async getDocuments(staffId) {
+        if (!staffId) {
+            return [];
+        }
+
+        try {
+            const sql = `
+                SELECT id, staff_id, file_name, stored_name, mime_type, file_size, file_path, uploaded_at
+                FROM staff_documents
+                WHERE staff_id = ?
+                ORDER BY uploaded_at DESC
+            `;
+            return await this.db.findMany(sql, [staffId]);
+        } catch (error) {
+            if (error?.code === 'ER_NO_SUCH_TABLE') {
+                console.warn('Staff.getDocuments: staff_documents table unavailable:', error.message);
+                return [];
+            }
+            console.error('Error in Staff getDocuments:', error);
+            throw error;
+        }
+    }
+
+    async addDocuments(staffId, documents = []) {
+        if (!staffId || !Array.isArray(documents) || !documents.length) {
+            return { inserted: 0 };
+        }
+
+        const rows = documents
+            .map((doc) => {
+                if (!doc) {
+                    return null;
+                }
+                const storedName = doc.filename || doc.storedName;
+                const filePath = doc.relativePath || doc.path;
+                if (!storedName || !filePath) {
+                    return null;
+                }
+                const originalName = doc.originalName || doc.file_name || storedName;
+                const mimeType = doc.mimetype || 'application/octet-stream';
+                const numericSize = Number(doc.size);
+                const fileSize = Number.isFinite(numericSize) ? numericSize : 0;
+                return [staffId, originalName, storedName, mimeType, fileSize, filePath];
+            })
+            .filter(Boolean);
+
+        if (!rows.length) {
+            return { inserted: 0 };
+        }
+
+        const placeholders = rows.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
+        const params = rows.flat();
+        const sql = `
+            INSERT INTO staff_documents (staff_id, file_name, stored_name, mime_type, file_size, file_path)
+            VALUES ${placeholders}
+        `;
+
+        try {
+            const result = await this.db.insert(sql, params);
+            return { inserted: rows.length, insertId: result.insertId };
+        } catch (error) {
+            if (error?.code === 'ER_NO_SUCH_TABLE') {
+                console.warn('Staff.addDocuments: staff_documents table unavailable:', error.message);
+                return { inserted: 0 };
+            }
+            console.error('Error in Staff addDocuments:', error);
             throw error;
         }
     }

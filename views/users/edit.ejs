@@ -1,0 +1,196 @@
+<%
+const editableUser = userDetail || {};
+const flashedData = (formData && typeof formData === 'object') ? formData : {};
+const isAdminView = user && (user.role_name || user.roleName) === 'admin';
+const resolveValue = (field, fallback) => {
+    if (Object.prototype.hasOwnProperty.call(flashedData, field)) {
+        const raw = flashedData[field];
+        return raw === null || typeof raw === 'undefined' ? '' : raw;
+    }
+    if (typeof fallback === 'undefined' || fallback === null) {
+        return '';
+    }
+    return fallback;
+};
+const safeFullName = resolveValue('full_name', editableUser.full_name);
+const safeEmail = resolveValue('email', editableUser.email);
+const safePhone = resolveValue('phone', editableUser.phone);
+const selectedRoleId = (function(){
+    const flashRole = resolveValue('role_id', null);
+    if (flashRole !== null && flashRole !== '') {
+        return String(flashRole);
+    }
+    if (editableUser.role_id) {
+        return String(editableUser.role_id);
+    }
+    return '';
+})();
+const roleLabelMap = roleLabels || {};
+const inferredRoleName = editableUser.role_name || editableUser.roleName || '';
+const inferredRoleLabel = roleLabelMap[inferredRoleName] || inferredRoleName || 'Không xác định';
+%>
+
+<%- contentFor('css') %>
+<link rel="stylesheet" href="/css/users.css?v=20241011">
+<style>
+.users-edit-wrapper {
+    max-width: 720px;
+    margin: 2rem auto;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 2rem 2.5rem;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+.users-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.users-edit-header h1 {
+    font-size: 1.6rem;
+    margin: 0;
+    color: #0f172a;
+    font-weight: 700;
+}
+.users-edit-header p {
+    margin: 0.35rem 0 0;
+    color: #475569;
+    font-size: 0.95rem;
+}
+.users-edit-back {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    padding-top: 0.25rem;
+}
+.users-edit-back:hover {
+    text-decoration: underline;
+}
+.users-edit-form {
+    display: grid;
+    gap: 1.5rem;
+}
+.users-edit-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.users-edit-group label {
+    font-weight: 600;
+    color: #334155;
+}
+.users-edit-group label .required {
+    color: #ef4444;
+}
+.users-edit-input,
+.users-edit-select {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid #d4d4d8;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.users-edit-input:focus,
+.users-edit-select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+.users-edit-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+.users-edit-footer button {
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 999px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+.users-edit-footer button:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+}
+.users-edit-footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #475569;
+    font-weight: 600;
+}
+.users-edit-cancel {
+    text-decoration: none;
+}
+.users-edit-cancel:hover {
+    text-decoration: underline;
+}
+.users-edit-meta {
+    font-size: 0.9rem;
+    color: #64748b;
+}
+</style>
+
+<%- contentFor('content') %>
+<div class="users-edit-wrapper">
+    <div class="users-edit-header">
+        <div>
+            <h1>Chỉnh sửa tài khoản</h1>
+            <p>Cập nhật thông tin hồ sơ cho tài khoản <strong><%= editableUser.username %></strong>.</p>
+            <div class="users-edit-meta">
+                Vai trò hiện tại: <strong><%= inferredRoleLabel %></strong>
+            </div>
+        </div>
+        <a href="/users" class="users-edit-back" aria-label="Quay lại danh sách người dùng">← Quay lại</a>
+    </div>
+
+    <form class="users-edit-form" method="post" action="/users/<%= editableUser.id %>">
+        <div class="users-edit-group">
+            <label for="full_name">Họ và tên <span class="required" aria-hidden="true">*</span></label>
+            <input class="users-edit-input" type="text" id="full_name" name="full_name" value="<%= safeFullName %>" required maxlength="120">
+        </div>
+
+        <div class="users-edit-group">
+            <label for="email">Email <span class="required" aria-hidden="true">*</span></label>
+            <input class="users-edit-input" type="email" id="email" name="email" value="<%= safeEmail %>" required maxlength="120">
+        </div>
+
+        <div class="users-edit-group">
+            <label for="phone">Số điện thoại</label>
+            <input class="users-edit-input" type="tel" id="phone" name="phone" value="<%= safePhone %>" placeholder="Nhập 10-11 chữ số" pattern="[0-9]{10,11}">
+        </div>
+
+        <% if (isAdminView) { %>
+            <div class="users-edit-group">
+                <label for="role_id">Vai trò hệ thống</label>
+                <select class="users-edit-select" id="role_id" name="role_id" required>
+                    <option value="">-- Chọn vai trò --</option>
+                    <% if (Array.isArray(roles) && roles.length) { %>
+                        <% roles.forEach(function(roleOption) { %>
+                            <% const optionLabel = roleLabelMap[roleOption.name] || roleOption.name; %>
+                            <option value="<%= roleOption.id %>" <%= selectedRoleId === String(roleOption.id) ? 'selected' : '' %>><%= optionLabel %></option>
+                        <% }); %>
+                    <% } %>
+                </select>
+            </div>
+        <% } else { %>
+            <div class="users-edit-group">
+                <label>Vai trò hệ thống</label>
+                <input class="users-edit-input" type="text" value="<%= inferredRoleLabel %>" readonly>
+                <input type="hidden" name="role_id" value="<%= selectedRoleId %>">
+            </div>
+        <% } %>
+
+        <div class="users-edit-footer">
+            <a href="/users" class="users-edit-cancel">Hủy</a>
+            <button type="submit">Lưu thay đổi</button>
+        </div>
+    </form>
+</div>

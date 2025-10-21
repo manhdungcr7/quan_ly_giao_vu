@@ -344,10 +344,29 @@
                 </td>
                 <td>
                   <div class="criteria-actions">
-                    <button class="btn-icon btn-icon--edit" title="Chỉnh sửa" data-future-feature>
+                    <button
+                      class="btn-icon btn-icon--edit"
+                      type="button"
+                      title="Chỉnh sửa"
+                      data-id="<%= criteria.id %>"
+                      data-name="<%= criteria.name %>"
+                      data-code="<%= criteria.code %>"
+                      data-category="<%= criteria.category || category %>"
+                      data-measurement="<%= criteria.measurement_type %>"
+                      data-unit="<%= criteria.unit || '' %>"
+                      data-weight="<%= Number(criteria.weight || 0) %>"
+                      data-description="<%= criteria.description || '' %>"
+                      data-is-required="<%= criteria.is_required ? '1' : '0' %>"
+                    >
                       <i class="fa-solid fa-pen"></i>
                     </button>
-                    <button class="btn-icon btn-icon--delete" title="Xóa" data-future-feature>
+                    <button
+                      class="btn-icon btn-icon--delete"
+                      type="button"
+                      title="Xóa"
+                      data-id="<%= criteria.id %>"
+                      data-name="<%= criteria.name %>"
+                    >
                       <i class="fa-solid fa-trash"></i>
                     </button>
                   </div>
@@ -400,10 +419,11 @@
     <div class="modal-backdrop" style="position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;">
       <div class="modal" role="dialog" aria-modal="true" style="background:#fff;border-radius:16px;max-width:720px;width:100%;box-shadow:0 30px 60px rgba(15,23,42,.35);overflow:hidden;">
         <header style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
-          <h3 style="margin:0;font-size:1.2rem;font-weight:700;color:#0f172a"><i class="fa-solid fa-plus"></i> Thêm tiêu chí mới</h3>
+          <h3 id="modalCriteriaTitle" style="margin:0;font-size:1.2rem;font-weight:700;color:#0f172a"><i class="fa-solid fa-plus"></i> Thêm tiêu chí mới</h3>
           <button id="btnCloseModal" style="border:none;background:transparent;font-size:1.25rem;cursor:pointer">×</button>
         </header>
         <form id="formAddCriteria" style="padding:1rem 1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <input type="hidden" name="criteria_id" value="">
           <label style="display:flex;flex-direction:column;gap:.4rem">Tên tiêu chí*
             <input name="name" required class="modal-input" style="padding:.6rem .8rem;border:1px solid #e2e8f0;border-radius:10px"/>
           </label>
@@ -440,16 +460,17 @@
           <label style="display:flex;align-items:center;gap:.6rem"><input type="checkbox" name="is_required"/> Bắt buộc</label>
           <div style="grid-column:1 / -1;display:flex;justify-content:flex-end;gap:.6rem;padding-top:.5rem;border-top:1px solid #e2e8f0">
             <button type="button" id="btnCancel" style="padding:.6rem 1rem;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc">Hủy</button>
-            <button type="submit" style="padding:.6rem 1rem;border-radius:10px;border:none;background:#16a34a;color:#fff;font-weight:700">Lưu tiêu chí</button>
+            <button type="submit" id="btnSubmitCriteria" style="padding:.6rem 1rem;border-radius:10px;border:none;background:#16a34a;color:#fff;font-weight:700">Lưu tiêu chí</button>
           </div>
         </form>
       </div>
     </div>
   `;
 
-  function openModal(presetCategory) {
+  function openModal(presetCategory, existing = null) {
     document.body.insertAdjacentHTML('beforeend', modalTpl);
-    const root = document.querySelector('.modal-backdrop');
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    const root = backdrops[backdrops.length - 1];
     const close = () => root?.remove();
     root.querySelector('#btnCloseModal').addEventListener('click', close);
     root.querySelector('#btnCancel').addEventListener('click', close);
@@ -458,42 +479,161 @@
       if (e.target === root) close();
     });
 
-    // Preselect category based on the section where the button was clicked
-    if (presetCategory) {
-      const sel = root.querySelector('select[name="category"]');
-      if (sel) sel.value = presetCategory;
+    const form = root.querySelector('#formAddCriteria');
+    const submitButton = root.querySelector('#btnSubmitCriteria');
+    const titleEl = root.querySelector('#modalCriteriaTitle');
+
+    const nameInput = form.querySelector('input[name="name"]');
+    const codeInput = form.querySelector('input[name="code"]');
+    const categorySelect = form.querySelector('select[name="category"]');
+    const measurementSelect = form.querySelector('select[name="measurement_type"]');
+    const descriptionInput = form.querySelector('textarea[name="description"]');
+    const unitInput = form.querySelector('input[name="unit"]');
+    const weightInput = form.querySelector('input[name="weight"]');
+    const requiredCheckbox = form.querySelector('input[name="is_required"]');
+    const hiddenIdInput = form.querySelector('input[name="criteria_id"]');
+
+    form.reset();
+
+    const mode = existing ? 'edit' : 'create';
+    form.dataset.mode = mode;
+    form.dataset.criteriaId = existing ? String(existing.id) : '';
+    if (hiddenIdInput) {
+      hiddenIdInput.value = existing ? String(existing.id) : '';
     }
 
-    const form = root.querySelector('#formAddCriteria');
+    if (titleEl) {
+      titleEl.innerHTML = existing
+        ? '<i class="fa-solid fa-pen"></i> Chỉnh sửa tiêu chí'
+        : '<i class="fa-solid fa-plus"></i> Thêm tiêu chí mới';
+    }
+    if (submitButton) {
+      submitButton.textContent = existing ? 'Cập nhật' : 'Lưu tiêu chí';
+    }
+
+    const selectIfAvailable = (selectEl, value, fallback) => {
+      if (!selectEl) return;
+      const candidate = value || fallback;
+      if (!candidate) return;
+      const option = selectEl.querySelector(`option[value="${candidate}"]`);
+      if (option) {
+        selectEl.value = candidate;
+      }
+    };
+
+    selectIfAvailable(categorySelect, existing?.category, presetCategory);
+    selectIfAvailable(measurementSelect, existing?.measurement, null);
+
+    nameInput.value = existing?.name || '';
+    codeInput.value = existing?.code || '';
+    descriptionInput.value = existing?.description || '';
+    unitInput.value = existing?.unit || '';
+
+    const weightValue = Number.isFinite(existing?.weight) ? existing.weight : Number(existing?.weight || 0);
+    weightInput.value = Number.isFinite(weightValue) ? weightValue : 0;
+    requiredCheckbox.checked = existing ? Boolean(existing.is_required) : false;
+
+    setTimeout(() => {
+      nameInput?.focus();
+    }, 50);
+
+    const normalizeNumberInput = (value, fallback = 0) => {
+      if (value === undefined || value === null) {
+        return { ok: true, value: fallback };
+      }
+      if (typeof value === 'number') {
+        return { ok: true, value };
+      }
+      const trimmed = String(value).trim();
+      if (!trimmed) {
+        return { ok: true, value: fallback };
+      }
+      const normalized = trimmed.replace(/\s+/g, '').replace(/,/g, '.');
+      const parsed = Number.parseFloat(normalized);
+      if (!Number.isFinite(parsed)) {
+        return { ok: false, value: fallback };
+      }
+      return { ok: true, value: parsed };
+    };
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (submitButton) {
+        submitButton.disabled = true;
+      }
+
       const formData = new FormData(form);
       const payload = Object.fromEntries(formData.entries());
+      const criteriaId = payload.criteria_id ? Number(payload.criteria_id) : null;
+      delete payload.criteria_id;
       payload.is_required = formData.get('is_required') ? 1 : 0;
 
+      const weightResult = normalizeNumberInput(payload.weight, existing?.weight ?? 0);
+      if (!weightResult.ok || weightResult.value < 0 || weightResult.value > 100) {
+        alert('Trọng số phải là số hợp lệ trong khoảng 0-100%.');
+        if (submitButton) submitButton.disabled = false;
+        return;
+      }
+      payload.weight = Math.round(weightResult.value * 100) / 100;
+
+      const requestMode = form.dataset.mode === 'edit' ? 'edit' : 'create';
+      if (requestMode === 'edit' && (!criteriaId || Number.isNaN(criteriaId))) {
+        alert('Không xác định được tiêu chí cần cập nhật.');
+        if (submitButton) submitButton.disabled = false;
+        return;
+      }
+
+      const endpoint = requestMode === 'edit'
+        ? `/api/staff/evaluation-criteria/${criteriaId}`
+        : '/api/staff/evaluation-criteria';
+      const method = requestMode === 'edit' ? 'PUT' : 'POST';
+
       try {
-        const res = await fetch('/api/staff/evaluation-criteria', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch(endpoint, {
+          method,
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify(payload)
         });
-        const json = await res.json();
-        if (!json.ok) {
-          alert(json.message || 'Không thể tạo tiêu chí.');
+        let json;
+        try {
+          json = await res.json();
+        } catch (parseErr) {
+          console.error(parseErr);
+          alert('Máy chủ trả về dữ liệu không hợp lệ. Vui lòng thử lại.');
           return;
         }
-        // Optionally attach to active period with its base weight
-        await fetch('/api/staff/evaluation-criteria/attach', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ criteria_id: json.id, weight: payload.weight, is_required: payload.is_required })
-        });
 
-        alert('Đã thêm tiêu chí thành công. Trang sẽ tải lại để cập nhật.');
+        if (!res.ok || !json?.ok) {
+          const serverMessage = json?.message || Object.values(json?.errors || {})[0] || 'Không thể lưu tiêu chí.';
+          alert(serverMessage);
+          return;
+        }
+
+        if (requestMode === 'create') {
+          const attachResponse = await fetch('/api/staff/evaluation-criteria/attach', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ criteria_id: json.id, weight: payload.weight, is_required: payload.is_required })
+          });
+          if (!attachResponse.ok) {
+            const attachMessage = await attachResponse.json().catch(() => ({}));
+            if (attachMessage && attachMessage.message) {
+              console.warn('Attach criteria warning:', attachMessage.message);
+            }
+          }
+          alert('Đã thêm tiêu chí thành công. Trang sẽ tải lại để cập nhật.');
+        } else {
+          alert('Đã cập nhật tiêu chí thành công. Trang sẽ tải lại để cập nhật.');
+        }
+
         location.reload();
       } catch (err) {
         console.error(err);
-        alert('Có lỗi khi lưu tiêu chí');
+        alert(requestMode === 'edit' ? 'Có lỗi khi cập nhật tiêu chí' : 'Có lỗi khi lưu tiêu chí');
+      } finally {
+        if (submitButton) submitButton.disabled = false;
       }
     });
   }
@@ -504,6 +644,67 @@
       const section = this.closest('.criteria-section');
       const category = section?.getAttribute('data-category') || 'teaching';
       openModal(category);
+    });
+  });
+
+  document.querySelectorAll('.btn-icon--edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('.criteria-section');
+      const fallbackCategory = section?.getAttribute('data-category') || 'teaching';
+      const weightValue = Number.parseFloat(btn.dataset.weight);
+
+      const existing = {
+        id: Number.parseInt(btn.dataset.id, 10),
+        name: btn.dataset.name || '',
+        code: btn.dataset.code || '',
+        category: btn.dataset.category || fallbackCategory,
+        measurement: btn.dataset.measurement || 'numeric',
+        description: btn.dataset.description || '',
+        unit: btn.dataset.unit || '',
+        weight: Number.isFinite(weightValue) ? weightValue : 0,
+        is_required: btn.dataset.isRequired === '1' || btn.dataset.isRequired === 'true'
+      };
+
+      openModal(existing.category || fallbackCategory, existing);
+    });
+  });
+
+  document.querySelectorAll('.btn-icon--delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const criteriaId = btn.dataset.id;
+      if (!criteriaId) {
+        return;
+      }
+      const name = btn.dataset.name || 'tiêu chí';
+      const confirmed = window.confirm(`Bạn có chắc chắn muốn xóa tiêu chí "${name}"?`);
+      if (!confirmed) return;
+
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/staff/evaluation-criteria/${criteriaId}`, {
+          method: 'DELETE',
+          headers: { 'Accept': 'application/json' },
+          credentials: 'same-origin'
+        });
+        let json = null;
+        try {
+          json = await res.json();
+        } catch (_) {}
+
+        if (!res.ok || !json?.ok) {
+          const message = json?.message || 'Không thể xóa tiêu chí.';
+          alert(message);
+          btn.disabled = false;
+          return;
+        }
+
+        alert('Đã xóa tiêu chí. Trang sẽ tải lại để cập nhật.');
+        location.reload();
+      } catch (err) {
+        console.error(err);
+        alert('Có lỗi khi xóa tiêu chí');
+        btn.disabled = false;
+      }
     });
   });
 })();

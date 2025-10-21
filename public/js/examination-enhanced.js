@@ -148,7 +148,7 @@ class ExaminationModalManager {
           <div class="exam-modal-header">
             <h3 class="exam-modal-title">
               <i class="fas fa-clipboard-check"></i>
-              <span id="modalTitle">Chi tiết ca thi</span>
+              <span id="modalTitle">Tạo ca thi</span>
             </h3>
             <button class="exam-modal-close" onclick="examinationModalManager.close()">
               <i class="fas fa-times"></i>
@@ -171,8 +171,9 @@ class ExaminationModalManager {
                   </div>
 
                   <div class="form-group">
-                    <label>Tên ca thi <span class="required">*</span></label>
-                    <input type="text" name="exam_name" class="form-control" required>
+                    <label>Làm đề <span class="required">*</span></label>
+                    <input type="text" name="exam_name" class="form-control" placeholder="Nhập tên ca thi hoặc giảng viên ra đề" required>
+                    <small class="form-hint">Dùng để nhận biết đề thi và giảng viên chịu trách nhiệm.</small>
                   </div>
 
                   <div class="form-group">
@@ -185,12 +186,18 @@ class ExaminationModalManager {
                   </div>
 
                   <div class="form-group">
-                    <label>Môn học <span class="required">*</span></label>
+                    <label>Học phần <span class="required">*</span></label>
                     <input type="text" name="subject_name" class="form-control combo-input" 
-                           list="subjectsList" placeholder="Nhập hoặc chọn môn học" required>
+                           list="subjectsList" placeholder="Nhập hoặc chọn học phần" required>
                     <datalist id="subjectsList"></datalist>
                     <input type="hidden" name="subject_id">
                     <small class="form-hint">Có thể nhập thủ công hoặc chọn từ danh sách</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Tín chỉ</label>
+                    <input type="number" name="subject_credits" class="form-control" min="0" max="10" step="1" placeholder="Ví dụ: 3">
+                    <small class="form-hint">Tùy chọn: nhập số tín chỉ của học phần để đồng bộ báo cáo.</small>
                   </div>
 
                   <div class="form-group">
@@ -249,7 +256,7 @@ class ExaminationModalManager {
                   </div>
 
                       <div class="form-group">
-                        <label><i class="fas fa-user-check"></i> Cán bộ chấm 1</label>
+                        <label><i class="fas fa-user-check"></i> CBCT1</label>
                         <input type="text" name="grader_name" class="form-control combo-input" 
                                list="gradersList" placeholder="Nhập hoặc chọn cán bộ">
                         <datalist id="gradersList"></datalist>
@@ -258,7 +265,7 @@ class ExaminationModalManager {
                       </div>
 
                       <div class="form-group">
-                        <label><i class="fas fa-user-friends"></i> Cán bộ chấm 2</label>
+                        <label><i class="fas fa-user-friends"></i> CBCT2</label>
                         <input type="text" name="grader2_name" class="form-control combo-input" 
                                list="gradersList" placeholder="Nhập hoặc chọn cán bộ thứ hai">
                         <input type="hidden" name="grader2_id">
@@ -367,6 +374,7 @@ class ExaminationModalManager {
     this.previewModal = document.getElementById('filePreviewModal');
     
     this.initFileUpload();
+    this.initComboFieldHandlers();
   }
 
   initFileUpload() {
@@ -397,6 +405,114 @@ class ExaminationModalManager {
       const files = Array.from(e.dataTransfer.files);
       await this.handleFiles(files);
     });
+  }
+
+  initComboFieldHandlers() {
+    const form = document.getElementById('examinationForm');
+    if (!form) return;
+
+    const setupReferenceField = (inputName, hiddenName, datalistId) => {
+      const inputEl = form.querySelector(`[name="${inputName}"]`);
+      const hiddenEl = hiddenName ? form.querySelector(`[name="${hiddenName}"]`) : null;
+      const datalistEl = datalistId ? document.getElementById(datalistId) : null;
+
+      if (!inputEl || !hiddenEl) {
+        return;
+      }
+
+      const syncFromDatalist = () => {
+        if (!datalistEl) {
+          return;
+        }
+        const value = inputEl.value.trim();
+        const option = Array.from(datalistEl.options).find(opt => opt.value === value) || null;
+        hiddenEl.value = option ? (option.dataset.id || '') : '';
+      };
+
+      inputEl.addEventListener('change', syncFromDatalist);
+      inputEl.addEventListener('blur', syncFromDatalist);
+      inputEl.addEventListener('input', () => {
+        hiddenEl.value = '';
+      });
+    };
+
+    const subjectInput = form.querySelector('[name="subject_name"]');
+    const subjectIdInput = form.querySelector('[name="subject_id"]');
+    const subjectCreditsInput = form.querySelector('[name="subject_credits"]');
+
+    if (subjectCreditsInput) {
+      subjectCreditsInput.dataset.autoFilled = 'pending';
+      subjectCreditsInput.addEventListener('input', () => {
+        subjectCreditsInput.dataset.autoFilled = 'manual';
+      });
+    }
+
+    if (subjectInput) {
+      const syncSubject = () => {
+        this.syncSubjectFields(subjectInput.value, subjectIdInput, subjectCreditsInput);
+      };
+
+      subjectInput.addEventListener('change', syncSubject);
+      subjectInput.addEventListener('blur', syncSubject);
+      subjectInput.addEventListener('input', () => {
+        if (subjectIdInput) subjectIdInput.value = '';
+        if (subjectCreditsInput) {
+          subjectCreditsInput.value = '';
+          subjectCreditsInput.dataset.autoFilled = 'pending';
+        }
+      });
+    }
+
+    setupReferenceField('period_name', 'period_id', 'periodsList');
+    setupReferenceField('class_name', 'class_id', 'classesList');
+    setupReferenceField('grader_name', 'grader_id', 'gradersList');
+    setupReferenceField('grader2_name', 'grader2_id', 'gradersList');
+  }
+
+  syncSubjectFields(inputValue, subjectIdInput, subjectCreditsInput, forceAutoFill = false) {
+    if (!inputValue) {
+      if (subjectIdInput) subjectIdInput.value = '';
+      if (subjectCreditsInput && (forceAutoFill || subjectCreditsInput.dataset.autoFilled === 'auto')) {
+        subjectCreditsInput.value = '';
+        subjectCreditsInput.dataset.autoFilled = 'pending';
+      }
+      return;
+    }
+
+    const subject = this.findSubjectByInput(inputValue);
+
+    if (subject) {
+      if (subjectIdInput) subjectIdInput.value = subject.id;
+
+      if (subjectCreditsInput) {
+        const state = subjectCreditsInput.dataset.autoFilled || 'pending';
+        const shouldAutoFill = forceAutoFill || (state !== 'manual' && (subjectCreditsInput.value === '' || state === 'auto'));
+        if (shouldAutoFill) {
+          if (typeof subject.credits !== 'undefined' && subject.credits !== null) {
+            subjectCreditsInput.value = subject.credits;
+            subjectCreditsInput.dataset.autoFilled = 'auto';
+          } else if (state === 'auto' || forceAutoFill) {
+            subjectCreditsInput.value = '';
+            subjectCreditsInput.dataset.autoFilled = 'auto';
+          }
+        }
+      }
+    } else {
+      if (subjectIdInput) subjectIdInput.value = '';
+      if (subjectCreditsInput && (forceAutoFill || subjectCreditsInput.dataset.autoFilled === 'auto')) {
+        subjectCreditsInput.value = '';
+        subjectCreditsInput.dataset.autoFilled = 'pending';
+      }
+    }
+  }
+
+  findSubjectByInput(inputValue) {
+    if (!inputValue || !this.referenceData?.subjects) return null;
+
+    const subjectId = this.findIdByName(this.referenceData.subjects, inputValue, 'name', 'code');
+    if (!subjectId) return null;
+
+    return this.referenceData.subjects.find(subject => subject.id == subjectId) || null;
   }
 
   async handleFiles(files) {
@@ -496,13 +612,22 @@ class ExaminationModalManager {
       // Load session data
       await this.loadSession(sessionId);
       document.getElementById('modalTitle').textContent = 'Chỉnh sửa ca thi';
+      const form = document.getElementById('examinationForm');
+      if (form) {
+        this.syncSubjectFields(
+          form.querySelector('[name="subject_name"]').value,
+          form.querySelector('[name="subject_id"]'),
+          form.querySelector('[name="subject_credits"]'),
+          false
+        );
+      }
       
       // Initialize file manager
       this.fileManager = new ExaminationFileManager(sessionId);
       await this.fileManager.loadFiles();
       this.renderFilesList();
     } else {
-      document.getElementById('modalTitle').textContent = 'Thêm ca thi mới';
+  document.getElementById('modalTitle').textContent = 'Tạo ca thi';
       this.clearForm();
     }
     
@@ -593,6 +718,19 @@ class ExaminationModalManager {
       const subject = this.referenceData?.subjects?.find(s => s.id == session.subject_id);
       subjectInput.value = subject ? `${subject.code} - ${subject.name}` : session.subject_name;
       form.querySelector('[name="subject_id"]').value = session.subject_id || '';
+      const subjectCreditsInput = form.querySelector('[name="subject_credits"]');
+      if (subjectCreditsInput) {
+        if (typeof session.subject_credits !== 'undefined' && session.subject_credits !== null) {
+          subjectCreditsInput.value = session.subject_credits;
+          subjectCreditsInput.dataset.autoFilled = 'manual';
+        } else {
+          this.syncSubjectFields(subjectInput.value, form.querySelector('[name="subject_id"]'), subjectCreditsInput, true);
+        }
+      }
+    }
+    const subjectCreditsInputFallback = form.querySelector('[name="subject_credits"]');
+    if (subjectCreditsInputFallback && !subjectCreditsInputFallback.dataset.autoFilled) {
+      subjectCreditsInputFallback.dataset.autoFilled = 'pending';
     }
     if (session.class_name) {
       const classInput = form.querySelector('[name="class_name"]');
@@ -637,6 +775,10 @@ class ExaminationModalManager {
     document.getElementById('examinationForm').reset();
     document.getElementById('uploadedFilesList').innerHTML = '';
     document.getElementById('fileCountBadge').textContent = '0';
+    const subjectCreditsInput = document.querySelector('[name="subject_credits"]');
+    if (subjectCreditsInput) {
+      subjectCreditsInput.dataset.autoFilled = 'pending';
+    }
   }
 
   async save() {
@@ -709,6 +851,10 @@ class ExaminationModalManager {
   if (typeof finalData.duration !== 'undefined') finalData.duration = finalData.duration === '' ? null : parseInt(finalData.duration, 10);
   if (typeof finalData.student_count !== 'undefined') finalData.student_count = finalData.student_count === '' ? null : parseInt(finalData.student_count, 10);
   if (typeof finalData.expected_copies !== 'undefined') finalData.expected_copies = finalData.expected_copies === '' ? null : parseInt(finalData.expected_copies, 10);
+  if (typeof finalData.subject_credits !== 'undefined') {
+    const parsedCredits = finalData.subject_credits === '' ? null : parseInt(finalData.subject_credits, 10);
+    finalData.subject_credits = Number.isNaN(parsedCredits) ? null : parsedCredits;
+  }
 
     console.log('💾 Saving examination session:', finalData);
 
@@ -856,10 +1002,353 @@ class ExaminationModalManager {
 }
 
 // Initialize global modal manager
+class ExaminationExportManager {
+  constructor(modalElement) {
+    this.modal = modalElement;
+    this.confirmButton = modalElement ? modalElement.querySelector('[data-action="confirm-export-pdf"]') : null;
+    this.closeButtons = modalElement ? modalElement.querySelectorAll('[data-action="close-export-modal"]') : [];
+    this.fieldList = modalElement ? modalElement.querySelector('[data-export-field-list]') : null;
+    this.defaultButtonHtml = this.confirmButton ? this.confirmButton.innerHTML : '';
+    this.loading = false;
+    this.bindEvents();
+  }
+
+  bindEvents() {
+    if (!this.modal) {
+      return;
+    }
+
+    this.closeButtons.forEach((button) => {
+      button.addEventListener('click', () => this.close());
+    });
+
+    this.modal.addEventListener('click', (event) => {
+      if (event.target === this.modal) {
+        this.close();
+      }
+    });
+
+    if (this.fieldList) {
+      this.fieldList.addEventListener('change', () => this.updateConfirmState());
+    }
+
+    if (this.confirmButton) {
+      this.confirmButton.addEventListener('click', () => this.export());
+    }
+  }
+
+  getDefaultFields() {
+    if (!this.modal) {
+      return [];
+    }
+    const raw = this.modal.dataset.defaultFields || '';
+    if (!raw) {
+      return [];
+    }
+    return raw.split(',').map((value) => value.trim()).filter(Boolean);
+  }
+
+  applyDefaultSelection() {
+    if (!this.fieldList) {
+      return;
+    }
+    const checkboxes = Array.from(this.fieldList.querySelectorAll('input[type="checkbox"]'));
+    const hasChecked = checkboxes.some((input) => input.checked);
+    if (hasChecked) {
+      return;
+    }
+    const defaults = this.getDefaultFields();
+    checkboxes.forEach((input) => {
+      input.checked = defaults.includes(input.value);
+    });
+  }
+
+  collectSelectedFields() {
+    if (!this.fieldList) {
+      return [];
+    }
+    return Array.from(this.fieldList.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+  }
+
+  collectFilters() {
+    const form = document.querySelector('.filter-form');
+    if (!form) {
+      return {};
+    }
+
+    const readValue = (name) => {
+      const element = form.querySelector(`[name="${name}"]`);
+      if (!element) {
+        return undefined;
+      }
+      const value = element.value ? element.value.trim() : '';
+      return value.length ? value : undefined;
+    };
+
+    return {
+      period_id: readValue('period_id'),
+      status: readValue('status'),
+      search: readValue('search'),
+      grader: readValue('grader')
+    };
+  }
+
+  getOrientation() {
+    if (!this.modal) {
+      return 'portrait';
+    }
+    const input = this.modal.querySelector('input[name="exportOrientation"]:checked');
+    return input ? input.value : 'portrait';
+  }
+
+  updateConfirmState() {
+    if (!this.confirmButton) {
+      return;
+    }
+    if (this.loading) {
+      this.confirmButton.disabled = true;
+      return;
+    }
+    this.confirmButton.disabled = this.collectSelectedFields().length === 0;
+  }
+
+  setLoading(isLoading) {
+    if (!this.confirmButton) {
+      return;
+    }
+    this.loading = Boolean(isLoading);
+    if (this.loading) {
+      this.confirmButton.disabled = true;
+      this.confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+    } else {
+      this.confirmButton.innerHTML = this.defaultButtonHtml || '<i class="fas fa-download"></i> Xuất PDF';
+      this.updateConfirmState();
+    }
+  }
+
+  open() {
+    if (!this.modal) {
+      return;
+    }
+    this.applyDefaultSelection();
+    this.modal.style.display = 'flex';
+    this.updateConfirmState();
+  }
+
+  close() {
+    if (!this.modal) {
+      return;
+    }
+    this.modal.style.display = 'none';
+    this.setLoading(false);
+  }
+
+  async export() {
+    const fields = this.collectSelectedFields();
+    if (!fields.length) {
+      alert('Vui lòng chọn ít nhất một trường để xuất PDF.');
+      this.updateConfirmState();
+      return;
+    }
+
+    const payload = {
+      fields,
+      filters: this.collectFilters(),
+      layout: {
+        orientation: this.getOrientation()
+      }
+    };
+
+    this.setLoading(true);
+
+    try {
+      const response = await fetch(buildApiUrl('/api/examination/export/pdf'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/pdf'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+
+      if (!response.ok || !contentType.includes('application/pdf')) {
+        let message = 'Không thể xuất PDF. Vui lòng thử lại sau.';
+
+        if (contentType.includes('application/json')) {
+          const errorPayload = await response.json();
+          message = errorPayload.message || message;
+        } else {
+          const text = await response.text();
+          if (text) {
+            message = text;
+          }
+        }
+
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      link.href = url;
+      link.download = `lich-thi-${timestamp}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      this.close();
+    } catch (error) {
+      alert(error.message || 'Không thể xuất PDF. Vui lòng thử lại.');
+      this.setLoading(false);
+    }
+  }
+}
+
+async function importExaminationExcel(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(buildApiUrl('/api/examination/import'), {
+    method: 'POST',
+    body: formData
+  });
+
+  const contentType = response.headers.get('content-type') || '';
+  let payload = null;
+
+  if (contentType.includes('application/json')) {
+    payload = await response.json();
+  } else {
+    throw new Error('Máy chủ trả về phản hồi không hợp lệ.');
+  }
+
+  if (!response.ok || !payload?.success) {
+    throw new Error((payload && payload.message) || 'Nhập dữ liệu thất bại.');
+  }
+
+  return payload;
+}
+
 let examinationModalManager;
+let examinationExportManager;
 
 document.addEventListener('DOMContentLoaded', () => {
   examinationModalManager = new ExaminationModalManager();
+  const importInput = document.getElementById('examImportInput');
+  const importButton = document.querySelector('[data-action="import-excel"]');
+  const templateButton = document.querySelector('[data-action="download-template"]');
+
+  if (importInput && importButton) {
+    importButton.addEventListener('click', () => {
+      importInput.value = '';
+      importInput.click();
+    });
+
+    importInput.addEventListener('change', async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) {
+        return;
+      }
+
+      const lower = file.name.toLowerCase();
+      if (!lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
+        alert('Vui lòng chọn file Excel (.xlsx hoặc .xls).');
+        importInput.value = '';
+        return;
+      }
+
+      const confirmed = confirm(`Nhập dữ liệu lịch thi từ file "${file.name}"?`);
+      if (!confirmed) {
+        importInput.value = '';
+        return;
+      }
+
+      const originalLabel = importButton.innerHTML;
+      importButton.disabled = true;
+      importButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang nhập...';
+
+      try {
+        const result = await importExaminationExcel(file);
+        const stats = result.stats || {};
+        let summary = `Đã xử lý ${stats.processed || 0}/${stats.totalRows || 0} dòng. Thêm mới: ${stats.inserted || 0}. Bỏ qua: ${stats.skipped || 0}.`;
+
+        if (Array.isArray(stats.errors) && stats.errors.length) {
+          const details = stats.errors.slice(0, 3).map((item) => `- Dòng ${item.row}: ${item.message}`);
+          summary += `\n\nCảnh báo:\n${details.join('\n')}`;
+          if (stats.errors.length > 3) {
+            summary += `\n... (${stats.errors.length - 3} cảnh báo khác)`;
+          }
+        }
+
+        alert(`${result.message || 'Hoàn tất nhập liệu.'}\n\n${summary}`);
+
+        if ((stats.inserted || 0) > 0) {
+          // Force reload without cache after a delay to ensure DB commit
+          setTimeout(() => {
+            window.location.href = `/examination?t=${Date.now()}`;
+          }, 500);
+        }
+      } catch (error) {
+        alert(error.message || 'Nhập dữ liệu thất bại.');
+      } finally {
+        importButton.disabled = false;
+        importButton.innerHTML = originalLabel;
+        importInput.value = '';
+      }
+    });
+  }
+
+  if (templateButton) {
+    templateButton.addEventListener('click', async () => {
+      const originalLabel = templateButton.innerHTML;
+      templateButton.disabled = true;
+      templateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+
+      try {
+        const response = await fetch(buildApiUrl('/api/examination/import/template'), {
+          method: 'GET',
+          headers: {
+            Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Không thể tải file mẫu. Vui lòng thử lại.');
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'mau-nhap-lich-thi.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        alert(error.message || 'Không thể tải file mẫu.');
+      } finally {
+        templateButton.disabled = false;
+        templateButton.innerHTML = originalLabel;
+      }
+    });
+  }
+
+  const exportModalElement = document.getElementById('examExportModal');
+  const exportTrigger = document.querySelector('[data-action="export-pdf"]');
+
+  if (exportModalElement && exportTrigger) {
+    examinationExportManager = new ExaminationExportManager(exportModalElement);
+    window.examinationExportManager = examinationExportManager;
+
+    exportTrigger.addEventListener('click', () => {
+      examinationExportManager.open();
+    });
+  }
   
   // Close modal on outside click
   window.addEventListener('click', (e) => {
@@ -868,6 +1357,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (e.target.id === 'filePreviewModal') {
       examinationModalManager.closePreview();
+    }
+    if (e.target.id === 'examExportModal' && examinationExportManager) {
+      examinationExportManager.close();
     }
   });
 });

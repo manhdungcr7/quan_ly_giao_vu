@@ -5,9 +5,135 @@ const fs = require('fs');
 const config = require('../../config/app');
 const crypto = require('crypto');
 
+const DOCUMENT_MODULES = {
+    administrative: {
+        key: 'administrative',
+        label: 'Văn bản hành chính',
+        icon: 'fa-briefcase',
+        description: 'Quản lý văn bản điều hành, công văn hành chính và trao đổi nghiệp vụ hằng ngày.'
+    },
+    party: {
+        key: 'party',
+        label: 'Văn bản Đảng',
+        icon: 'fa-flag',
+        description: 'Theo dõi văn bản Đảng, nghị quyết, chỉ thị và các tài liệu sinh hoạt chi bộ.'
+    }
+};
+
+const DEFAULT_DOCUMENT_MODULE = 'administrative';
+
 class DocumentController {
     constructor() {
         this.documentModel = new Document();
+        this.categoryColumnAvailable = null;
+        this.schemaWarningIssued = false;
+        this.statusEnumEnsured = false;
+        this.statusEnumWarningIssued = false;
+        this.schemaReadyPromise = this.ensureSchema();
+    }
+
+    resolveModuleKey(raw) {
+        const normalized = (raw || '').toString().trim().toLowerCase();
+        return DOCUMENT_MODULES[normalized] ? normalized : DEFAULT_DOCUMENT_MODULE;
+    }
+
+    buildModuleRoute(moduleKey, direction) {
+        const safeModule = this.resolveModuleKey(moduleKey);
+        const safeDirection = direction === 'outgoing' ? 'outgoing' : 'incoming';
+        return `/documents/${safeModule}/${safeDirection}`;
+    }
+
+    getModuleOptions() {
+        return Object.values(DOCUMENT_MODULES);
+    }
+
+    async ensureSchema() {
+        if (this.categoryColumnAvailable !== null) {
+            await this.ensureStatusEnum();
+            return;
+        }
+
+        try {
+            const column = await db.findOne('SHOW COLUMNS FROM documents LIKE "category"');
+            if (!column) {
+                await db.query('ALTER TABLE documents ADD COLUMN category ENUM("administrative","party") NOT NULL DEFAULT "administrative" AFTER direction');
+                try {
+                    await db.query('CREATE INDEX idx_documents_category ON documents (category)');
+                } catch (idxError) {
+                    if (idxError?.code !== 'ER_DUP_KEYNAME') {
+                        console.warn('[DocumentController] Unable to create documents.category index:', idxError?.message || idxError);
+                    }
+                }
+
+                console.info('[DocumentController] Added missing documents.category column for module support.');
+            }
+
+            this.categoryColumnAvailable = true;
+        } catch (error) {
+            if (error?.code === 'ER_DUP_FIELDNAME') {
+                this.categoryColumnAvailable = true;
+            } else {
+                this.categoryColumnAvailable = false;
+                if (!this.schemaWarningIssued) {
+                    console.warn('[DocumentController] Module category column unavailable – falling back to single-module mode.', error?.message || error);
+                    this.schemaWarningIssued = true;
+                }
+            }
+        }
+
+        await this.ensureStatusEnum();
+    }
+
+    async ensureStatusEnum() {
+        if (this.statusEnumEnsured) {
+            return;
+        }
+
+        const desiredStatuses = ['draft', 'pending', 'processing', 'completed', 'approved', 'archived', 'overdue'];
+
+        try {
+            const statusColumn = await db.findOne('SHOW COLUMNS FROM documents LIKE "status"');
+            if (!statusColumn) {
+                this.statusEnumEnsured = true;
+                return;
+            }
+
+            const columnType = (statusColumn.Type || statusColumn.type || '').toLowerCase();
+            const missingStatuses = desiredStatuses.filter(function(status) {
+                return !columnType.includes(`'${status.toLowerCase()}'`);
+            });
+
+            if (missingStatuses.length) {
+                const enumDefinition = desiredStatuses.map(function(status) { return `'${status}'`; }).join(',');
+                await db.query(`ALTER TABLE documents MODIFY COLUMN status ENUM(${enumDefinition}) NOT NULL DEFAULT 'pending'`);
+                console.info('[DocumentController] Updated documents.status enum to include:', desiredStatuses.join(', '));
+            }
+
+            this.statusEnumEnsured = true;
+        } catch (error) {
+            if (!this.statusEnumWarningIssued) {
+                console.warn('[DocumentController] Unable to adjust documents.status enum for extended statuses.', error?.message || error);
+                this.statusEnumWarningIssued = true;
+            }
+        }
+    }
+
+    async ensureSchemaReady() {
+        if (!this.schemaReadyPromise) {
+            this.schemaReadyPromise = this.ensureSchema();
+        }
+
+        try {
+            await this.schemaReadyPromise;
+        } catch (err) {
+            // ensureSchema already captured the state; suppress to keep flow running
+        }
+
+        if (!this.statusEnumEnsured) {
+            await this.ensureStatusEnum();
+        }
+
+        return this.categoryColumnAvailable === true;
     }
 
     normalizeLabel(value) {
@@ -115,16 +241,25 @@ class DocumentController {
         return existing ? existing.id : null;
     }
 
-    async getDirectionStats(direction) {
+    async getDirectionStats(direction, moduleKey = DEFAULT_DOCUMENT_MODULE) {
         try {
-            const sql = `SELECT 
+            const schemaSupportsModules = await this.ensureSchemaReady();
+            const params = [direction];
+            let sql = `SELECT 
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
                 SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
                 SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
                 SUM(CASE WHEN status NOT IN ('completed','archived') AND processing_deadline IS NOT NULL AND processing_deadline < CURDATE() THEN 1 ELSE 0 END) as overdue
             FROM documents WHERE direction = ?`;
-            return await db.findOne(sql, [direction]);
+
+            if (schemaSupportsModules) {
+                const safeModule = this.resolveModuleKey(moduleKey);
+                sql += ' AND category = ?';
+                params.push(safeModule);
+            }
+
+            return await db.findOne(sql, params);
         } catch (error) {
             console.error('Stats error:', error);
             return { total: 0, pending: 0, processing: 0, completed: 0, overdue: 0 };
@@ -141,13 +276,19 @@ class DocumentController {
         }
     }
 
-    async getSimpleDocuments(direction, page = 1, limit = 20, filters = {}) {
+    async getSimpleDocuments(direction, page = 1, limit = 20, filters = {}, moduleKey = DEFAULT_DOCUMENT_MODULE) {
         try {
             const offset = (page - 1) * limit;
-            
+            const schemaSupportsModules = await this.ensureSchemaReady();
+            const safeModule = schemaSupportsModules ? this.resolveModuleKey(moduleKey) : DEFAULT_DOCUMENT_MODULE;
             // Build WHERE conditions based on filters
             const whereClauses = ['d.direction = ?'];
             const params = [direction];
+
+            if (schemaSupportsModules) {
+                whereClauses.push('d.category = ?');
+                params.push(safeModule);
+            }
             
             // Search in document_number, title, content_summary
             if (filters.search && filters.search.trim()) {
@@ -181,7 +322,7 @@ class DocumentController {
             
             const whereClause = whereClauses.join(' AND ');
             
-            const sql = `SELECT d.id, d.document_number, d.title, d.status, d.priority, d.processing_deadline, d.issue_date, d.chi_dao,
+         const sql = `SELECT d.id, d.document_number, d.title, d.status, d.priority, d.processing_deadline, d.issue_date, d.chi_dao,
                        dt.name AS document_type_name,
                        org_from.name AS from_organization_name,
                        org_to.name AS to_organization_name,
@@ -218,8 +359,13 @@ class DocumentController {
         }
     }
 
-    async list(req, res, direction) {
+    async list(req, res, direction, moduleCandidate) {
         try {
+            const schemaSupportsModules = await this.ensureSchemaReady();
+            const requestedModule = moduleCandidate || req.params?.module || req.query?.module;
+            const moduleKey = schemaSupportsModules ? this.resolveModuleKey(requestedModule) : DEFAULT_DOCUMENT_MODULE;
+            const moduleConfig = DOCUMENT_MODULES[moduleKey];
+            const moduleOptions = schemaSupportsModules ? this.getModuleOptions() : [DOCUMENT_MODULES[DEFAULT_DOCUMENT_MODULE]];
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
             
@@ -232,14 +378,20 @@ class DocumentController {
                 to_date: req.query.to_date || ''
             };
 
-            const result = await this.getSimpleDocuments(direction, page, limit, filters);
-            const stats = await this.getDirectionStats(direction);
+            const result = await this.getSimpleDocuments(direction, page, limit, filters, moduleKey);
+            const stats = await this.getDirectionStats(direction, moduleKey);
             const master = await this.loadMasterData();
+            const directionLabel = direction === 'incoming' ? 'Văn bản đến' : 'Văn bản đi';
+            const title = `${moduleConfig.label} - ${directionLabel}`;
 
             res.render('documents/list', {
-                title: direction === 'incoming' ? 'Văn bản đến' : 'Văn bản đi',
+                title,
                 user: req.session.user,
                 direction,
+                moduleKey,
+                module: moduleConfig,
+                modules: moduleOptions,
+                moduleSupportEnabled: schemaSupportsModules,
                 documents: result.data,
                 pagination: result.pagination,
                 filters: filters, // pass filters to template for form repopulation
@@ -256,15 +408,22 @@ class DocumentController {
     }
 
     async incoming(req, res) {
-        return this.list(req, res, 'incoming');
+        const moduleKey = this.resolveModuleKey(req.params?.module);
+        return this.list(req, res, 'incoming', moduleKey);
     }
 
     async outgoing(req, res) {
-        return this.list(req, res, 'outgoing');
+        const moduleKey = this.resolveModuleKey(req.params?.module);
+        return this.list(req, res, 'outgoing', moduleKey);
     }
 
     async create(req, res) {
         try {
+            const schemaSupportsModules = await this.ensureSchemaReady();
+            const formModule = req.session.formData?.module;
+            const moduleKey = schemaSupportsModules ? this.resolveModuleKey(req.query.module || formModule) : DEFAULT_DOCUMENT_MODULE;
+            const moduleConfig = DOCUMENT_MODULES[moduleKey];
+            const moduleOptions = schemaSupportsModules ? this.getModuleOptions() : [DOCUMENT_MODULES[DEFAULT_DOCUMENT_MODULE]];
             const master = await this.loadMasterData();
             const users = await db.findMany('SELECT id, full_name FROM users WHERE is_active = 1 ORDER BY full_name');
             const organizations = await db.findMany('SELECT id, name FROM organizations WHERE is_active = 1 ORDER BY name');
@@ -272,6 +431,10 @@ class DocumentController {
             res.render('documents/create', {
                 title: 'Thêm văn bản mới',
                 user: req.session.user,
+                moduleKey,
+                module: moduleConfig,
+                modules: moduleOptions,
+                moduleSupportEnabled: schemaSupportsModules,
                 types: master.types,
                 users,
                 organizations,
@@ -299,6 +462,7 @@ class DocumentController {
         }
         try {
             const {
+                module,
                 direction, document_number, title, type_id, type_label, content_summary,
                 issue_date, received_date, processing_deadline, priority,
                 status, assigned_to, assigned_to_label,
@@ -307,11 +471,15 @@ class DocumentController {
                 chi_dao
             } = req.body;
 
+            const schemaSupportsModules = await this.ensureSchemaReady();
+            const moduleKey = schemaSupportsModules ? this.resolveModuleKey(module) : DEFAULT_DOCUMENT_MODULE;
+            const safeDirection = direction === 'outgoing' ? 'outgoing' : 'incoming';
+
             // Validate required fields
-            if (!direction || !document_number || !title) {
+            if (!safeDirection || !document_number || !title) {
                 req.flash('error', 'Vui lòng nhập đầy đủ thông tin bắt buộc (Loại văn bản, Số hiệu, Tiêu đề)');
                 req.session.formData = req.body;
-                return res.redirect('/documents/create');
+                return res.redirect(`/documents/create?module=${moduleKey}`);
             }
 
             // Check if document number already exists
@@ -319,7 +487,7 @@ class DocumentController {
             if (existingDoc) {
                 req.flash('error', 'Số hiệu văn bản đã tồn tại trong hệ thống');
                 req.session.formData = req.body;
-                return res.redirect('/documents/create');
+                return res.redirect(`/documents/create?module=${moduleKey}`);
             }
 
             const resolvedTypeId = await this.resolveDocumentType(type_id, type_label);
@@ -327,12 +495,13 @@ class DocumentController {
             const resolvedFromOrg = await this.resolveOrganization(from_org_id, from_org_label);
             const resolvedToOrg = await this.resolveOrganization(to_org_id, to_org_label);
 
-            const allowedStatuses = ['draft', 'pending', 'processing', 'completed', 'approved', 'archived'];
+            const allowedStatuses = ['draft', 'pending', 'processing', 'completed', 'approved', 'archived', 'overdue'];
             const normalizedStatus = allowedStatuses.includes(status) ? status : 'pending';
 
             // Prepare document data - handle empty dates properly
             const documentData = {
-                direction,
+                category: moduleKey,
+                direction: safeDirection,
                 document_number: document_number.trim(),
                 title: title.trim(),
                 type_id: resolvedTypeId || null,
@@ -352,19 +521,38 @@ class DocumentController {
 
             // TODO: xử lý lưu file đính kèm (req.files) sau
             // Insert document
-            const result = await db.insert(
-                `INSERT INTO documents (direction, document_number, title, type_id, content_summary, 
-                 issue_date, received_date, processing_deadline, priority, status, assigned_to, 
-                 from_org_id, to_org_id, chi_dao, created_by, created_at) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    documentData.direction, documentData.document_number, documentData.title,
-                    documentData.type_id, documentData.content_summary, documentData.issue_date,
-                    documentData.received_date, documentData.processing_deadline, documentData.priority,
-                    documentData.status, documentData.assigned_to, documentData.from_org_id,
-                    documentData.to_org_id, documentData.chi_dao, documentData.created_by, documentData.created_at
-                ]
-            );
+            const insertColumns = [
+                'direction', 'document_number', 'title', 'type_id', 'content_summary',
+                'issue_date', 'received_date', 'processing_deadline', 'priority', 'status',
+                'assigned_to', 'from_org_id', 'to_org_id', 'chi_dao', 'created_by', 'created_at'
+            ];
+            const insertValues = [
+                documentData.direction,
+                documentData.document_number,
+                documentData.title,
+                documentData.type_id,
+                documentData.content_summary,
+                documentData.issue_date,
+                documentData.received_date,
+                documentData.processing_deadline,
+                documentData.priority,
+                documentData.status,
+                documentData.assigned_to,
+                documentData.from_org_id,
+                documentData.to_org_id,
+                documentData.chi_dao,
+                documentData.created_by,
+                documentData.created_at
+            ];
+
+            if (schemaSupportsModules) {
+                insertColumns.unshift('category');
+                insertValues.unshift(documentData.category);
+            }
+
+            const placeholders = insertColumns.map(() => '?').join(', ');
+            const insertSql = `INSERT INTO documents (${insertColumns.join(', ')}) VALUES (${placeholders})`;
+            const result = await db.insert(insertSql, insertValues);
 
             if (result.insertId) {
                 // Save files metadata if any
@@ -390,7 +578,7 @@ class DocumentController {
                     }
                 }
                 req.flash('success', 'Tạo văn bản thành công');
-                const redirectUrl = direction === 'incoming' ? '/documents/incoming' : '/documents/outgoing';
+                const redirectUrl = this.buildModuleRoute(moduleKey, safeDirection);
                 res.redirect(redirectUrl);
             } else {
                 throw new Error('Failed to insert document');
@@ -400,7 +588,10 @@ class DocumentController {
             console.error('Error in DocumentController store:', error);
             req.flash('error', 'Không thể tạo văn bản. Vui lòng thử lại.');
             req.session.formData = req.body;
-            res.redirect('/documents/create');
+            const fallbackModule = this.categoryColumnAvailable === false
+                ? DEFAULT_DOCUMENT_MODULE
+                : this.resolveModuleKey(req.body?.module);
+            res.redirect(`/documents/create?module=${fallbackModule}`);
         }
     }
 
@@ -493,11 +684,16 @@ class DocumentController {
                 uploaded_at: f.uploaded_at
             }));
 
+            const moduleKey = this.resolveModuleKey(document.category);
+            const moduleConfig = DOCUMENT_MODULES[moduleKey];
+
             res.render('documents/show', {
                 title: `Văn bản: ${document.document_number}`,
                 user: req.session.user,
                 document,
                 history,
+                moduleKey,
+                module: moduleConfig,
                 success: req.flash('success'),
                 error: req.flash('error')
             });
@@ -517,11 +713,19 @@ class DocumentController {
             const master = await this.loadMasterData();
             const users = await db.findMany('SELECT id, full_name FROM users WHERE is_active = 1 ORDER BY full_name');
             const organizations = await db.findMany('SELECT id, name FROM organizations WHERE is_active = 1 ORDER BY name');
+            const schemaSupportsModules = await this.ensureSchemaReady();
+            const moduleKey = schemaSupportsModules ? this.resolveModuleKey(document?.category) : DEFAULT_DOCUMENT_MODULE;
+            const moduleConfig = DOCUMENT_MODULES[moduleKey];
+            const moduleOptions = schemaSupportsModules ? this.getModuleOptions() : [DOCUMENT_MODULES[DEFAULT_DOCUMENT_MODULE]];
 
             res.render('documents/edit', {
-                title: 'Sửa văn bản',
+                title: document?.document_number ? `Sửa văn bản ${document.document_number}` : 'Sửa văn bản',
                 user: req.session.user,
                 document,
+                moduleKey,
+                module: moduleConfig,
+                modules: moduleOptions,
+                moduleSupportEnabled: schemaSupportsModules,
                 types: master.types,
                 users,
                 organizations,
@@ -545,7 +749,16 @@ class DocumentController {
                 return res.redirect('/documents');
             }
 
+            const currentDocument = await db.findOne('SELECT id, category FROM documents WHERE id = ?', [documentId]);
+            if (!currentDocument) {
+                req.flash('error', 'Không tìm thấy văn bản cần cập nhật');
+                return res.redirect('/documents');
+            }
+
+            const schemaSupportsModules = await this.ensureSchemaReady();
+
             const {
+                module,
                 direction, document_number, title, type_id, type_label, content_summary,
                 issue_date, received_date, processing_deadline, priority,
                 assigned_to, assigned_to_label,
@@ -554,8 +767,11 @@ class DocumentController {
                 chi_dao, status
             } = req.body;
 
+            const moduleKey = schemaSupportsModules ? this.resolveModuleKey(module || currentDocument.category) : DEFAULT_DOCUMENT_MODULE;
+            const safeDirection = direction === 'outgoing' ? 'outgoing' : 'incoming';
+
             // Validate required fields
-            if (!direction || !document_number || !title) {
+            if (!safeDirection || !document_number || !title) {
                 req.flash('error', 'Vui lòng nhập đầy đủ thông tin bắt buộc');
                 return res.redirect(`/documents/${documentId}/edit`);
             }
@@ -568,7 +784,7 @@ class DocumentController {
             }
 
             // Prepare update data
-            const allowedStatuses = ['draft', 'pending', 'processing', 'completed', 'approved', 'archived'];
+            const allowedStatuses = ['draft', 'pending', 'processing', 'completed', 'approved', 'archived', 'overdue'];
             const normalizedStatus = allowedStatuses.includes(status) ? status : 'pending';
 
             const resolvedTypeId = await this.resolveDocumentType(type_id, type_label);
@@ -576,23 +792,51 @@ class DocumentController {
             const resolvedFromOrg = await this.resolveOrganization(from_org_id, from_org_label);
             const resolvedToOrg = await this.resolveOrganization(to_org_id, to_org_label);
 
-            const updateSQL = `
-                UPDATE documents SET 
-                    direction = ?, document_number = ?, title = ?, type_id = ?,
-                    content_summary = ?, issue_date = ?, received_date = ?,
-                    processing_deadline = ?, priority = ?, status = ?, assigned_to = ?,
-                    from_org_id = ?, to_org_id = ?, chi_dao = ?, updated_at = NOW()
-                WHERE id = ?
-            `;
+            const setClauses = [
+                'direction = ?',
+                'document_number = ?',
+                'title = ?',
+                'type_id = ?',
+                'content_summary = ?',
+                'issue_date = ?',
+                'received_date = ?',
+                'processing_deadline = ?',
+                'priority = ?',
+                'status = ?',
+                'assigned_to = ?',
+                'from_org_id = ?',
+                'to_org_id = ?',
+                'chi_dao = ?'
+            ];
 
-            await db.query(updateSQL, [
-                direction, document_number.trim(), title.trim(), resolvedTypeId || null,
-                content_summary?.trim() || null, 
-                issue_date || null, received_date || null,
-                processing_deadline || null, priority || 'medium', normalizedStatus,
-                resolvedAssignedTo || null, resolvedFromOrg || null, resolvedToOrg || null,
-                chi_dao?.trim() || null, documentId
-            ]);
+            const params = [
+                safeDirection,
+                document_number.trim(),
+                title.trim(),
+                resolvedTypeId || null,
+                content_summary?.trim() || null,
+                issue_date || null,
+                received_date || null,
+                processing_deadline || null,
+                priority || 'medium',
+                normalizedStatus,
+                resolvedAssignedTo || null,
+                resolvedFromOrg || null,
+                resolvedToOrg || null,
+                chi_dao?.trim() || null
+            ];
+
+            if (schemaSupportsModules) {
+                setClauses.unshift('category = ?');
+                params.unshift(moduleKey);
+            }
+
+            setClauses.push('updated_at = NOW()');
+
+            const updateSQL = `UPDATE documents SET ${setClauses.join(', ')} WHERE id = ?`;
+            params.push(documentId);
+
+            await db.query(updateSQL, params);
 
             // Save new files metadata if any
             if (req.files && req.files.length) {
@@ -602,7 +846,7 @@ class DocumentController {
                         await db.insert(
                             `INSERT INTO document_attachments (document_id, filename, original_name, file_path, file_size, mime_type, uploaded_by) VALUES (?,?,?,?,?,?,?)`,
                             [
-                                id,
+                                documentId,
                                 f.filename,
                                 f.originalname,
                                 relPath,

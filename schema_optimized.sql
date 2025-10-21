@@ -179,6 +179,8 @@ CREATE TABLE staff (
     employment_type ENUM('full_time', 'part_time', 'contract', 'temporary') NOT NULL DEFAULT 'full_time',
     hire_date DATE NOT NULL,
     end_date DATE NULL,
+    t04_start_date DATE NULL,
+    faculty_start_date DATE NULL,
     birth_date DATE NULL,
     gender ENUM('M','F','O') NULL,
     id_number VARCHAR(30) NULL,
@@ -187,6 +189,11 @@ CREATE TABLE staff (
     academic_rank VARCHAR(50) NULL,
     academic_degree VARCHAR(50) NULL,
     years_experience SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    language_skills JSON NULL,
+    it_skills JSON NULL,
+    party_card_number VARCHAR(50) NULL,
+    service_number VARCHAR(50) NULL,
+    party_join_date DATE NULL,
     publications_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
     status ENUM('active','inactive','on_leave','terminated') NOT NULL DEFAULT 'active',
     notes TEXT NULL,
@@ -206,7 +213,23 @@ CREATE TABLE staff (
     INDEX idx_staff_position (position_id),
     INDEX idx_staff_department (department_id),
     INDEX idx_staff_status (status),
-    INDEX idx_staff_hire_date (hire_date)
+    INDEX idx_staff_hire_date (hire_date),
+    INDEX idx_staff_service_number (service_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE staff_documents (
+    id INT UNSIGNED AUTO_INCREMENT,
+    staff_id INT UNSIGNED NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    stored_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(120) NOT NULL,
+    file_size BIGINT UNSIGNED NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_staff_documents PRIMARY KEY (id),
+    CONSTRAINT fk_staff_documents_staff FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE,
+    INDEX idx_staff_documents_staff_id (staff_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Staff specializations (4NF normalization)
@@ -257,13 +280,14 @@ CREATE TABLE documents (
     title VARCHAR(200) NOT NULL,
     type_id MEDIUMINT UNSIGNED NULL,
     direction ENUM('incoming', 'outgoing') NOT NULL,
+    category ENUM('administrative', 'party') NOT NULL DEFAULT 'administrative',
     from_org_id MEDIUMINT UNSIGNED NULL,
     to_org_id MEDIUMINT UNSIGNED NULL,
     issue_date DATE NOT NULL,
     received_date DATE NULL,
     processing_deadline DATE NULL,
     priority ENUM('low', 'medium', 'high', 'urgent') NOT NULL DEFAULT 'medium',
-    status ENUM('draft', 'pending', 'processing', 'completed', 'archived') NOT NULL DEFAULT 'pending',
+    status ENUM('draft', 'pending', 'processing', 'completed', 'approved', 'archived', 'overdue') NOT NULL DEFAULT 'pending',
     confidential_level ENUM('public', 'internal', 'confidential', 'secret') DEFAULT 'internal',
     content_summary TEXT NULL,
     results_link VARCHAR(255) NULL,
@@ -284,6 +308,7 @@ CREATE TABLE documents (
     
     INDEX idx_number (document_number),
     INDEX idx_direction (direction),
+    INDEX idx_category (category),
     INDEX idx_issue_date (issue_date),
     INDEX idx_status (status),
     INDEX idx_priority (priority),
@@ -300,7 +325,7 @@ CREATE TABLE document_attachments (
     original_name VARCHAR(100) NOT NULL,
     file_path VARCHAR(255) NOT NULL,
     file_size INT UNSIGNED DEFAULT 0,
-    mime_type VARCHAR(50) NULL,
+    mime_type VARCHAR(255) NULL,
     uploaded_by INT UNSIGNED NOT NULL,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     

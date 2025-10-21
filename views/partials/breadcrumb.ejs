@@ -16,14 +16,15 @@ if (breadcrumbItems && breadcrumbItems.length) {
   <% breadcrumbItems.forEach((item, idx) => {
        const isCurrent = idx === breadcrumbItems.length - 1;
        const icon = item.icon || 'fa-layer-group';
+       const itemId = item.id || '';
   %>
-    <div class="crumb <%= isCurrent ? 'is-current' : '' %>" style="display:flex;align-items:center;gap:8px;">
+    <div class="crumb <%= isCurrent ? 'is-current' : '' %>" style="display:flex;align-items:center;gap:8px;" <%= itemId ? `id="${itemId}"` : '' %>>
       <i class="fas <%= icon %>"></i>
       <% if (isCurrent) { %>
-        <span><%= item.label %></span>
+        <span data-breadcrumb-label><%= item.label %></span>
       <% } else { %>
         <a href="<%= item.url || '#' %>">
-          <span><%= item.label %></span>
+          <span data-breadcrumb-label><%= item.label %></span>
         </a>
         <span class="crumb-sep"><i class="fas fa-chevron-right"></i></span>
       <% } %>

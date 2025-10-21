@@ -4,53 +4,381 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= title %> - <%= appName || 'Quản lý Giáo vụ' %></title>
+  <link rel="stylesheet" href="/css/app.css">
   <link rel="stylesheet" href="/css/layout.css">
-  <link rel="stylesheet" href="/css/dashboard.css">
-  <link rel="stylesheet" href="/css/documents.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    body.exam-detail-page {
+      background: var(--layout-bg, #f4f5fb);
+    }
+
+    .exam-detail-wrapper {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      padding: 40px 24px 56px;
+    }
+
+    .exam-detail-inner {
+      width: 100%;
+      max-width: 1180px;
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 30px 70px rgba(15, 23, 42, 0.08);
+      padding: 36px 44px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .exam-detail-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .exam-detail-title {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .exam-detail-title h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .exam-detail-breadcrumb {
+      font-size: 0.88rem;
+      color: #6b7280;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .exam-detail-actions {
+      display: inline-flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .exam-detail-actions a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .exam-detail-actions .btn-primary {
+      background: linear-gradient(135deg, #6f42c1, #8a63d2);
+      color: #fff;
+      box-shadow: 0 16px 32px rgba(111, 66, 193, 0.25);
+    }
+
+    .exam-detail-actions .btn-secondary {
+      background: #eef2ff;
+      color: #4338ca;
+    }
+
+    .exam-detail-actions a:hover {
+      transform: translateY(-1px);
+    }
+
+    .exam-status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .exam-status-chip--scheduled { background: rgba(37, 99, 235, 0.12); color: #1d4ed8; }
+    .exam-status-chip--in_progress { background: rgba(251, 191, 36, 0.16); color: #b45309; }
+    .exam-status-chip--completed { background: rgba(34, 197, 94, 0.16); color: #15803d; }
+    .exam-status-chip--cancelled { background: rgba(239, 68, 68, 0.14); color: #b91c1c; }
+    .exam-status-chip--offline { background: rgba(111, 66, 193, 0.16); color: #553399; }
+
+    .exam-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .exam-metric-card {
+      background: #f8faff;
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .exam-metric-card span {
+      font-size: 0.85rem;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .exam-metric-card strong {
+      font-size: 1.25rem;
+      color: #1f2937;
+    }
+
+    .exam-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .exam-detail-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 22px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .exam-detail-card h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .exam-detail-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 14px;
+    }
+
+    .exam-detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .exam-detail-label {
+      font-size: 0.85rem;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .exam-detail-value {
+      font-size: 1rem;
+      color: #111827;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .exam-notes {
+      margin-top: 12px;
+      padding: 18px 22px;
+      border-radius: 16px;
+      background: #f1f5f9;
+      color: #475569;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 992px) {
+      .exam-detail-inner {
+        padding: 28px 24px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .exam-detail-actions {
+        width: 100%;
+      }
+
+      .exam-detail-actions a {
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+    }
+  </style>
 </head>
-<body>
-  <%- include('../partials/navbar') %>
-  <div class="container-fluid">
-    <div class="row">
-      <%- include('../partials/sidebar') %>
-      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-        <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-          <h1 class="h2"><i class="fas fa-clipboard-check"></i> Chi tiết ca thi</h1>
-          <div>
-            <a href="/examination/<%= session.id %>/edit" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i> Sửa</a>
-            <a href="/examination" class="btn btn-sm btn-secondary"><i class="fas fa-arrow-left"></i> Quay lại</a>
-          </div>
-        </div>
+<body class="app-auth exam-page--full exam-detail-page">
+  <% const statusMap = {
+      scheduled: { label: 'Đã lên lịch', icon: 'fa-calendar-check', className: 'exam-status-chip--scheduled' },
+      in_progress: { label: 'Đang thi', icon: 'fa-wave-square', className: 'exam-status-chip--in_progress' },
+      completed: { label: 'Hoàn thành', icon: 'fa-circle-check', className: 'exam-status-chip--completed' },
+      cancelled: { label: 'Tạm hoãn', icon: 'fa-ban', className: 'exam-status-chip--cancelled' },
+      offline: { label: 'Ngoại tuyến', icon: 'fa-plug-circle-xmark', className: 'exam-status-chip--offline' }
+    };
+      const statusKey = (session.status || 'scheduled').toLowerCase();
+      const statusConfig = statusMap[statusKey] || {
+        label: session.status || 'Trạng thái khác',
+        icon: 'fa-circle-info',
+        className: 'exam-status-chip--scheduled'
+      };
+    const examDate = session.exam_date ? new Date(session.exam_date) : null;
+    const gradingDeadline = session.grading_deadline ? new Date(session.grading_deadline) : null;
+    const formatDate = (date) => date ? date.toLocaleDateString('vi-VN') : '-';
+    const formatTime = (value) => value ? value.substring(0, 5) : '';
+    const cbct1Display = session.grader_name || session.grader_manual_name || 'Chưa phân công';
+    const cbct2Display = session.grader2_name || session.grader2_manual_name || 'Chưa phân công';
+  %>
 
-        <%- include('../partials/alerts') %>
-
-        <div class="card">
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-6">
-                <h5>Thông tin chung</h5>
-                <p><strong>Mã ca thi:</strong> <%= session.exam_code || '-' %></p>
-                <p><strong>Tên ca thi:</strong> <%= session.exam_name || '-' %></p>
-                <p><strong>Môn học:</strong> <%= session.subject_code %> - <%= session.subject_name %></p>
-                <p><strong>Lớp:</strong> <%= session.class_code || '-' %></p>
-                <p><strong>Ngày/Giờ thi:</strong> <%= session.exam_date ? new Date(session.exam_date).toLocaleDateString('vi-VN') : '-' %> <%= session.exam_time ? session.exam_time.substring(0,5) : '' %></p>
-                <p><strong>Thời lượng:</strong> <%= session.duration || '-' %> phút</p>
-              </div>
-              <div class="col-md-6">
-                <h5>Chấm thi</h5>
-                <p><strong>Cán bộ chấm:</strong> <%= session.grader_name || '-' %></p>
-                <p><strong>Hạn chấm:</strong> <%= session.grading_deadline ? new Date(session.grading_deadline).toLocaleDateString('vi-VN') : '-' %></p>
-                <p><strong>Trạng thái:</strong> <%= session.status %></p>
-                <p><strong>Ghi chú:</strong> <%= session.notes || '-' %></p>
-              </div>
-            </div>
+  <div class="exam-detail-wrapper">
+    <div class="exam-detail-inner">
+      <div class="exam-detail-header">
+        <div class="exam-detail-title">
+          <div class="exam-detail-breadcrumb">
+            <a href="/" class="text-primary"><i class="fas fa-house"></i> Trang chủ</a>
+            <span>/</span>
+            <a href="/examination" class="text-primary">Công tác khảo thí</a>
+            <span>/</span>
+            <span>Chi tiết</span>
           </div>
+          <h1><i class="fas fa-clipboard-check"></i> <%= session.exam_name || 'Chi tiết ca thi' %></h1>
+          <span class="exam-status-chip <%= statusConfig.className %>">
+            <i class="fas <%= statusConfig.icon %>"></i>
+            <%= statusConfig.label %>
+          </span>
         </div>
-      </main>
+        <div class="exam-detail-actions">
+          <a href="/examination" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
+          <a href="/examination/<%= session.id %>/edit" class="btn btn-primary"><i class="fas fa-pen-to-square"></i> Chỉnh sửa ca thi</a>
+        </div>
+      </div>
+
+      <div class="exam-metric-grid">
+        <div class="exam-metric-card">
+          <span>Mã ca thi</span>
+          <strong><%= session.exam_code || 'N/A' %></strong>
+        </div>
+        <div class="exam-metric-card">
+          <span>Ngày thi</span>
+          <strong><%= formatDate(examDate) %> <%= formatTime(session.exam_time) ? '- ' + formatTime(session.exam_time) : '' %></strong>
+        </div>
+        <div class="exam-metric-card">
+          <span>Phòng thi</span>
+          <strong><%= session.room ? session.room + (session.building ? ' - ' + session.building : '') : 'Chưa cập nhật' %></strong>
+        </div>
+        <div class="exam-metric-card">
+          <span>Số lượng SV</span>
+          <strong><%= typeof session.student_count === 'number' ? session.student_count : 'N/A' %></strong>
+        </div>
+      </div>
+
+      <div class="exam-detail-grid">
+        <section class="exam-detail-card">
+          <h2><i class="fas fa-circle-info"></i> Thông tin chung</h2>
+          <ul class="exam-detail-list">
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Học phần</span>
+              <span class="exam-detail-value"><%= [session.subject_code, session.subject_name || 'Chưa cập nhật'].filter(Boolean).join(' - ') %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Tín chỉ</span>
+              <span class="exam-detail-value"><%= typeof session.subject_credits === 'number' ? session.subject_credits : 'N/A' %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Lớp học</span>
+              <span class="exam-detail-value"><%= session.class_code || session.class_name || 'Không áp dụng' %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Kỳ thi</span>
+              <span class="exam-detail-value"><%= session.period_name || 'Chưa cập nhật' %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Thời lượng</span>
+              <span class="exam-detail-value"><%= session.duration ? session.duration + ' phút' : 'N/A' %></span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="exam-detail-card">
+          <h2><i class="fas fa-user-check"></i> Phân công chấm thi</h2>
+          <ul class="exam-detail-list">
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">CBCT1</span>
+              <span class="exam-detail-value"><i class="fas fa-user-tie"></i> <%= cbct1Display %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">CBCT2</span>
+              <span class="exam-detail-value"><i class="fas fa-user-group"></i> <%= cbct2Display %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Hạn chấm bài</span>
+              <span class="exam-detail-value"><i class="fas fa-calendar-day"></i> <%= formatDate(gradingDeadline) %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Hình thức thi</span>
+              <span class="exam-detail-value"><%= session.exam_type ? session.exam_type.toUpperCase() : '—' %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Link thi online</span>
+              <% if (session.link) { %>
+                <span class="exam-detail-value"><i class="fas fa-external-link"></i> <a href="<%= session.link %>" target="_blank" rel="noopener" class="text-primary">Mở đường dẫn</a></span>
+              <% } else { %>
+                <span class="exam-detail-value">Không có</span>
+              <% } %>
+            </li>
+          </ul>
+        </section>
+
+        <section class="exam-detail-card">
+          <h2><i class="fas fa-chart-line"></i> Theo dõi tiến độ</h2>
+          <ul class="exam-detail-list">
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Trạng thái</span>
+              <span class="exam-detail-value"><i class="fas <%= statusConfig.icon %>"></i> <%= statusConfig.label %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Ngày tạo</span>
+              <span class="exam-detail-value"><%= session.created_at ? new Date(session.created_at).toLocaleString('vi-VN') : 'N/A' %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Cập nhật gần nhất</span>
+              <span class="exam-detail-value"><%= session.updated_at ? new Date(session.updated_at).toLocaleString('vi-VN') : 'N/A' %></span>
+            </li>
+            <li class="exam-detail-item">
+              <span class="exam-detail-label">Dự kiến bản in</span>
+              <span class="exam-detail-value"><%= session.expected_copies !== null && session.expected_copies !== undefined ? session.expected_copies : 'N/A' %></span>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <% if (session.notes) { %>
+        <div class="exam-detail-card">
+          <h2><i class="fas fa-sticky-note"></i> Ghi chú</h2>
+          <div class="exam-notes"><%= session.notes %></div>
+        </div>
+      <% } %>
     </div>
   </div>
-  <%- include('../partials/footer') %>
-  <script src="/js/app.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.body.classList.add('exam-page--full');
+    });
+  </script>
 </body>
 </html>

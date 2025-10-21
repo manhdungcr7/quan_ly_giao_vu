@@ -686,6 +686,63 @@ body {
   align-items: start;
 }
 
+.workbook-breadcrumb {
+  margin-bottom: var(--space-xl);
+}
+
+.workbook-section-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 0.75rem 1.5rem;
+  margin-bottom: var(--space-xl);
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-lg);
+  position: sticky;
+  top: var(--space-lg);
+  z-index: 5;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+.workbook-section-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.section-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-md);
+  color: var(--gray-600);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.section-nav-link i {
+  font-size: 1rem;
+}
+
+.section-nav-link:hover {
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.section-nav-link.active {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  box-shadow: var(--shadow-md);
+}
+
+.section-nav-link.active i {
+  color: inherit;
+}
+
 .workbook-content {
   display: flex;
   flex-direction: column;
@@ -1569,6 +1626,10 @@ body {
   .workbook-stats {
     position: static;
   }
+
+  .workbook-section-nav {
+    position: static;
+  }
 }
 
 @media (max-width: 1200px) {
@@ -1606,6 +1667,16 @@ body {
   .days-grid {
     grid-template-columns: 1fr;
     gap: var(--space-lg);
+  }
+
+  .workbook-section-nav {
+    padding: 0.65rem 1rem;
+    gap: var(--space-sm);
+  }
+
+  .section-nav-link {
+    padding: 0.5rem 0.9rem;
+    font-size: 0.875rem;
   }
   
   .modal-dialog {

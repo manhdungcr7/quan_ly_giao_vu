@@ -1,5 +1,7 @@
+const PDFDocument = require('pdfkit');
 const WorkSchedule = require('../models/WorkSchedule');
 const db = require('../../config/database');
+const { ensurePdfFonts } = require('../utils/pdfFonts');
 
 function getWeekStart(dateInput) {
   const date = dateInput ? new Date(dateInput) : new Date();
@@ -27,6 +29,142 @@ function safeParseJSON(value) {
   }
 }
 
+function formatDateKey(date) {
+  const normalized = new Date(date);
+  if (Number.isNaN(normalized.getTime())) {
+    return '';
+  }
+  return normalized.toISOString().split('T')[0];
+}
+
+function formatDateLabel(date) {
+  const normalized = new Date(date);
+  return new Intl.DateTimeFormat('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  }).format(normalized);
+}
+
+function formatDateRangeDisplay(start, end) {
+  const formatter = new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  return `${formatter.format(start)} - ${formatter.format(end)}`;
+}
+
+const CLASS_TOKEN_PATTERN = /(?:^|\b)(?:lớp|lop|class)\s*[:\-]?\s*([A-Za-z0-9 ,._\-/()]+)/i;
+const CLASS_CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 ,._\-/()]{1,40}$/;
+const CLASS_IGNORED_PATTERN = /(giảng viên|g[\. ]?v|email|phòng|room|địa điểm|location)/i;
+
+function normalizeClassCandidate(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const hintMatch = trimmed.match(CLASS_TOKEN_PATTERN);
+  if (hintMatch && hintMatch[1]) {
+    return hintMatch[1].trim();
+  }
+
+  const singleLine = trimmed.split(/\r?\n/)[0].trim();
+
+  if (CLASS_IGNORED_PATTERN.test(singleLine)) {
+    return '';
+  }
+
+  if (CLASS_CODE_PATTERN.test(singleLine) && /\d/.test(singleLine)) {
+    return singleLine;
+  }
+
+  if (/\b(?:k|cn|dh|da|th|lt|sh|tn)[A-Za-z0-9]*\d+/i.test(singleLine)) {
+    return singleLine;
+  }
+
+  return '';
+}
+
+function determineClassName(event, rawTags) {
+  const candidates = [];
+
+  if (event && typeof event.class_name === 'string') {
+    candidates.push(event.class_name);
+  }
+
+  if (event && typeof event.class === 'string') {
+    candidates.push(event.class);
+  }
+
+  if (Array.isArray(rawTags)) {
+    candidates.push(...rawTags);
+  } else if (rawTags && typeof rawTags === 'object') {
+    const possibleKeys = ['class', 'class_name', 'lop', 'group', 'group_name', 'section'];
+    for (const key of possibleKeys) {
+      if (typeof rawTags[key] === 'string') {
+        candidates.push(rawTags[key]);
+      }
+    }
+    if (Array.isArray(rawTags.items)) {
+      candidates.push(...rawTags.items);
+    }
+  }
+
+  const textFields = [event?.description, event?.public_notes, event?.notes, event?.title];
+  for (const field of textFields) {
+    if (typeof field === 'string' && field) {
+      candidates.push(field);
+    }
+  }
+
+  for (const candidate of candidates) {
+    const className = normalizeClassCandidate(candidate);
+    if (className) {
+      return className;
+    }
+  }
+
+  return '';
+}
+
+const STATUS_LABELS = {
+  draft: 'Nháp',
+  confirmed: 'Đã xác nhận',
+  scheduled: 'Đã lên lịch',
+  ongoing: 'Đang diễn ra',
+  in_progress: 'Đang thực hiện',
+  completed: 'Hoàn thành',
+  cancelled: 'Đã hủy',
+  postponed: 'Hoãn',
+  rescheduled: 'Đã dời lịch'
+};
+
+const PRIORITY_LABELS = {
+  low: 'Thấp',
+  normal: 'Bình thường',
+  medium: 'Trung bình',
+  high: 'Cao',
+  critical: 'Khẩn cấp',
+  urgent: 'Khẩn'
+};
+
+const TYPE_LABELS = {
+  teaching: 'Giảng dạy',
+  meeting: 'Cuộc họp',
+  exam: 'Khảo thí',
+  admin: 'Hành chính',
+  ceremony: 'Sự kiện',
+  training: 'Tập huấn',
+  other: 'Khác'
+};
+
 function formatTime(date) {
   return new Date(date).toLocaleTimeString('vi-VN', {
     hour: '2-digit',
@@ -41,6 +179,80 @@ function getWeekdayIndex(date) {
 }
 
 class ScheduleController {
+  transformTeachingEvents(rawEvents = []) {
+    return rawEvents.map(event => {
+      const rawTags = safeParseJSON(event.tags);
+      let normalizedTags = {};
+
+      if (Array.isArray(rawTags)) {
+        normalizedTags = {
+          items: rawTags.slice()
+        };
+      } else if (rawTags && typeof rawTags === 'object') {
+        normalizedTags = {
+          ...rawTags
+        };
+
+        if (Array.isArray(rawTags.items)) {
+          normalizedTags.items = rawTags.items.slice();
+        }
+      }
+
+      const className = determineClassName(event, rawTags);
+
+      if (className) {
+        if (!normalizedTags.class) {
+          normalizedTags.class = className;
+        }
+        if (!normalizedTags.class_name) {
+          normalizedTags.class_name = className;
+        }
+        if (!normalizedTags.lop) {
+          normalizedTags.lop = className;
+        }
+      }
+
+      const participants = Array.isArray(event.participants) ? event.participants : [];
+      const startDate = event.start_datetime instanceof Date ? event.start_datetime : new Date(event.start_datetime);
+      const endDate = event.end_datetime instanceof Date ? event.end_datetime : new Date(event.end_datetime);
+
+      const lecturer = event.organizer_name
+        || normalizedTags.lecturer
+        || (participants.find(p => p.role === 'organizer')?.full_name)
+        || '';
+
+      const lecturerEmail = event.organizer_email
+        || (participants.find(p => p.role === 'organizer')?.email)
+        || '';
+
+      return {
+        id: event.id,
+        identifier: event.identifier || `teaching-${event.id}`,
+        title: event.title,
+  class_name: className,
+        description: event.description,
+        location: event.location,
+        room: event.room,
+        building: event.building,
+        organizer: lecturer,
+        organizer_id: event.organizer_id,
+        organizer_email: lecturerEmail,
+        tags: normalizedTags,
+        start: startDate instanceof Date ? startDate.toISOString() : event.start_datetime,
+        end: endDate instanceof Date ? endDate.toISOString() : event.end_datetime,
+        start_time: formatTime(startDate),
+        end_time: formatTime(endDate),
+        weekday: getWeekdayIndex(startDate),
+        notes: event.public_notes || event.notes || '',
+        priority: event.priority,
+        status: event.status,
+        participants,
+        is_all_day: Boolean(event.is_all_day),
+        timezone: event.timezone || 'Asia/Ho_Chi_Minh'
+      };
+    });
+  }
+
   // GET /schedule - Trang calendar
   async index(req, res) {
     try {
@@ -94,54 +306,7 @@ class ScheduleController {
         weekEnd.toISOString(),
         { includeParticipants: true }
       );
-
-      const formattedEvents = rawEvents.map(event => {
-        const rawTags = safeParseJSON(event.tags);
-        let normalizedTags = {};
-        let className = '';
-
-        if (Array.isArray(rawTags)) {
-          normalizedTags = {
-            items: rawTags,
-            class: rawTags[0] || undefined
-          };
-          className = rawTags[0] || '';
-        } else if (rawTags && typeof rawTags === 'object') {
-          normalizedTags = rawTags;
-          className = rawTags.class || rawTags.class_name || rawTags.lop || '';
-        }
-
-        const participants = Array.isArray(event.participants) ? event.participants : [];
-        const lecturer = event.organizer_name
-          || normalizedTags.lecturer
-          || (participants.find(p => p.role === 'organizer')?.full_name)
-          || '';
-        const lecturerEmail = event.organizer_email
-          || (participants.find(p => p.role === 'organizer')?.email)
-          || '';
-
-        return {
-          id: event.id,
-          title: event.title,
-          class_name: className,
-          description: event.description,
-          location: event.location,
-          room: event.room,
-          building: event.building,
-          organizer: lecturer,
-          organizer_id: event.organizer_id,
-          organizer_email: lecturerEmail,
-          tags: normalizedTags,
-          start: event.start_datetime instanceof Date ? event.start_datetime.toISOString() : event.start_datetime,
-          end: event.end_datetime instanceof Date ? event.end_datetime.toISOString() : event.end_datetime,
-          start_time: formatTime(event.start_datetime),
-          end_time: formatTime(event.end_datetime),
-          weekday: getWeekdayIndex(event.start_datetime),
-          notes: event.public_notes || event.notes || '',
-          priority: event.priority,
-          status: event.status
-        };
-      });
+      const formattedEvents = this.transformTeachingEvents(rawEvents);
 
       const notes = formattedEvents
         .filter(event => event.notes)
@@ -160,6 +325,302 @@ class ScheduleController {
     } catch (error) {
       console.error('Get teaching schedule error:', error);
       res.status(500).json({ error: error.message });
+    }
+  }
+
+  async exportPdf(req, res) {
+    try {
+      const userIdParam = req.query.user_id ? parseInt(req.query.user_id, 10) : null;
+      let startDate = req.query.start ? new Date(req.query.start) : getWeekStart(new Date());
+
+      if (Number.isNaN(startDate.getTime())) {
+        startDate = getWeekStart(new Date());
+      }
+
+      let endDate = req.query.end ? new Date(req.query.end) : getWeekEnd(startDate);
+
+      if (!req.query.end) {
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        // FullCalendar end date is exclusive -> adjust to previous millisecond
+        endDate = new Date(endDate.getTime() - 1);
+      }
+
+      if (Number.isNaN(endDate.getTime()) || endDate < startDate) {
+        endDate = getWeekEnd(startDate);
+      }
+
+      const startIso = startDate.toISOString();
+      const endIso = endDate.toISOString();
+
+      const [rawTeaching, calendarEvents, userFilter] = await Promise.all([
+        WorkSchedule.getTeachingSchedule(startIso, endIso, { includeParticipants: true }),
+        WorkSchedule.getEventsBetween(startIso, endIso, userIdParam || null),
+        userIdParam ? db.findOne('SELECT full_name, email FROM users WHERE id = ?', [userIdParam]) : Promise.resolve(null)
+      ]);
+
+      let teachingEvents = this.transformTeachingEvents(rawTeaching);
+
+      if (userIdParam) {
+        teachingEvents = teachingEvents.filter(event => {
+          if (Number(event.organizer_id) === userIdParam) {
+            return true;
+          }
+          if (Array.isArray(event.participants)) {
+            return event.participants.some(participant => Number(participant.user_id) === userIdParam);
+          }
+          return false;
+        });
+      }
+
+      const otherEvents = calendarEvents
+        .filter(event => (event.extendedProps?.event_type || 'other') !== 'teaching')
+        .map(event => {
+          const start = event.start ? new Date(event.start) : null;
+          const end = event.end ? new Date(event.end) : null;
+          return {
+            title: event.title,
+            event_type: event.extendedProps?.event_type || 'other',
+            start,
+            end,
+            allDay: Boolean(event.allDay),
+            location: event.extendedProps?.location || '',
+            room: event.extendedProps?.room || '',
+            building: event.extendedProps?.building || '',
+            organizer: event.extendedProps?.organizer_name || '',
+            status: event.extendedProps?.status || '',
+            priority: event.extendedProps?.priority || '',
+            description: event.extendedProps?.description || ''
+          };
+        })
+        .filter(event => event.start && !Number.isNaN(event.start.getTime()))
+        .sort((a, b) => a.start - b.start);
+
+      const summaryByType = [...teachingEvents.map(() => 'teaching'), ...otherEvents.map(ev => ev.event_type)]
+        .reduce((acc, type) => {
+          const key = type || 'other';
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
+
+      const groupByDate = (items, getDate) => {
+        const groups = new Map();
+        items.forEach(item => {
+          const date = getDate(item);
+          if (!date || Number.isNaN(date.getTime())) {
+            return;
+          }
+          const key = formatDateKey(date);
+          if (!groups.has(key)) {
+            groups.set(key, { date, items: [] });
+          }
+          groups.get(key).items.push(item);
+        });
+        return Array.from(groups.values()).sort((a, b) => a.date - b.date);
+      };
+
+      const teachingGroups = groupByDate(teachingEvents, event => new Date(event.start));
+      const otherGroups = groupByDate(otherEvents, event => event.start);
+
+      const fontPaths = await ensurePdfFonts();
+
+      const doc = new PDFDocument({ size: 'A4', margin: 48 });
+      const startKey = formatDateKey(startDate).replace(/-/g, '') || 'start';
+      const endKey = formatDateKey(endDate).replace(/-/g, '') || 'end';
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="lich-cong-tac_${startKey}_${endKey}.pdf"`
+      );
+
+      doc.pipe(res);
+
+      let regularFontName = null;
+      let boldFontName = null;
+
+      if (fontPaths.regular) {
+        try {
+          doc.registerFont('Schedule-Regular', fontPaths.regular);
+          regularFontName = 'Schedule-Regular';
+        } catch (fontError) {
+          console.warn('Unable to register custom PDF font:', fontError.message || fontError);
+        }
+      }
+
+      if (fontPaths.bold) {
+        try {
+          doc.registerFont('Schedule-Bold', fontPaths.bold);
+          boldFontName = 'Schedule-Bold';
+        } catch (fontError) {
+          console.warn('Unable to register bold PDF font:', fontError.message || fontError);
+        }
+      }
+
+      const useRegular = () => {
+        if (regularFontName) {
+          doc.font(regularFontName);
+        } else {
+          doc.font('Helvetica');
+        }
+      };
+
+      const useBold = () => {
+        if (boldFontName) {
+          doc.font(boldFontName);
+        } else if (regularFontName) {
+          doc.font(regularFontName);
+        } else {
+          doc.font('Helvetica-Bold');
+        }
+      };
+
+      useBold();
+      doc.fontSize(18).fillColor('#1f2937').text('LỊCH CÔNG TÁC TỔNG HỢP', { align: 'center' });
+      useRegular();
+      doc.moveDown(0.35);
+      doc.fontSize(12).fillColor('#4b5563').text(
+        `Thời gian: ${formatDateRangeDisplay(startDate, endDate)}`,
+        { align: 'center' }
+      );
+      doc.moveDown(0.2);
+      doc.fontSize(10).fillColor('#6b7280').text(
+        `Xuất lúc: ${new Date().toLocaleString('vi-VN')}`,
+        { align: 'center' }
+      );
+
+      if (userIdParam) {
+        doc.moveDown(0.2);
+        useRegular();
+        doc.fontSize(10).fillColor('#6b7280').text(
+          `Bộ lọc: ${filterLabel}`,
+          { align: 'center' }
+        );
+      }
+
+      doc.moveDown();
+      useRegular();
+      doc.fontSize(12).fillColor('#1f2937').text(
+        `Tổng số lịch giảng: ${teachingEvents.length}`
+      );
+      doc.fontSize(12).fillColor('#1f2937').text(
+        `Tổng số lịch công tác khác: ${otherEvents.length}`
+      );
+
+      if (Object.keys(summaryByType).length > 0) {
+        doc.moveDown(0.5);
+  doc.fontSize(12).fillColor('#1f2937').text('Phân bố theo loại sự kiện:');
+        Object.entries(summaryByType)
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .forEach(([type, count]) => {
+            const label = TYPE_LABELS[type] || type;
+            doc.fontSize(11).fillColor('#374151').text(`• ${label}: ${count}`);
+          });
+      }
+
+      const writeEventMeta = (label, value) => {
+        if (!value) {
+          return;
+        }
+        doc.fontSize(10).fillColor('#4b5563').text(`   - ${label}: ${value}`);
+      };
+
+      doc.moveDown(1);
+  useBold();
+  doc.fontSize(14).fillColor('#1f2937').text('I. Lịch giảng dạy', { underline: true });
+  useRegular();
+
+      if (teachingGroups.length === 0) {
+        doc.moveDown(0.3);
+        doc.fontSize(11).fillColor('#6b7280').text('Không có lịch giảng dạy trong giai đoạn này.');
+      } else {
+        teachingGroups.forEach(group => {
+          doc.moveDown(0.5);
+    doc.fontSize(12).fillColor('#2563eb');
+    useBold();
+    doc.text(formatDateLabel(group.date));
+    useRegular();
+          group.items
+            .sort((a, b) => new Date(a.start) - new Date(b.start))
+            .forEach(event => {
+              doc.moveDown(0.15);
+              const timeRange = `${event.start_time} - ${event.end_time}`;
+              doc.fontSize(11).fillColor('#111827');
+              useBold();
+              doc.text(`• ${timeRange} | ${event.title || 'Chưa đặt tên'}`);
+              useRegular();
+
+              const locationParts = [event.room, event.location, event.building]
+                .filter(Boolean)
+                .join(' - ');
+
+              writeEventMeta('Lớp', event.class_name);
+              writeEventMeta('Giảng viên', event.organizer);
+              writeEventMeta('Địa điểm', locationParts);
+              writeEventMeta('Trạng thái', STATUS_LABELS[event.status] || event.status);
+              writeEventMeta('Ưu tiên', PRIORITY_LABELS[event.priority] || event.priority);
+              if (event.notes) {
+                writeEventMeta('Ghi chú', event.notes);
+              }
+            });
+        });
+      }
+
+      doc.moveDown(1);
+  useBold();
+  doc.fontSize(14).fillColor('#1f2937').text('II. Lịch công tác khác', { underline: true });
+  useRegular();
+
+      if (otherGroups.length === 0) {
+        doc.moveDown(0.3);
+        doc.fontSize(11).fillColor('#6b7280').text('Không có lịch công tác nào khác trong giai đoạn này.');
+      } else {
+        otherGroups.forEach(group => {
+          doc.moveDown(0.5);
+    doc.fontSize(12).fillColor('#059669');
+    useBold();
+    doc.text(formatDateLabel(group.date));
+    useRegular();
+          group.items.forEach(event => {
+            doc.moveDown(0.15);
+            const hasTime = !event.allDay;
+            const timeRange = hasTime
+              ? `${formatTime(event.start)} - ${formatTime(event.end || event.start)}`
+              : 'Cả ngày';
+            const typeLabel = TYPE_LABELS[event.event_type] || event.event_type;
+            doc.fontSize(11).fillColor('#111827');
+            useBold();
+            doc.text(`• ${timeRange} | ${event.title || 'Chưa đặt tên'} (${typeLabel})`);
+            useRegular();
+
+            const locationParts = [event.room, event.location, event.building]
+              .filter(Boolean)
+              .join(' - ');
+
+            writeEventMeta('Phụ trách', event.organizer);
+            writeEventMeta('Địa điểm', locationParts);
+            writeEventMeta('Trạng thái', STATUS_LABELS[event.status] || event.status);
+            writeEventMeta('Ưu tiên', PRIORITY_LABELS[event.priority] || event.priority);
+            if (event.description) {
+              writeEventMeta('Nội dung', event.description);
+            }
+          });
+        });
+      }
+
+      doc.moveDown(1);
+      doc.fontSize(11).fillColor('#6b7280').text(
+        'Biểu mẫu được tạo tự động từ hệ thống quản lý giáo vụ. Vui lòng kiểm tra lại khi cần đối chiếu chính thức.'
+      );
+
+      doc.end();
+    } catch (error) {
+      console.error('Export schedule PDF error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Không thể xuất PDF. Vui lòng thử lại sau.' });
+      } else {
+        res.end();
+      }
     }
   }
 
@@ -539,6 +1000,487 @@ class ScheduleController {
       console.error('Check conflicts error:', error);
       res.status(500).json({ error: error.message });
     }
+  }
+
+  // POST /api/schedule/export/pdf - Xuất PDF với tùy chỉnh trường
+  async exportPdfCustom(req, res) {
+    try {
+      const { fields, orientation, start, end, user_id } = req.body;
+      
+      // Parse fields if it's a string
+      const selectedFields = typeof fields === 'string' ? JSON.parse(fields) : fields || [];
+      
+      // Validate có ít nhất 1 field
+      if (!selectedFields || selectedFields.length === 0) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Vui lòng chọn ít nhất một trường thông tin để xuất PDF.' 
+        });
+      }
+
+      // Set query parameters for the existing exportPdf method
+      req.query = {
+        start: start || req.query.start,
+        end: end || req.query.end,
+        user_id: user_id || req.query.user_id
+      };
+
+      // Store custom options in request object
+      req.pdfCustomOptions = {
+        fields: selectedFields,
+        orientation: orientation || 'portrait'
+      };
+
+      // Call existing exportPdf method
+      await this.exportPdfEnhanced(req, res);
+
+    } catch (error) {
+      console.error('Export custom PDF error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          success: false,
+          message: 'Không thể xuất PDF. Vui lòng thử lại sau.' 
+        });
+      }
+    }
+  }
+
+  // Enhanced PDF export with field customization
+  async exportPdfEnhanced(req, res) {
+    try {
+      const customOptions = req.pdfCustomOptions || {};
+      const selectedFields = customOptions.fields || ['title', 'event_type', 'datetime', 'organizer', 'location', 'status'];
+      const pdfOrientation = customOptions.orientation || 'portrait';
+
+      const userIdParam = req.query.user_id ? parseInt(req.query.user_id, 10) : null;
+      let startDate = req.query.start ? new Date(req.query.start) : getWeekStart(new Date());
+
+      if (Number.isNaN(startDate.getTime())) {
+        startDate = getWeekStart(new Date());
+      }
+
+      let endDate = req.query.end ? new Date(req.query.end) : getWeekEnd(startDate);
+
+      if (!req.query.end) {
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        endDate = new Date(endDate.getTime() - 1);
+      }
+
+      if (Number.isNaN(endDate.getTime()) || endDate < startDate) {
+        endDate = getWeekEnd(startDate);
+      }
+
+      const startIso = startDate.toISOString();
+      const endIso = endDate.toISOString();
+
+      const [rawTeaching, calendarEvents, userFilter] = await Promise.all([
+        WorkSchedule.getTeachingSchedule(startIso, endIso, { includeParticipants: true }),
+        WorkSchedule.getEventsBetween(startIso, endIso, userIdParam || null),
+        userIdParam ? db.findOne('SELECT full_name, email FROM users WHERE id = ?', [userIdParam]) : Promise.resolve(null)
+      ]);
+
+      let teachingEvents = this.transformTeachingEvents(rawTeaching);
+
+      if (userIdParam) {
+        teachingEvents = teachingEvents.filter(event => {
+          if (Number(event.organizer_id) === userIdParam) {
+            return true;
+          }
+          if (Array.isArray(event.participants)) {
+            return event.participants.some(participant => Number(participant.user_id) === userIdParam);
+          }
+          return false;
+        });
+      }
+
+      const otherEvents = calendarEvents
+        .filter(event => (event.extendedProps?.event_type || 'other') !== 'teaching')
+        .map(event => {
+          const start = event.start ? new Date(event.start) : null;
+          const end = event.end ? new Date(event.end) : null;
+          return {
+            title: event.title,
+            event_type: event.extendedProps?.event_type || 'other',
+            start,
+            end,
+            allDay: Boolean(event.allDay),
+            location: event.extendedProps?.location || '',
+            room: event.extendedProps?.room || '',
+            building: event.extendedProps?.building || '',
+            organizer: event.extendedProps?.organizer_name || '',
+            status: event.extendedProps?.status || '',
+            priority: event.extendedProps?.priority || '',
+            description: event.extendedProps?.description || '',
+            class_name: event.extendedProps?.class_name || '',
+            notes: event.extendedProps?.notes || ''
+          };
+        })
+        .filter(event => event.start && !Number.isNaN(event.start.getTime()))
+        .sort((a, b) => a.start - b.start);
+
+      const summaryByType = [...teachingEvents.map(() => 'teaching'), ...otherEvents.map(ev => ev.event_type)]
+        .reduce((acc, type) => {
+          const key = type || 'other';
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
+
+      const fontPaths = await ensurePdfFonts();
+
+      const doc = new PDFDocument({ 
+        size: 'A4', 
+        margin: pdfOrientation === 'landscape' ? 30 : 40,
+        layout: pdfOrientation
+      });
+      
+      const startKey = formatDateKey(startDate).replace(/-/g, '') || 'start';
+      const endKey = formatDateKey(endDate).replace(/-/g, '') || 'end';
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="lich-cong-tac_${startKey}_${endKey}.pdf"`
+      );
+
+      doc.pipe(res);
+
+      let regularFontName = null;
+      let boldFontName = null;
+
+      if (fontPaths.regular) {
+        try {
+          doc.registerFont('Schedule-Regular', fontPaths.regular);
+          regularFontName = 'Schedule-Regular';
+        } catch (fontError) {
+          console.warn('Unable to register custom PDF font:', fontError.message || fontError);
+        }
+      }
+
+      if (fontPaths.bold) {
+        try {
+          doc.registerFont('Schedule-Bold', fontPaths.bold);
+          boldFontName = 'Schedule-Bold';
+        } catch (fontError) {
+          console.warn('Unable to register bold PDF font:', fontError.message || fontError);
+        }
+      }
+
+      const useRegular = () => {
+        if (regularFontName) {
+          doc.font(regularFontName);
+        } else {
+          doc.font('Helvetica');
+        }
+      };
+
+      const useBold = () => {
+        if (boldFontName) {
+          doc.font(boldFontName);
+        } else if (regularFontName) {
+          doc.font(regularFontName);
+        } else {
+          doc.font('Helvetica-Bold');
+        }
+      };
+
+      // Helper function to draw table
+      const drawTable = (events, columns, startY) => {
+        const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        const tableLeft = doc.page.margins.left;
+        const columnWidths = columns.map(col => col.width || pageWidth / columns.length);
+        
+        let currentY = startY;
+        
+        // Draw header row background first
+        doc.save();
+        doc.rect(tableLeft, currentY, pageWidth, 24)
+           .fillAndStroke('#667eea', '#5568d3');
+        doc.restore();
+        
+        // Draw header text on top
+        useBold();
+        doc.fontSize(9).fillColor('#ffffff');
+        let currentX = tableLeft;
+        columns.forEach((col, idx) => {
+          doc.text(
+            col.header,
+            currentX + 4,
+            currentY + 7,
+            { width: columnWidths[idx] - 8, align: col.align || 'left', lineBreak: false }
+          );
+          currentX += columnWidths[idx];
+        });
+        
+        currentY += 24;
+        
+        // Draw data rows
+        events.forEach((event, rowIndex) => {
+          const rowHeight = this.calculateRowHeight(doc, event, columns, columnWidths);
+          
+          // Check if need new page
+          if (currentY + rowHeight > doc.page.height - doc.page.margins.bottom - 20) {
+            doc.addPage({ layout: pdfOrientation });
+            currentY = doc.page.margins.top;
+            
+            // Redraw header background
+            doc.save();
+            doc.rect(tableLeft, currentY, pageWidth, 24)
+               .fillAndStroke('#667eea', '#5568d3');
+            doc.restore();
+            
+            // Redraw header text
+            useBold();
+            doc.fontSize(9).fillColor('#ffffff');
+            currentX = tableLeft;
+            columns.forEach((col, idx) => {
+              doc.text(
+                col.header,
+                currentX + 4,
+                currentY + 7,
+                { width: columnWidths[idx] - 8, align: col.align || 'left', lineBreak: false }
+              );
+              currentX += columnWidths[idx];
+            });
+            currentY += 24;
+          }
+          
+          // Draw row background
+          const bgColor = rowIndex % 2 === 0 ? '#f8f9fa' : '#ffffff';
+          doc.save();
+          doc.rect(tableLeft, currentY, pageWidth, rowHeight)
+             .fillAndStroke(bgColor, '#e9ecef');
+          doc.restore();
+          
+          // Draw cell content on top
+          useRegular();
+          doc.fontSize(8).fillColor('#2c3e50');
+          currentX = tableLeft;
+          columns.forEach((col, idx) => {
+            const cellValue = col.getValue(event);
+            doc.text(
+              cellValue,
+              currentX + 4,
+              currentY + 4,
+              { width: columnWidths[idx] - 8, align: col.align || 'left' }
+            );
+            currentX += columnWidths[idx];
+          });
+          
+          currentY += rowHeight;
+        });
+        
+        return currentY;
+      };
+
+      // Header
+      useBold();
+      doc.fontSize(16).fillColor('#1f2937').text('LỊCH CÔNG TÁC TỔNG HỢP', { align: 'center' });
+      useRegular();
+      doc.moveDown(0.3);
+      doc.fontSize(10).fillColor('#4b5563').text(
+        `Thời gian: ${formatDateRangeDisplay(startDate, endDate)}`,
+        { align: 'center' }
+      );
+      doc.moveDown(0.15);
+      doc.fontSize(9).fillColor('#6b7280').text(
+        `Xuất lúc: ${new Date().toLocaleString('vi-VN')}`,
+        { align: 'center' }
+      );
+
+      if (userIdParam) {
+        doc.moveDown(0.15);
+        useRegular();
+        const filterLabel = userFilter
+          ? `${userFilter.full_name} (${userFilter.email})`
+          : `ID người dùng: ${userIdParam}`;
+        doc.fontSize(9).fillColor('#6b7280').text(
+          `Bộ lọc: ${filterLabel}`,
+          { align: 'center' }
+        );
+      }
+
+      doc.moveDown(0.5);
+      
+      // Summary
+      useRegular();
+      doc.fontSize(10).fillColor('#1f2937');
+      doc.text(`📊 Tổng số lịch giảng: ${teachingEvents.length}  |  Tổng số lịch công tác khác: ${otherEvents.length}`);
+      
+      if (Object.keys(summaryByType).length > 0) {
+        doc.moveDown(0.3);
+        doc.fontSize(9).fillColor('#374151');
+        const summary = Object.entries(summaryByType)
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([type, count]) => `${TYPE_LABELS[type] || type}: ${count}`)
+          .join('  |  ');
+        doc.text(`Phân bố: ${summary}`);
+      }
+
+      doc.moveDown(0.7);
+
+      // Define columns based on selected fields
+      const buildColumns = () => {
+        const availableColumns = {
+          datetime: { 
+            header: 'Ngày giờ', 
+            width: pdfOrientation === 'landscape' ? 100 : 85,
+            getValue: (event) => {
+              if (event.start_time) {
+                return `${formatDateKey(new Date(event.start || ''))}\n${event.start_time}-${event.end_time}`;
+              }
+              const hasTime = !event.allDay;
+              if (hasTime) {
+                return `${formatDateKey(event.start)}\n${formatTime(event.start)}-${formatTime(event.end || event.start)}`;
+              }
+              return `${formatDateKey(event.start)}\nCả ngày`;
+            }
+          },
+          title: { 
+            header: 'Tiêu đề', 
+            width: pdfOrientation === 'landscape' ? 150 : 120,
+            getValue: (event) => event.title || event.exam_name || 'Chưa đặt tên'
+          },
+          event_type: { 
+            header: 'Loại', 
+            width: 60,
+            getValue: (event) => TYPE_LABELS[event.event_type] || 'Khác'
+          },
+          organizer: { 
+            header: 'Người tổ chức', 
+            width: pdfOrientation === 'landscape' ? 100 : 80,
+            getValue: (event) => event.organizer || ''
+          },
+          class_name: { 
+            header: 'Lớp', 
+            width: 50,
+            getValue: (event) => event.class_name || ''
+          },
+          location: { 
+            header: 'Địa điểm', 
+            width: pdfOrientation === 'landscape' ? 90 : 70,
+            getValue: (event) => {
+              const parts = [];
+              if (event.room) parts.push(event.room);
+              if (event.location) parts.push(event.location);
+              if (event.building) parts.push(event.building);
+              return parts.join(' - ') || '';
+            }
+          },
+          room: { 
+            header: 'Phòng', 
+            width: 50,
+            getValue: (event) => event.room || ''
+          },
+          building: { 
+            header: 'Tòa', 
+            width: 40,
+            getValue: (event) => event.building || ''
+          },
+          status: { 
+            header: 'Trạng thái', 
+            width: 70,
+            getValue: (event) => STATUS_LABELS[event.status] || ''
+          },
+          priority: { 
+            header: 'Ưu tiên', 
+            width: 60,
+            getValue: (event) => PRIORITY_LABELS[event.priority] || ''
+          },
+          description: { 
+            header: 'Mô tả', 
+            width: pdfOrientation === 'landscape' ? 120 : 100,
+            getValue: (event) => (event.description || '').substring(0, 100)
+          },
+          notes: { 
+            header: 'Ghi chú', 
+            width: pdfOrientation === 'landscape' ? 100 : 80,
+            getValue: (event) => (event.notes || '').substring(0, 80)
+          }
+        };
+        
+        return selectedFields
+          .filter(field => availableColumns[field])
+          .map(field => availableColumns[field]);
+      };
+
+      const columns = buildColumns();
+      
+      if (columns.length === 0) {
+        // Fallback if no valid columns
+        columns.push(
+          { header: 'Ngày giờ', width: 100, getValue: (e) => formatDateKey(e.start || e.exam_date) },
+          { header: 'Tiêu đề', width: 200, getValue: (e) => e.title || e.exam_name }
+        );
+      }
+
+      // Section 1: Teaching schedule
+      if (teachingEvents.length > 0) {
+        useBold();
+        doc.fontSize(12).fillColor('#1f2937').text('I. LỊCH GIẢNG DẠY', { underline: true });
+        doc.moveDown(0.3);
+        
+        const currentY = drawTable(teachingEvents, columns, doc.y);
+        doc.y = currentY + 10;
+      } else {
+        useBold();
+        doc.fontSize(12).fillColor('#1f2937').text('I. LỊCH GIẢNG DẠY', { underline: true });
+        doc.moveDown(0.3);
+        useRegular();
+        doc.fontSize(9).fillColor('#6b7280').text('Không có lịch giảng dạy trong giai đoạn này.');
+        doc.moveDown(0.5);
+      }
+
+      // Section 2: Other schedules
+      if (otherEvents.length > 0) {
+        useBold();
+        doc.fontSize(12).fillColor('#1f2937').text('II. LỊCH CÔNG TÁC KHÁC', { underline: true });
+        doc.moveDown(0.3);
+        
+        const currentY = drawTable(otherEvents, columns, doc.y);
+        doc.y = currentY + 10;
+      } else {
+        useBold();
+        doc.fontSize(12).fillColor('#1f2937').text('II. LỊCH CÔNG TÁC KHÁC', { underline: true });
+        doc.moveDown(0.3);
+        useRegular();
+        doc.fontSize(9).fillColor('#6b7280').text('Không có lịch công tác nào khác trong giai đoạn này.');
+        doc.moveDown(0.5);
+      }
+
+      // Footer
+      doc.moveDown(0.5);
+      useRegular();
+      doc.fontSize(8).fillColor('#9ca3af').text(
+        'Biểu mẫu được tạo tự động từ hệ thống quản lý giáo vụ.',
+        { align: 'center' }
+      );
+
+      doc.end();
+    } catch (error) {
+      console.error('Export enhanced PDF error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Không thể xuất PDF. Vui lòng thử lại sau.' });
+      } else {
+        res.end();
+      }
+    }
+  }
+
+  // Helper to calculate row height for table
+  calculateRowHeight(doc, event, columns, columnWidths) {
+    let maxHeight = 20; // Minimum height
+    
+    columns.forEach((col, idx) => {
+      const text = col.getValue(event);
+      const textHeight = doc.heightOfString(text, { 
+        width: columnWidths[idx] - 8,
+        align: col.align || 'left'
+      });
+      maxHeight = Math.max(maxHeight, textHeight + 8);
+    });
+    
+    return Math.min(maxHeight, 60); // Cap at 60px
   }
 }
 

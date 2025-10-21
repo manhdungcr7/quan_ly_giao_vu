@@ -5,8 +5,76 @@ class StudentResearch extends BaseModel {
     super('student_research_projects');
   }
 
+    static tablesEnsured = false;
+
+    static async ensureTables() {
+      if (this.tablesEnsured) {
+        return true;
+      }
+
+      const ensureTable = async (tableName, createSql) => {
+        const exists = await this.tableExists(tableName);
+        if (!exists) {
+          await (new this()).db.execute(createSql);
+          this.clearTableExistenceCache(tableName);
+        }
+      };
+
+      const projectsSql = `
+        CREATE TABLE IF NOT EXISTS student_research_projects (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          project_code VARCHAR(50) NULL,
+          title VARCHAR(255) NOT NULL,
+          field VARCHAR(255) NULL,
+          supervisor_id INT NULL,
+          supervisor_name VARCHAR(255) NULL,
+          lead_student VARCHAR(255) NULL,
+          team_size INT DEFAULT 1,
+          status VARCHAR(50) DEFAULT 'proposal',
+          progress INT DEFAULT 0,
+          start_date DATE NULL,
+          end_date DATE NULL,
+          summary TEXT NULL,
+          achievements TEXT NULL,
+          reference_url VARCHAR(255) NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `;
+
+      const outputsSql = `
+        CREATE TABLE IF NOT EXISTS student_research_outputs (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          project_id INT NULL,
+          type VARCHAR(50) DEFAULT 'other',
+          title VARCHAR(255) NOT NULL,
+          description TEXT NULL,
+          publish_date DATE NULL,
+          lead_author VARCHAR(255) NULL,
+          reference_url VARCHAR(255) NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          CONSTRAINT fk_student_research_outputs_project
+            FOREIGN KEY (project_id)
+            REFERENCES student_research_projects(id)
+            ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `;
+
+      await ensureTable('student_research_projects', projectsSql);
+      await ensureTable('student_research_outputs', outputsSql);
+
+      const hasProjects = await this.tableExists('student_research_projects');
+      const hasOutputs = await this.tableExists('student_research_outputs');
+      this.tablesEnsured = hasProjects && hasOutputs;
+      return this.tablesEnsured;
+    }
+
   async safeExecute(callback, fallback) {
     try {
+      if (typeof this.constructor.ensureTables === 'function') {
+        await this.constructor.ensureTables();
+      }
       return await callback();
     } catch (error) {
       if (error?.code === 'ER_NO_SUCH_TABLE' || error?.code === 'ER_BAD_FIELD_ERROR') {
@@ -29,6 +97,10 @@ class StudentResearch extends BaseModel {
     };
 
     return this.safeExecute(async () => {
+      if (!(await this.constructor.tableExists('student_research_projects'))) {
+        return fallback;
+      }
+
       const sql = `
         SELECT 
           COUNT(*) as totalProjects,
@@ -55,19 +127,26 @@ class StudentResearch extends BaseModel {
 
   async getActiveProjects({ limit = 6 } = {}) {
     return this.safeExecute(async () => {
+      if (!(await this.constructor.tableExists('student_research_projects'))) {
+        return [];
+      }
+      const safeLimit = Math.max(1, Math.min(parseInt(limit, 10) || 6, 50));
       const sql = `
         SELECT id, project_code, title, field, status, lead_student, team_size, supervisor_name,
                start_date, end_date, progress, summary
         FROM student_research_projects
         ORDER BY progress DESC, start_date DESC
-        LIMIT ?
+        LIMIT ${safeLimit}
       `;
-      return await this.db.findMany(sql, [limit]);
+      return await this.db.findMany(sql);
     }, []);
   }
 
   async getAllProjects() {
     return this.safeExecute(async () => {
+      if (!(await this.constructor.tableExists('student_research_projects'))) {
+        return [];
+      }
       const sql = `
         SELECT *
         FROM student_research_projects
@@ -79,19 +158,30 @@ class StudentResearch extends BaseModel {
 
   async getRecentOutputs({ limit = 6 } = {}) {
     return this.safeExecute(async () => {
+      const projectsTable = await this.constructor.tableExists('student_research_projects');
+      const outputsTable = await this.constructor.tableExists('student_research_outputs');
+      if (!projectsTable || !outputsTable) {
+        return [];
+      }
+      const safeLimit = Math.max(1, Math.min(parseInt(limit, 10) || 6, 50));
       const sql = `
         SELECT o.*, p.title as project_title, p.lead_student
         FROM student_research_outputs o
         LEFT JOIN student_research_projects p ON o.project_id = p.id
         ORDER BY o.publish_date DESC, o.created_at DESC
-        LIMIT ?
+        LIMIT ${safeLimit}
       `;
-      return await this.db.findMany(sql, [limit]);
+      return await this.db.findMany(sql);
     }, []);
   }
 
   async getAllOutputs() {
     return this.safeExecute(async () => {
+      const projectsTable = await this.constructor.tableExists('student_research_projects');
+      const outputsTable = await this.constructor.tableExists('student_research_outputs');
+      if (!projectsTable || !outputsTable) {
+        return [];
+      }
       const sql = `
         SELECT o.*, p.title AS project_title
         FROM student_research_outputs o
@@ -104,6 +194,9 @@ class StudentResearch extends BaseModel {
 
   async getFieldDistribution() {
     return this.safeExecute(async () => {
+      if (!(await this.constructor.tableExists('student_research_projects'))) {
+        return [];
+      }
       const sql = `
         SELECT field, COUNT(*) as count
         FROM student_research_projects
@@ -117,6 +210,9 @@ class StudentResearch extends BaseModel {
 
   async createProject(data = {}) {
     try {
+      if (!(await this.constructor.tableExists('student_research_projects'))) {
+        throw new Error('Bảng student_research_projects chưa được thiết lập.');
+      }
       const sql = `
         INSERT INTO student_research_projects (
           project_code, title, field, supervisor_id, supervisor_name,
@@ -149,6 +245,9 @@ class StudentResearch extends BaseModel {
 
   async updateProject(id, data = {}) {
     try {
+      if (!(await this.constructor.tableExists('student_research_projects'))) {
+        throw new Error('Bảng student_research_projects chưa được thiết lập.');
+      }
       const sql = `
         UPDATE student_research_projects SET
           project_code = ?,
@@ -193,6 +292,9 @@ class StudentResearch extends BaseModel {
 
   async deleteProject(id) {
     try {
+      if (!(await this.constructor.tableExists('student_research_projects'))) {
+        throw new Error('Bảng student_research_projects chưa được thiết lập.');
+      }
       await this.db.delete('DELETE FROM student_research_projects WHERE id = ?', [id]);
     } catch (error) {
       console.error('StudentResearch.deleteProject error:', error);
@@ -202,6 +304,11 @@ class StudentResearch extends BaseModel {
 
   async createOutput(data = {}) {
     try {
+      const projectsTable = await this.constructor.tableExists('student_research_projects');
+      const outputsTable = await this.constructor.tableExists('student_research_outputs');
+      if (!projectsTable || !outputsTable) {
+        throw new Error('Bảng student_research_outputs hoặc student_research_projects chưa được thiết lập.');
+      }
       const sql = `
         INSERT INTO student_research_outputs (
           project_id, type, title, description, publish_date,
@@ -226,6 +333,11 @@ class StudentResearch extends BaseModel {
 
   async updateOutput(id, data = {}) {
     try {
+      const projectsTable = await this.constructor.tableExists('student_research_projects');
+      const outputsTable = await this.constructor.tableExists('student_research_outputs');
+      if (!projectsTable || !outputsTable) {
+        throw new Error('Bảng student_research_outputs hoặc student_research_projects chưa được thiết lập.');
+      }
       const sql = `
         UPDATE student_research_outputs SET
           project_id = ?,
@@ -255,6 +367,9 @@ class StudentResearch extends BaseModel {
 
   async deleteOutput(id) {
     try {
+      if (!(await this.constructor.tableExists('student_research_outputs'))) {
+        throw new Error('Bảng student_research_outputs chưa được thiết lập.');
+      }
       await this.db.delete('DELETE FROM student_research_outputs WHERE id = ?', [id]);
     } catch (error) {
       console.error('StudentResearch.deleteOutput error:', error);

@@ -1,4 +1,5 @@
 const BaseModel = require('./BaseModel');
+const { ensureEvaluationSchema } = require('./helpers/evaluationSchemaEnsurer');
 
 class EvaluationPeriod extends BaseModel {
   constructor() {
@@ -9,6 +10,8 @@ class EvaluationPeriod extends BaseModel {
    * Lấy đợt đánh giá đang active
    */
   async getActivePeriod() {
+    await ensureEvaluationSchema(this.db);
+
     try {
       const sql = `
         SELECT * FROM evaluation_periods 
@@ -18,6 +21,17 @@ class EvaluationPeriod extends BaseModel {
       `;
       return await this.db.findOne(sql);
     } catch (error) {
+      if (error?.code === 'ER_NO_SUCH_TABLE') {
+        const ensured = await ensureEvaluationSchema(this.db, true);
+        if (ensured) {
+          return await this.db.findOne(`
+            SELECT * FROM evaluation_periods 
+            WHERE status = 'active' 
+            ORDER BY start_date DESC 
+            LIMIT 1
+          `);
+        }
+      }
       console.error('Error in EvaluationPeriod.getActivePeriod:', error);
       return null;
     }
@@ -27,6 +41,8 @@ class EvaluationPeriod extends BaseModel {
    * Lấy tất cả đợt đánh giá
    */
   async getAllPeriods(academicYear = null) {
+    await ensureEvaluationSchema(this.db);
+
     try {
       let sql = 'SELECT * FROM evaluation_periods';
       const params = [];
@@ -40,6 +56,22 @@ class EvaluationPeriod extends BaseModel {
 
       return await this.db.findMany(sql, params);
     } catch (error) {
+      if (error?.code === 'ER_NO_SUCH_TABLE') {
+        const ensured = await ensureEvaluationSchema(this.db, true);
+        if (ensured) {
+          let sql = 'SELECT * FROM evaluation_periods';
+          const params = [];
+
+          if (academicYear) {
+            sql += ' WHERE academic_year = ?';
+            params.push(academicYear);
+          }
+
+          sql += ' ORDER BY start_date DESC';
+
+          return await this.db.findMany(sql, params);
+        }
+      }
       console.error('Error in EvaluationPeriod.getAllPeriods:', error);
       return [];
     }
@@ -49,12 +81,11 @@ class EvaluationPeriod extends BaseModel {
    * Tạo đợt đánh giá mới và sao chép tiêu chí từ template
    */
   async createPeriodWithCriteria(periodData, copyFromPeriodId = null) {
-    const connection = await this.db.getConnection();
-    
-    try {
-      await connection.beginTransaction();
+    await ensureEvaluationSchema(this.db);
 
-      // Tạo period mới
+    const connection = await this.db.beginTransaction();
+
+    try {
       const [periodResult] = await connection.query(
         `INSERT INTO evaluation_periods (name, academic_year, semester, start_date, end_date, evaluation_deadline, status, notes)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -92,14 +123,12 @@ class EvaluationPeriod extends BaseModel {
         );
       }
 
-      await connection.commit();
+      await this.db.commit(connection);
       return { id: newPeriodId, ...periodData };
     } catch (error) {
-      await connection.rollback();
+      await this.db.rollback(connection);
       console.error('Error in EvaluationPeriod.createPeriodWithCriteria:', error);
       throw error;
-    } finally {
-      connection.release();
     }
   }
 
@@ -107,6 +136,8 @@ class EvaluationPeriod extends BaseModel {
    * Thêm một tiêu chí vào đợt đánh giá
    */
   async addCriteriaToPeriod(periodId, criteriaId, config = {}) {
+    await ensureEvaluationSchema(this.db);
+
     try {
       const sql = `
         INSERT INTO evaluation_period_criteria
@@ -133,6 +164,23 @@ class EvaluationPeriod extends BaseModel {
       await this.db.execute(sql, params);
       return true;
     } catch (error) {
+      if (error?.code === 'ER_NO_SUCH_TABLE') {
+        const ensured = await ensureEvaluationSchema(this.db, true);
+        if (ensured) {
+          await this.db.execute(`
+            INSERT INTO evaluation_period_criteria
+              (period_id, criteria_id, weight, target_value, excellent_value, is_required, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+              weight = VALUES(weight),
+              target_value = VALUES(target_value),
+              excellent_value = VALUES(excellent_value),
+              is_required = VALUES(is_required),
+              notes = VALUES(notes)
+          `, params);
+          return true;
+        }
+      }
       console.error('Error in EvaluationPeriod.addCriteriaToPeriod:', error);
       throw error;
     }

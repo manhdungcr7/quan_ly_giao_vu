@@ -159,6 +159,20 @@ textarea.form-control {
   min-height: 100px;
   resize: vertical;
 }
+
+.multi-input {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.multi-input input.form-control {
+  margin: 0;
+}
+
+.multi-input .form-help {
+  font-size: 0.8rem;
+  color: #64748b;
+}
 </style>
 
 <div class="staff-create-form">
@@ -167,7 +181,7 @@ textarea.form-control {
     <p>Nhập đầy đủ thông tin để tạo hồ sơ cán bộ và tài khoản truy cập hệ thống.</p>
   </header>
 
-  <form action="/staff" method="POST" novalidate>
+  <form action="/staff" method="POST" novalidate enctype="multipart/form-data">
     <!-- Thông tin cơ bản -->
     <section class="form-section">
       <h3 class="form-section__title">
@@ -345,7 +359,7 @@ textarea.form-control {
         </div>
 
         <div class="form-group">
-          <label for="hire_date">Ngày vào làm <span class="required">*</span></label>
+          <label for="hire_date">Ngày vào ngành <span class="required">*</span></label>
           <input 
             type="date" 
             id="hire_date" 
@@ -356,7 +370,33 @@ textarea.form-control {
           >
           <% if (errors.hire_date) { %>
             <span class="form-error"><%= errors.hire_date %></span>
+          <% } else { %>
+            <span class="form-help">Ghi nhận mốc chính thức gia nhập lực lượng ngành.</span>
           <% } %>
+        </div>
+
+        <div class="form-group">
+          <label for="t04_start_date">Ngày công tác tại T04</label>
+          <input 
+            type="date" 
+            id="t04_start_date" 
+            name="t04_start_date" 
+            class="form-control"
+            value="<%= formData.t04_start_date || '' %>"
+          >
+          <span class="form-help">Theo dõi thời gian điều động tới Trung tâm T04.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="faculty_start_date">Ngày công tác tại Khoa</label>
+          <input 
+            type="date" 
+            id="faculty_start_date" 
+            name="faculty_start_date" 
+            class="form-control"
+            value="<%= formData.faculty_start_date || '' %>"
+          >
+          <span class="form-help">Dùng để đánh giá thâm niên tại đơn vị chủ quản.</span>
         </div>
 
         <div class="form-group">
@@ -416,7 +456,7 @@ textarea.form-control {
         </div>
 
         <div class="form-group">
-          <label for="years_experience">Số năm kinh nghiệm</label>
+          <label for="years_experience">Thâm niên</label>
           <input 
             type="number" 
             id="years_experience" 
@@ -426,6 +466,7 @@ textarea.form-control {
             min="0"
             max="50"
           >
+          <span class="form-help">Số năm công tác có tính liên tục trong ngành.</span>
         </div>
       </div>
     </section>
@@ -438,6 +479,76 @@ textarea.form-control {
       </h3>
       <div class="form-grid form-grid--full">
         <div class="form-group">
+          <label for="language_skills_0">Ngoại ngữ</label>
+          <div class="multi-input" data-limit="5">
+            <% const languageEntries = Array.isArray(formData.language_skills) ? formData.language_skills : (formData.language_skills ? [formData.language_skills] : ['']); %>
+            <% for (let i = 0; i < 5; i++) { const inputId = `language_skills_${i}`; %>
+              <input
+                type="text"
+                id="<%= i === 0 ? inputId : '' %>"
+                name="language_skills[]"
+                class="form-control"
+                value="<%= languageEntries[i] || '' %>"
+                placeholder="VD: IELTS 6.5, TOEFL iBT 80..."
+              >
+            <% } %>
+            <span class="form-help">Nhập tối đa 5 ngoại ngữ/ chứng chỉ, để trống nếu không sử dụng.</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="it_skills_0">Tin học</label>
+          <div class="multi-input" data-limit="5">
+            <% const itEntries = Array.isArray(formData.it_skills) ? formData.it_skills : (formData.it_skills ? [formData.it_skills] : ['']); %>
+            <% for (let i = 0; i < 5; i++) { const inputId = `it_skills_${i}`; %>
+              <input
+                type="text"
+                id="<%= i === 0 ? inputId : '' %>"
+                name="it_skills[]"
+                class="form-control"
+                value="<%= itEntries[i] || '' %>"
+                placeholder="VD: MOS, Chứng chỉ quản trị mạng..."
+              >
+            <% } %>
+            <span class="form-help">Ghi tối đa 5 kỹ năng/ chứng chỉ tin học quan trọng.</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="party_card_number">Số thẻ đảng viên</label>
+          <input
+            type="text"
+            id="party_card_number"
+            name="party_card_number"
+            class="form-control"
+            value="<%= formData.party_card_number || '' %>"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="service_number">Số hiệu</label>
+          <input
+            type="text"
+            id="service_number"
+            name="service_number"
+            class="form-control"
+            value="<%= formData.service_number || '' %>"
+            placeholder="Mã số nghiệp vụ, quân hiệu..."
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="party_join_date">Ngày vào Đảng</label>
+          <input
+            type="date"
+            id="party_join_date"
+            name="party_join_date"
+            class="form-control"
+            value="<%= formData.party_join_date || '' %>"
+          >
+        </div>
+
+        <div class="form-group">
           <label for="notes">Ghi chú</label>
           <textarea 
             id="notes" 
@@ -445,6 +556,27 @@ textarea.form-control {
             class="form-control"
             placeholder="Các thông tin bổ sung, lưu ý đặc biệt..."
           ><%= formData.notes || '' %></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h3 class="form-section__title">
+        <i class="fa-solid fa-folder-open"></i>
+        Hồ sơ đính kèm
+      </h3>
+      <div class="form-grid form-grid--full">
+        <div class="form-group">
+          <label for="profile_files">Tải hồ sơ cá nhân</label>
+          <input
+            type="file"
+            id="profile_files"
+            name="profile_files"
+            class="form-control"
+            multiple
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip,.rar,.7z"
+          >
+          <span class="form-help">Hỗ trợ tối đa 5 tập tin (mỗi file ≤ 50MB). Ví dụ: sơ yếu lý lịch, quyết định bổ nhiệm, chứng chỉ.</span>
         </div>
       </div>
     </section>

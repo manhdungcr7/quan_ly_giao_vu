@@ -2,28 +2,97 @@
 <link rel="stylesheet" href="/css/documents.css">
 
 <%- contentFor('content') %>
-<%- include('../partials/alerts') %>
-<div class="documents-page">
-  <% const STATUS_LABELS = {
+<%
+  const moduleTabs = Array.isArray(modules) ? modules : [];
+  const activeModule = module || moduleTabs.find(function(m){ return m.key === moduleKey; }) || moduleTabs[0] || { key: moduleKey || 'administrative', label: 'Quản lý văn bản', icon: 'fa-folder-tree', description: '' };
+  const moduleSlug = activeModule.key || moduleKey || 'administrative';
+  const heroTitle = direction === 'incoming' ? 'Văn bản đến' : 'Văn bản đi';
+  const directionSubtitle = direction === 'incoming'
+    ? 'Theo dõi các văn bản tiếp nhận và xử lý kịp thời.'
+    : 'Quản lý văn bản ban hành với tiến độ rõ ràng.';
+  const heroSubtitle = (activeModule.description ? (activeModule.description + ' ') : '') + directionSubtitle;
+
+  const breadcrumb = [
+    { label: 'Trang chủ', url: '/dashboard', icon: 'fa-house' },
+    {
+      label: activeModule.label || 'Quản lý văn bản',
+      url: `/documents/${moduleSlug}/incoming`,
+      icon: activeModule.icon || 'fa-folder-tree'
+    },
+    {
+      label: heroTitle,
+      url: `/documents/${moduleSlug}/${direction === 'incoming' ? 'incoming' : 'outgoing'}`,
+      icon: direction === 'incoming' ? 'fa-inbox' : 'fa-paper-plane'
+    }
+  ];
+
+  const STATUS_LABELS = {
     pending: 'Chờ xử lý',
     processing: 'Đang xử lý',
     completed: 'Hoàn tất',
     approved: 'Đã duyệt',
     archived: 'Đã lưu trữ',
     overdue: 'Quá hạn'
-  }; %>
-  <div class="page-header">
-    <div>
-      <h1 class="page-title"><%= direction === 'incoming' ? 'Văn bản đến' : 'Văn bản đi' %></h1>
-      <p class="page-subtitle">Danh sách <%= direction === 'incoming' ? 'các văn bản được tiếp nhận' : 'các văn bản ban hành' %> trong hệ thống</p>
+  };
+%>
+<div class="documents-page">
+  <section class="documents-hero" aria-labelledby="documentsHeroHeading">
+    <nav class="documents-breadcrumb" aria-label="Breadcrumb">
+      <ol class="documents-breadcrumb__list">
+        <% breadcrumb.forEach(function(item, index) { const isLast = index === breadcrumb.length - 1; %>
+          <li class="documents-breadcrumb__item">
+            <% if (!isLast) { %>
+              <a class="documents-breadcrumb__link" href="<%= item.url %>">
+                <i class="fas <%= item.icon %>" aria-hidden="true"></i>
+                <span><%= item.label %></span>
+              </a>
+            <% } else { %>
+              <span class="documents-breadcrumb__current">
+                <i class="fas <%= item.icon %>" aria-hidden="true"></i>
+                <span><%= item.label %></span>
+              </span>
+            <% } %>
+          </li>
+        <% }); %>
+      </ol>
+    </nav>
+    <div class="documents-hero__chip">
+      <span class="documents-hero__chip-icon"><i class="fas <%= activeModule.icon || 'fa-folder-tree' %>" aria-hidden="true"></i></span>
+      <span class="documents-hero__chip-label"><%= activeModule.label %></span>
     </div>
-  </div>
+    <div class="documents-hero__heading">
+      <h1 id="documentsHeroHeading" class="documents-hero__title"><%= heroTitle %></h1>
+      <p class="documents-hero__subtitle"><%= heroSubtitle %></p>
+    </div>
+  </section>
+
+  <% if (moduleTabs.length > 1) { %>
+    <section class="documents-modules" aria-label="Chọn nhóm văn bản">
+      <% moduleTabs.forEach(function(tab){ const isActive = tab.key === moduleSlug; %>
+        <a class="module-card <%= isActive ? 'module-card--active' : '' %>" href="/documents/<%= tab.key %>/<%= direction %>">
+          <span class="module-card__icon"><i class="fas <%= tab.icon || 'fa-folder-tree' %>" aria-hidden="true"></i></span>
+          <span class="module-card__body">
+            <span class="module-card__title"><%= tab.label %></span>
+            <span class="module-card__desc"><%= tab.description || 'Quản lý các văn bản thuộc nhóm này.' %></span>
+          </span>
+          <% if (isActive) { %>
+            <span class="module-card__status">Đang xem</span>
+          <% } %>
+        </a>
+      <% }); %>
+    </section>
+  <% } %>
 
   <% if (typeof success !== 'undefined' && success.length > 0) { %>
     <div class="alert alert-success">
       <%= success %>
     </div>
   <% } %>
+    <% if (moduleSupportEnabled === false) { %>
+      <div class="alert alert-warning">
+        Hiện tại hệ thống chưa thể phân tách văn bản theo nhóm do thiếu quyền cập nhật cơ sở dữ liệu. Dữ liệu đang được hiển thị ở chế độ một nhóm mặc định.
+      </div>
+    <% } %>
   <% if (typeof error !== 'undefined' && error.length > 0) { %>
     <div class="alert alert-danger">
       <%= error %>
@@ -36,18 +105,18 @@
         <i class="fas fa-folder-open"></i>
       </div>
       <div class="documents-toolbar__meta">
-        <span class="documents-toolbar__eyebrow">Điều hướng nhanh</span>
-        <span class="documents-toolbar__title">Quản lý văn bản</span>
+        <span class="documents-toolbar__eyebrow"><%= activeModule.label %></span>
+        <span class="documents-toolbar__title">Chọn luồng xử lý</span>
       </div>
       <div class="documents-toolbar__tabs" role="tablist">
-        <a href="/documents/incoming"
+        <a href="/documents/<%= moduleSlug %>/incoming"
            class="documents-tab <%= direction==='incoming' ? 'documents-tab--active' : '' %>"
            role="tab"
            aria-selected="<%= direction==='incoming' ? 'true' : 'false' %>">
           <i class="fas fa-inbox"></i>
           <span>Văn bản đến</span>
         </a>
-        <a href="/documents/outgoing"
+        <a href="/documents/<%= moduleSlug %>/outgoing"
            class="documents-tab <%= direction==='outgoing' ? 'documents-tab--active' : '' %>"
            role="tab"
            aria-selected="<%= direction==='outgoing' ? 'true' : 'false' %>">
@@ -61,7 +130,7 @@
         <span class="documents-toolbar__stat-label">Tổng</span>
         <span class="documents-toolbar__stat-value"><%= stats?.total || 0 %></span>
       </div>
-      <a href="/documents/create" class="documents-toolbar__cta">
+      <a href="/documents/create?module=<%= moduleSlug %>" class="documents-toolbar__cta">
         <i class="fas fa-plus"></i>
         <span>Thêm văn bản</span>
       </a>
@@ -69,7 +138,7 @@
   </section>
 
   <div class="documents-kpis">
-    <div class="documents-kpi">
+    <div class="documents-kpi documents-kpi--total">
       <span class="documents-kpi__value"><%= stats?.total || 0 %></span>
       <span class="documents-kpi__label">Tổng</span>
     </div>
@@ -98,20 +167,13 @@
     </div>
     <div class="filter-group">
       <label>Trạng thái</label>
-      <input type="hidden" name="status" id="filter_status_value" value="<%= filters.status || '' %>">
       <% const STATUS_ORDER = ['pending','processing','completed','approved','archived','overdue']; %>
-      <% const currentStatusLabel = filters.status ? (STATUS_LABELS[filters.status] || filters.status) : ''; %>
-      <input type="text"
-             id="filter_status_display"
-             placeholder="Nhập để tìm trạng thái"
-             list="filterStatusOptions"
-             autocomplete="off"
-             value="<%= currentStatusLabel %>">
-      <datalist id="filterStatusOptions">
+      <select name="status" id="filter_status_value" class="filter-select">
+        <option value="">-- Tất cả trạng thái --</option>
         <% STATUS_ORDER.forEach(function(st){ %>
-          <option value="<%= STATUS_LABELS[st] || st %>" data-id="<%= st %>"></option>
+          <option value="<%= st %>" <%= filters.status === st ? 'selected' : '' %>><%= STATUS_LABELS[st] || st %></option>
         <% }) %>
-      </datalist>
+      </select>
     </div>
     <div class="filter-group">
       <label>Loại</label>
@@ -139,7 +201,8 @@
     </div>
     <div class="filter-actions">
       <button type="submit" class="btn btn-secondary">Lọc</button>
-      <a class="btn btn-light" href="<%= direction==='incoming' ? '/documents/incoming' : '/documents/outgoing' %>">Xóa</a>
+      <a class="btn btn-light" href="/documents/<%= moduleSlug %>/<%= direction %>">Xóa</a>
+      <input type="hidden" name="module" value="<%= moduleSlug %>">
     </div>
   </form>
 
@@ -174,12 +237,28 @@
                 <div class="directive-content">
                   <div class="directive-text"><%= d.chi_dao ? d.chi_dao.substring(0,80) : '' %></div>
                   <div class="directive-actions">
-                    <button class="icon-btn directive-edit" title="<%= d.chi_dao ? 'Sửa chỉ đạo' : 'Thêm chỉ đạo' %>" data-id="<%= d.id %>" data-directive="<%= d.chi_dao || '' %>">
-                      <i class="fas <%= d.chi_dao ? 'fa-edit' : 'fa-plus' %>"></i>
+                    <button class="icon-btn icon-btn--sky directive-edit"
+                            title="<%= d.chi_dao ? 'Cập nhật chỉ đạo' : 'Thêm chỉ đạo' %>"
+                            aria-label="<%= d.chi_dao ? 'Cập nhật chỉ đạo' : 'Thêm chỉ đạo' %>"
+                            data-id="<%= d.id %>" data-directive="<%= d.chi_dao || '' %>">
+                      <% if (d.chi_dao && d.chi_dao.trim()) { %>
+                        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" class="icon-svg">
+                          <path fill="currentColor" d="M4 2.5A1.5 1.5 0 0 1 5.5 1h3A1.5 1.5 0 0 1 10 2.5V4h4.5A1.5 1.5 0 0 1 16 5.5v3A1.5 1.5 0 0 1 14.5 10H12v1.5a1.5 1.5 0 0 1-1.5 1.5H9l-.28 1.12a1.5 1.5 0 0 1-1.47 1.13H5.5A1.5 1.5 0 0 1 4 12.25zM8 3H6v2h2zm6 3H6v7h1.3l.38-1.52A1.5 1.5 0 0 1 9.13 10H12V8.5A1.5 1.5 0 0 1 13.5 7H14z"/>
+                        </svg>
+                      <% } else { %>
+                        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" class="icon-svg">
+                          <path fill="currentColor" d="M10 3a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4a1 1 0 0 1 1-1z"/>
+                        </svg>
+                      <% } %>
                     </button>
                     <% if (d.chi_dao && d.chi_dao.trim()) { %>
-                      <button class="icon-btn directive-approve" title="Phê duyệt chỉ đạo" data-id="<%= d.id %>">
-                        <i class="fas fa-check-circle"></i>
+                      <button class="icon-btn icon-btn--emerald directive-approve"
+                              title="Phê duyệt chỉ đạo"
+                              aria-label="Phê duyệt chỉ đạo"
+                              data-id="<%= d.id %>">
+                        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" class="icon-svg">
+                          <path fill="currentColor" d="M10 2a8 8 0 1 0 8 8 8.01 8.01 0 0 0-8-8zm3.54 6.46-4 4a1 1 0 0 1-1.42 0l-2-2a1 1 0 1 1 1.42-1.42L9 10.59l3.29-3.3a1 1 0 1 1 1.42 1.42z"/>
+                        </svg>
                       </button>
                     <% } %>
                   </div>
@@ -194,17 +273,37 @@
               </td>
               <td class="actions">
                 <div class="action-buttons">
-                  <button class="icon-btn view-doc" title="Xem chi tiết văn bản" data-id="<%= d.id %>">
-                    <i class="fas fa-eye"></i>
+                  <button class="icon-btn icon-btn--indigo view-doc"
+                          title="Xem chi tiết văn bản"
+                          aria-label="Xem chi tiết văn bản"
+                          data-id="<%= d.id %>">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" class="icon-svg">
+                      <path fill="currentColor" d="M10 4.5c-4.5 0-7.5 5.5-7.5 5.5s3 5.5 7.5 5.5 7.5-5.5 7.5-5.5-3-5.5-7.5-5.5Zm0 9a3.5 3.5 0 1 1 3.5-3.5A3.5 3.5 0 0 1 10 13.5Zm0-5a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 10 8.5Z"/>
+                    </svg>
                   </button>
-                  <button class="icon-btn edit-doc" title="Chỉnh sửa văn bản" data-id="<%= d.id %>">
-                    <i class="fas fa-edit"></i>
+                  <button class="icon-btn icon-btn--amber edit-doc"
+                          title="Chỉnh sửa văn bản"
+                          aria-label="Chỉnh sửa văn bản"
+                          data-id="<%= d.id %>">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" class="icon-svg">
+                      <path fill="currentColor" d="M12.59 2.59a2 2 0 0 1 2.82 0l1.99 1.99a2 2 0 0 1 0 2.82l-8.6 8.6a2 2 0 0 1-.94.53l-4 1a1 1 0 0 1-1.21-1.21l1-4a2 2 0 0 1 .52-.94zM13 5l-8 8-.5 2 2-.5 8-8z"/>
+                    </svg>
                   </button>
-                   <button class="icon-btn attachments-doc" title="Tệp đính kèm" data-id="<%= d.id %>" data-number="<%= d.document_number %>">
-                     <i class="fas fa-paperclip"></i>
+                   <button class="icon-btn icon-btn--cyan attachments-doc"
+                           title="Quản lý tệp đính kèm"
+                           aria-label="Quản lý tệp đính kèm"
+                           data-id="<%= d.id %>" data-number="<%= d.document_number %>">
+                     <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" class="icon-svg">
+                       <path fill="currentColor" d="M7.5 17a4.5 4.5 0 0 1-3.18-7.68l6.6-6.6a3.5 3.5 0 0 1 4.95 4.95l-6.6 6.6a2.5 2.5 0 0 1-3.54-3.54l6.3-6.29a1 1 0 1 1 1.41 1.41l-6.3 6.3a.5.5 0 0 0 .71.71l6.6-6.6a1.5 1.5 0 1 0-2.12-2.12l-6.6 6.6a2.5 2.5 0 0 0 3.54 3.54l6.6-6.6a1 1 0 0 1 1.41 1.41l-6.6 6.6A4.47 4.47 0 0 1 7.5 17Z"/>
+                     </svg>
                    </button>
-                  <button class="icon-btn delete-doc" title="Xóa văn bản (<%= d.document_number %>)" data-id="<%= d.id %>" data-number="<%= d.document_number %>">
-                    <i class="fas fa-trash-alt"></i>
+                  <button class="icon-btn icon-btn--rose delete-doc"
+                          title="Xóa văn bản (<%= d.document_number %>)"
+                          aria-label="Xóa văn bản"
+                          data-id="<%= d.id %>" data-number="<%= d.document_number %>">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" class="icon-svg">
+                      <path fill="currentColor" d="M7.5 3a1.5 1.5 0 0 1 1.5-1.5h2a1.5 1.5 0 0 1 1.5 1.5H15a1 1 0 0 1 0 2h-.5v9.5A2.5 2.5 0 0 1 12 17h-4a2.5 2.5 0 0 1-2.5-2.5V5H5a1 1 0 0 1 0-2zm1 2v9.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5V5zM9 8a1 1 0 0 1 2 0v5a1 1 0 1 1-2 0z"/>
+                    </svg>
                   </button>
                 </div>
               </td>
@@ -560,17 +659,6 @@ document.addEventListener('DOMContentLoaded', function() {
       sync: syncHidden
     };
   }
-
-  setupSmartSuggest({
-    displayId: 'filter_status_display',
-    hiddenId: 'filter_status_value',
-    datalistId: 'filterStatusOptions',
-    storageKey: 'qlgv_filter_status_history',
-    allowUnknown: true,
-    rememberUnknown: true,
-    highlightUnknown: false,
-    baseOptions: []
-  });
 
   setupSmartSuggest({
     displayId: 'filter_type_display',

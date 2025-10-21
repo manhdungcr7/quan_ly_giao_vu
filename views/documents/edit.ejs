@@ -2,14 +2,20 @@
 <link rel="stylesheet" href="/css/documents.css">
 
 <%- contentFor('content') %>
-<% const STATUS_LABELS = {
-  pending: 'Chờ xử lý',
-  processing: 'Đang xử lý',
-  completed: 'Hoàn tất',
-  approved: 'Đã duyệt',
-  archived: 'Đã lưu trữ',
-  draft: 'Bản nháp'
-}; %>
+<% const STATUS_OPTIONS_BASE = [
+  { id: 'pending', label: 'Chờ xử lý' },
+  { id: 'processing', label: 'Đang xử lý' },
+  { id: 'completed', label: 'Hoàn tất' },
+  { id: 'approved', label: 'Đã duyệt' },
+  { id: 'archived', label: 'Đã lưu trữ' },
+  { id: 'overdue', label: 'Quá hạn' }
+];
+const EXTRA_STATUS_LABELS = { draft: 'Bản nháp' };
+let STATUS_OPTIONS = STATUS_OPTIONS_BASE.slice();
+if (document && document.status && !STATUS_OPTIONS_BASE.some(function(opt){ return opt.id === document.status; }) && EXTRA_STATUS_LABELS[document.status]) {
+  STATUS_OPTIONS = STATUS_OPTIONS.concat([{ id: document.status, label: EXTRA_STATUS_LABELS[document.status] }]);
+}
+const SELECTED_STATUS = STATUS_OPTIONS.some(function(opt){ return opt.id === document.status; }) ? document.status : 'pending'; %>
 <% const DIRECTION_OPTIONS = [
   { id: 'incoming', label: 'Văn bản đến' },
   { id: 'outgoing', label: 'Văn bản đi' }
@@ -35,6 +41,12 @@
   <% if (typeof error !== 'undefined' && error.length > 0) { %>
     <div class="alert alert-danger">
       <%= error %>
+    </div>
+  <% } %>
+
+  <% if (moduleSupportEnabled === false) { %>
+    <div class="alert alert-warning">
+      Hệ thống chưa thể phân nhóm văn bản do thiếu quyền cập nhật cơ sở dữ liệu. Bạn đang chỉnh sửa ở chế độ nhóm mặc định.
     </div>
   <% } %>
 
@@ -127,20 +139,12 @@
         </div>
 
         <div class="form-group">
-          <label for="status_display">Trạng thái</label>
-          <input type="hidden" name="status" id="status" value="<%= document.status || 'pending' %>">
-          <input type="text" id="status_display" list="statusOptions"
-                 placeholder="Chọn trạng thái"
-                 value="<%= STATUS_LABELS[document.status] || STATUS_LABELS.pending %>"
-                 autocomplete="off">
-          <datalist id="statusOptions">
-            <option value="<%= STATUS_LABELS.pending %>" data-id="pending"></option>
-            <option value="<%= STATUS_LABELS.processing %>" data-id="processing"></option>
-            <option value="<%= STATUS_LABELS.completed %>" data-id="completed"></option>
-            <option value="<%= STATUS_LABELS.approved %>" data-id="approved"></option>
-            <option value="<%= STATUS_LABELS.archived %>" data-id="archived"></option>
-            <option value="<%= STATUS_LABELS.draft %>" data-id="draft"></option>
-          </datalist>
+          <label for="status_select">Trạng thái</label>
+          <select name="status" id="status_select">
+            <% STATUS_OPTIONS.forEach(function(option){ %>
+              <option value="<%= option.id %>" <%= SELECTED_STATUS === option.id ? 'selected' : '' %>><%= option.label %></option>
+            <% }); %>
+          </select>
           <small>Trạng thái hiện tại của văn bản trong quy trình xử lý.</small>
         </div>
 
@@ -349,7 +353,6 @@
     }
   });
 
-  bindDatalist('status_display', 'status', 'statusOptions');
   bindDatalist('type_display', 'type_id', 'typeOptions', { allowFreeText: true });
   bindDatalist('priority_display', 'priority', 'priorityOptions');
   bindDatalist('assigned_to_display', 'assigned_to', 'assignedToOptions', { allowFreeText: true });

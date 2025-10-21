@@ -150,6 +150,8 @@ class Project extends BaseModel {
                 params.push(searchTerm, searchTerm);
             }
 
+            const safeLimit = Math.max(1, Math.min(parseInt(limit, 10) || 20, 500));
+            const safeOffset = Math.max(0, parseInt(offset, 10) || 0);
             const sql = `
                 SELECT p.id, p.project_code, p.title, p.status, p.progress,
                        p.start_date, p.end_date, p.budget,
@@ -164,11 +166,11 @@ class Project extends BaseModel {
                 ${whereClause}
                 GROUP BY p.id
                 ORDER BY p.created_at DESC
-                LIMIT ? OFFSET ?
+                LIMIT ${safeLimit} OFFSET ${safeOffset}
             `;
-            params.push(limit, offset);
 
-            const projects = await this.db.findMany(sql, params);
+            const filterParams = params.slice();
+            const projects = await this.db.findMany(sql, filterParams);
 
             // Đếm tổng số
             const countSql = `
@@ -176,7 +178,7 @@ class Project extends BaseModel {
                 FROM projects p
                 ${whereClause}
             `;
-            const countParams = params.slice(0, -2);
+            const countParams = params.slice();
             const countResult = await this.db.findOne(countSql, countParams);
             const total = countResult.total;
 

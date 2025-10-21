@@ -153,24 +153,40 @@ function buildDateTime(dateStr, timeStr) {
 }
 
 async function resolveOrganizerId({ organizerEmail, organizerId }, fallbackUserId) {
+    // Priority 1: Explicit organizer ID from Excel
     if (organizerId) {
         const parsedId = parseInt(organizerId, 10);
         if (!Number.isNaN(parsedId) && parsedId > 0) {
-            return parsedId;
+            // Verify this user exists and is active
+            const user = await db.findOne('SELECT id FROM users WHERE id = ? AND is_active = 1', [parsedId]);
+            if (user) {
+                return user.id;
+            }
+            // If ID doesn't exist, continue to next priority
+            console.warn(`User ID ${parsedId} not found or inactive`);
         }
     }
 
+    // Priority 2: Email lookup
     if (organizerEmail) {
         const user = await db.findOne('SELECT id FROM users WHERE email = ? AND is_active = 1', [organizerEmail]);
         if (user) {
             return user.id;
         }
+        // If email doesn't exist, continue to fallback
+        console.warn(`User with email ${organizerEmail} not found or inactive`);
     }
 
+    // Priority 3: Fallback to handler (logged-in user)
     if (fallbackUserId) {
         const parsedFallback = parseInt(fallbackUserId, 10);
         if (!Number.isNaN(parsedFallback) && parsedFallback > 0) {
-            return parsedFallback;
+            // Verify fallback user exists
+            const user = await db.findOne('SELECT id FROM users WHERE id = ? AND is_active = 1', [parsedFallback]);
+            if (user) {
+                return user.id;
+            }
+            console.warn(`Fallback user ID ${parsedFallback} not found or inactive`);
         }
     }
 
@@ -309,17 +325,26 @@ class TeachingImportController {
                     const building = mapping.building ? String(row[mapping.building] || '').trim() : '';
                     const notes = mapping.notes ? String(row[mapping.notes] || '').trim() : '';
 
+                    // Resolve organizer_id: ưu tiên email, sau đó ID, cuối cùng dùng người import
                     const organizerId = await resolveOrganizerId({
                         organizerEmail,
                         organizerId: organizerIdValue && Number.isFinite(organizerIdValue) ? organizerIdValue : null
                     }, handlerUserId);
 
-                    if (!organizerId) {
-                        throw new Error('Không tìm thấy người tổ chức phù hợp');
+                    // Nếu không tìm được organizer, tự động gán = người đang import
+                    const finalOrganizerId = organizerId || handlerUserId;
+
+                    // Validate final organizer exists
+                    if (!finalOrganizerId) {
+                        const errorParts = [];
+                        if (organizerEmail) errorParts.push(`Email "${organizerEmail}" không tồn tại`);
+                        if (organizerIdValue) errorParts.push(`ID "${organizerIdValue}" không hợp lệ`);
+                        if (errorParts.length === 0) errorParts.push('Không xác định được người tổ chức');
+                        throw new Error(errorParts.join(', '));
                     }
 
                     const conflicts = await WorkSchedule.checkConflicts(
-                        organizerId,
+                        finalOrganizerId,
                         startDatetime,
                         endDatetime,
                         null,
@@ -365,7 +390,7 @@ class TeachingImportController {
                         room: room || null,
                         building: building || null,
                         online_meeting_url: null,
-                        organizer_id,
+                        organizer_id: finalOrganizerId,
                         status: 'confirmed',
                         priority: 'normal',
                         color: null,

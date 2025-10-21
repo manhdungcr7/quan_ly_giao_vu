@@ -55,8 +55,10 @@ const buildPageLink = (pageNumber) => {
 const formatDate = (value) => {
   if (!value) return null;
   const dt = new Date(value);
-  if (Number.isNaN(dt.getTime())) return null;
-  return dt.toLocaleDateString('vi-VN');
+  if (!Number.isNaN(dt.getTime())) {
+    return dt.toLocaleDateString('vi-VN');
+  }
+  return typeof value === 'string' ? value : null;
 };
 const avgExperience = (statsData && statsData.avg_experience !== null && statsData.avg_experience !== undefined)
   ? Number(statsData.avg_experience).toFixed(1)
@@ -295,33 +297,132 @@ const searchResetLink = searchResetParams.toString() ? `/staff?${searchResetPara
   <% if (departmentStats && departmentStats.length) { %>
     <section class="staff-departments" aria-label="Phân bổ giảng viên theo bộ môn">
       <header class="staff-departments__header">
-        <div>
+        <div class="staff-departments__title">
+          <span class="staff-departments__eyebrow">Tổng quan nhân sự</span>
           <h2>Phân bổ giảng viên theo bộ môn</h2>
           <p>Nhanh chóng xác định nơi đang thiếu giảng viên để điều phối hoặc tuyển bổ sung.</p>
         </div>
-        <a href="#" class="btn btn-ghost" data-future-feature>
-          <i class="fa-solid fa-file-export"></i>
-          Xuất báo cáo phân bổ
-        </a>
+        <div class="staff-departments__actions">
+          <a href="#" class="btn btn-ghost" data-future-feature>
+            <i class="fa-solid fa-file-export"></i>
+            Xuất báo cáo phân bổ
+          </a>
+        </div>
       </header>
+
+      <%
+        const totalDepartments = departmentStats.length;
+        const totalStaffCount = departmentStats.reduce((sum, item) => sum + (item.staff_count || 0), 0);
+        const totalActiveStaff = departmentStats.reduce((sum, item) => sum + (item.active_count || 0), 0);
+        const inactiveStaff = Math.max(totalStaffCount - totalActiveStaff, 0);
+        const salaryValues = departmentStats
+          .map(item => Number(item.avg_salary))
+          .filter(value => Number.isFinite(value) && value > 0);
+        const overallAverageSalary = salaryValues.length
+          ? Math.round(salaryValues.reduce((sum, value) => sum + value, 0) / salaryValues.length)
+          : null;
+      %>
+
+      <div class="staff-departments__summary" role="list">
+        <div class="summary-card" role="listitem">
+          <span class="summary-card__icon summary-card__icon--departments">
+            <i class="fa-solid fa-layer-group"></i>
+          </span>
+          <div class="summary-card__content">
+            <span class="summary-card__label">Số khoa/bộ môn</span>
+            <span class="summary-card__value"><%= totalDepartments %></span>
+          </div>
+        </div>
+        <div class="summary-card" role="listitem">
+          <span class="summary-card__icon summary-card__icon--staff">
+            <i class="fa-solid fa-users"></i>
+          </span>
+          <div class="summary-card__content">
+            <span class="summary-card__label">Tổng giảng viên</span>
+            <span class="summary-card__value"><%= totalStaffCount %></span>
+          </div>
+        </div>
+        <div class="summary-card" role="listitem">
+          <span class="summary-card__icon summary-card__icon--active">
+            <i class="fa-solid fa-chalkboard-user"></i>
+          </span>
+          <div class="summary-card__content">
+            <span class="summary-card__label">Đang giảng dạy</span>
+            <span class="summary-card__value"><%= totalActiveStaff %></span>
+          </div>
+        </div>
+        <div class="summary-card" role="listitem">
+          <span class="summary-card__icon summary-card__icon--reserve">
+            <i class="fa-solid fa-user-clock"></i>
+          </span>
+          <div class="summary-card__content">
+            <span class="summary-card__label">Dự phòng</span>
+            <span class="summary-card__value"><%= inactiveStaff %></span>
+          </div>
+        </div>
+        <div class="summary-card" role="listitem">
+          <span class="summary-card__icon summary-card__icon--salary">
+            <i class="fa-solid fa-coins"></i>
+          </span>
+          <div class="summary-card__content">
+            <span class="summary-card__label">Lương TB toàn hệ thống</span>
+            <span class="summary-card__value">
+              <%= overallAverageSalary ? `${overallAverageSalary.toLocaleString('vi-VN')} ₫` : 'Chưa có dữ liệu' %>
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div class="department-grid">
-        <% departmentStats.forEach(function(item){ %>
+        <% departmentStats.forEach(function(item){
+          const staffCount = item.staff_count || 0;
+          const activeCount = item.active_count || 0;
+          const inactiveCount = Math.max(staffCount - activeCount, 0);
+          const activeRatio = staffCount ? Math.round((activeCount / staffCount) * 100) : 0;
+          const formattedSalary = item.avg_salary ? `${Math.round(item.avg_salary).toLocaleString('vi-VN')} ₫` : 'Chưa có dữ liệu';
+        %>
           <article class="department-card">
-            <h3><i class="fa-solid fa-building-columns"></i> <%= item.department_name || 'Chưa xác định' %></h3>
-            <dl>
-              <div>
-                <dt>Tổng giảng viên</dt>
-                <dd><%= item.staff_count || 0 %></dd>
+            <header class="department-card__header">
+              <h3><i class="fa-solid fa-building-columns"></i> <%= item.department_name || 'Chưa xác định' %></h3>
+              <span class="department-card__total">
+                <i class="fa-solid fa-users"></i>
+                <strong><%= staffCount %></strong> giảng viên
+              </span>
+            </header>
+
+            <div class="department-card__metrics">
+              <div class="department-card__metric">
+                <span class="metric-icon metric-icon--active"><i class="fa-solid fa-person-chalkboard"></i></span>
+                <div>
+                  <span class="metric-label">Đang giảng dạy</span>
+                  <span class="metric-value"><strong><%= activeCount %></strong> cán bộ</span>
+                </div>
               </div>
-              <div>
-                <dt>Đang giảng dạy</dt>
-                <dd><%= item.active_count || 0 %></dd>
+              <div class="department-card__metric">
+                <span class="metric-icon metric-icon--inactive"><i class="fa-solid fa-user-clock"></i></span>
+                <div>
+                  <span class="metric-label">Dự phòng</span>
+                  <span class="metric-value"><strong><%= inactiveCount %></strong> cán bộ</span>
+                </div>
               </div>
-              <div>
-                <dt>Lương TB</dt>
-                <dd><%= item.avg_salary ? `${Math.round(item.avg_salary).toLocaleString('vi-VN')} ₫` : 'Chưa có dữ liệu' %></dd>
+              <div class="department-card__metric">
+                <span class="metric-icon metric-icon--salary"><i class="fa-solid fa-coins"></i></span>
+                <div>
+                  <span class="metric-label">Lương trung bình</span>
+                  <span class="metric-value"><%= formattedSalary %></span>
+                </div>
               </div>
-            </dl>
+            </div>
+
+            <div class="department-card__progress" aria-label="Tỷ lệ cán bộ đang giảng dạy">
+              <div class="department-card__progress-header">
+                <span>Tỷ lệ hoạt động</span>
+                <strong><%= activeRatio %> %</strong>
+              </div>
+              <div class="department-card__progress-track" style="--progress: <%= Math.min(activeRatio, 100) %>%;">
+                <span class="department-card__progress-bar"></span>
+              </div>
+            </div>
           </article>
         <% }) %>
       </div>
@@ -363,7 +464,12 @@ const searchResetLink = searchResetParams.toString() ? `/staff?${searchResetPara
         <% staffList.forEach(function(staff){
           const statusTone = staff.statusMeta && staff.statusMeta.tone ? staff.statusMeta.tone : 'muted';
           const statusLabel = staff.statusMeta && staff.statusMeta.label ? staff.statusMeta.label : 'Không xác định';
-          const hireDate = formatDate(staff.hireDate) || 'Chưa cập nhật';
+          const sectorJoinDate = formatDate(staff.sectorJoinDate || staff.hireDate) || 'Chưa cập nhật';
+          const t04Start = formatDate(staff.t04StartDate) || 'Chưa cập nhật';
+          const facultyStart = formatDate(staff.facultyStartDate) || 'Chưa cập nhật';
+          const yearsExperience = Number.isFinite(staff.yearsExperience) ? staff.yearsExperience : (Number.isFinite(Number(staff.yearsExperience)) ? Number(staff.yearsExperience) : null);
+          const languages = Array.isArray(staff.languages) ? staff.languages.filter(Boolean) : [];
+          const itSkills = Array.isArray(staff.itSkills) ? staff.itSkills.filter(Boolean) : [];
         %>
           <article class="staff-card" data-tone="<%= statusTone %>">
             <header class="staff-card__header">
@@ -400,8 +506,20 @@ const searchResetLink = searchResetParams.toString() ? `/staff?${searchResetPara
                   </div>
                 <% } %>
                 <div>
-                  <dt>Ngày vào làm</dt>
-                  <dd><%= hireDate %></dd>
+                  <dt>Ngày vào ngành</dt>
+                  <dd><%= sectorJoinDate %></dd>
+                </div>
+                <div>
+                  <dt>Ngày công tác T04</dt>
+                  <dd><%= t04Start %></dd>
+                </div>
+                <div>
+                  <dt>Ngày công tác tại Khoa</dt>
+                  <dd><%= facultyStart %></dd>
+                </div>
+                <div>
+                  <dt>Thâm niên</dt>
+                  <dd><%= typeof yearsExperience === 'number' && yearsExperience >= 0 ? `${yearsExperience} năm` : 'Chưa cập nhật' %></dd>
                 </div>
               </dl>
 
@@ -451,12 +569,24 @@ const searchResetLink = searchResetParams.toString() ? `/staff?${searchResetPara
                     <%= staff.academicRank %>
                   </span>
                 <% } %>
+                <% if (languages.length) { %>
+                  <span class="tag" title="Ngoại ngữ">
+                    <i class="fa-solid fa-language"></i>
+                    <%= languages.slice(0, 2).join(', ') %><%= languages.length > 2 ? ` +${languages.length - 2}` : '' %>
+                  </span>
+                <% } %>
+                <% if (itSkills.length) { %>
+                  <span class="tag" title="Tin học">
+                    <i class="fa-solid fa-code"></i>
+                    <%= itSkills.slice(0, 2).join(', ') %><%= itSkills.length > 2 ? ` +${itSkills.length - 2}` : '' %>
+                  </span>
+                <% } %>
               </div>
               <div class="staff-actions">
-                <button type="button" class="btn btn-ghost" data-future-feature>
+                <a href="/staff/<%= staff.id %>/profile" class="btn btn-ghost">
                   <i class="fa-solid fa-eye"></i>
                   Xem hồ sơ
-                </button>
+                </a>
                 <button type="button" class="btn btn-ghost" data-future-feature>
                   <i class="fa-solid fa-diagram-project"></i>
                   Phân công
